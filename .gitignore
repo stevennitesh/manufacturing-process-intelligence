@@ -54,7 +54,7 @@ data/warehouse/**
 # Generated models, reports, and experiment state
 artifacts/**
 !artifacts/.gitkeep
-models/
+/models/
 mlruns/
 mlartifacts/
 *.joblib
