@@ -34,11 +34,7 @@ flowchart TB
 - [M0 — Repository foundation](milestones/m00-foundation.md)
 - [M1 — SoliDAIR ingestion](milestones/m01-solidair-ingestion.md)
 
-Create a later milestone drill-down only when that milestone is approaching. GitHub
-Issues track individual tasks; these diagrams track subsystem readiness and gates.
-
-## Updating status
-
-Update this page and the active milestone diagram together. Change a subsystem to
-`✓` only when its named artifact exists and its relevant verification passes. Mark
-the milestone complete only when its acceptance gate passes end to end.
+The [planning and progression guide](agents/planning-and-progression.md) defines
+when to expand milestone plans, how to track subsystem progress, and what evidence
+is required to close a gate. These diagrams summarize readiness; linked milestone
+documents hold the execution details and evidence.
