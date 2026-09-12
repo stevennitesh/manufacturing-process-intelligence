@@ -2,7 +2,12 @@
 
 A greenfield, production-oriented data science system for predictive quality, uncertainty-aware inspection, process monitoring, and excursion diagnostics across manufacturing domains.
 
-The repository is currently at **Milestone 0: repository foundation**. It intentionally contains no modeling or performance claims yet.
+**Milestone 0: repository foundation** is complete, and **Milestone 1: SoliDAIR
+ingestion** is next. The repository intentionally contains no modeling or
+performance claims yet.
+
+See the [implementation roadmap](docs/implementation-roadmap.md) for the current
+milestone, subsystem status, and acceptance gates.
 
 ## Development setup
 
