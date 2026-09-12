@@ -1,7 +1,7 @@
 # Issue tracker: GitHub
 
 Issues and specifications live in GitHub Issues for
-https://github.com/stevennitesh/manufacturing-quality-intelligence.
+https://github.com/stevennitesh/manufacturing-process-intelligence.
 Use this guide for tracker-backed work.
 
 ## Configuration

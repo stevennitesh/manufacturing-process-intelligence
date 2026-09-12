@@ -1,12 +1,12 @@
 import json
 import logging
 
-from mqi.core.logging import JsonFormatter
+from mpi.core.logging import JsonFormatter
 
 
 def test_json_formatter_emits_expected_fields() -> None:
     record = logging.LogRecord(
-        name="mqi.test",
+        name="mpi.test",
         level=logging.INFO,
         pathname=__file__,
         lineno=1,
@@ -18,6 +18,6 @@ def test_json_formatter_emits_expected_fields() -> None:
     payload = json.loads(JsonFormatter().format(record))
 
     assert payload["level"] == "INFO"
-    assert payload["logger"] == "mqi.test"
+    assert payload["logger"] == "mpi.test"
     assert payload["message"] == "ready"
     assert payload["timestamp"].endswith("+00:00")

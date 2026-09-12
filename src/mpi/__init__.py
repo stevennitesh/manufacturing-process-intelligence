@@ -1,9 +1,9 @@
-"""Manufacturing Quality & Process Intelligence."""
+"""Manufacturing Process & Quality Intelligence."""
 
 from importlib.metadata import PackageNotFoundError, version
 
 try:
-    __version__ = version("manufacturing-quality-intelligence")
+    __version__ = version("manufacturing-process-intelligence")
 except PackageNotFoundError:
     __version__ = "0.0.0"
 

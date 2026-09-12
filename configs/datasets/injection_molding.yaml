@@ -1,0 +1,5 @@
+dataset: injection_molding
+stage: mvp
+enabled: false
+source_url: https://github.com/sc4t1m/scatimdata
+version: unacquired

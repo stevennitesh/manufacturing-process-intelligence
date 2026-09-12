@@ -1,0 +1,68 @@
+{
+  "schema": "solidair-source-discovery/v1",
+  "dataset_name": "solidair",
+  "accessed_on": "2026-09-12",
+  "selected_release": {
+    "record_id": 22300180,
+    "doi": "10.5281/zenodo.22300180",
+    "publication_date": "2026-09-04",
+    "version": null,
+    "landing_page_version_label": "v1",
+    "version_identity_note": "The API metadata.version value is null while the visible Zenodo landing page labels this release v1; use record ID, DOI, filenames, sizes, and hashes as the stable identity.",
+    "landing_page": "https://zenodo.org/records/22300180",
+    "metadata_url": "https://zenodo.org/api/records/22300180",
+    "metadata_sha256": "cfe960afff430e8dc960487ba3317bab3821564636105bba9035d63093cb9f7a",
+    "access_right": "open",
+    "license": "cc-by-nc-nd-4.0"
+  },
+  "files": [
+    {
+      "filename": "20260904_OpenDataset Description Form.pdf",
+      "role": "required_source_documentation",
+      "bytes": 67955,
+      "md5": "0d9320d77052035de6e1f7438e898258",
+      "sha256": "acaedeebed2d83fc5525257962326aee429357e6094047eddf6370ff661d86e9",
+      "download_url": "https://zenodo.org/api/records/22300180/files/20260904_OpenDataset%20Description%20Form.pdf/content"
+    },
+    {
+      "filename": "production_data.csv",
+      "role": "required_mvp_production_input",
+      "bytes": 137713757,
+      "md5": "02d6ac282c282fb735e7a43135d4fd60",
+      "sha256": "46c18905dc9ff588ec6c764f03779916f4879b260cc47134a9e6bfe07431cb30",
+      "download_url": "https://zenodo.org/api/records/22300180/files/production_data.csv/content",
+      "inspected_rows": 510050,
+      "inspected_columns": 30
+    },
+    {
+      "filename": "simulation_data.csv",
+      "role": "release_inventory_only_excluded_from_minimal_mvp_bundle",
+      "bytes": 50490,
+      "md5": "8eaec44eef4ba0aad4d243fb5891f03a",
+      "sha256": "f63a06fd4d5593baf019ac1068aa1d81e9c75457827f8e57c6635a9f0a8fbdb0",
+      "download_url": "https://zenodo.org/api/records/22300180/files/simulation_data.csv/content",
+      "inspected_rows": 800,
+      "inspected_columns": 7
+    }
+  ],
+  "inspection": {
+    "command": "uv run python scripts/inspect_solidair_source.py --metadata data/raw/solidair/zenodo-22300180-metadata.json --csv production=data/raw/solidair/production_data.csv --csv simulation=data/raw/solidair/simulation_data.csv --target input_1 --target input_2 --target input_3 --target input_4 --target input_5 --output artifacts/discovery/solidair/inspection.json",
+    "scope": "Complete streaming structural scan of both CSV files; row values omitted from saved evidence.",
+    "production": {
+      "malformed_rows": 0,
+      "blank_or_recognized_missing_tokens": 0,
+      "non_numeric_values": 0,
+      "non_finite_numeric_values": 0,
+      "duplicate_row_sha256_digest_occurrences": 0,
+      "first_complete_trace_data_row": 1
+    },
+    "simulation": {
+      "malformed_rows": 0,
+      "blank_or_recognized_missing_tokens": 0,
+      "non_numeric_values": 0,
+      "non_finite_numeric_values": 0,
+      "duplicate_row_sha256_digest_occurrences": 0,
+      "first_complete_trace_data_row": 1
+    }
+  }
+}

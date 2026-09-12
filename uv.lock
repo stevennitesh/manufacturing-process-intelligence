@@ -99,7 +99,7 @@ wheels = [
 ]
 
 [[package]]
-name = "manufacturing-quality-intelligence"
+name = "manufacturing-process-intelligence"
 version = "0.0.1"
 source = { editable = "." }
 dependencies = [

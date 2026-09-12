@@ -8,7 +8,7 @@ quality gates without adding modeling.
 ```mermaid
 flowchart LR
     R["✓ Runtime<br/>Python 3.12, uv, lockfile"]
-    P["✓ Package<br/>src/mqi and CLI shell"]
+    P["✓ Package<br/>src/mpi and CLI shell"]
     C["✓ Application core<br/>configuration, logging, seeds, types"]
     Q["✓ Quality system<br/>pytest, Ruff, Pyright, pre-commit"]
     D["✓ Repository system<br/>data hygiene, agent guidance, private origin"]

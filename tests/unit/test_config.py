@@ -3,13 +3,13 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from mqi.core.config import load_dataset_config
+from mpi.core.config import load_dataset_config
 
 
 def test_load_dataset_config() -> None:
-    config = load_dataset_config(Path("configs/datasets/solidair.yaml"))
+    config = load_dataset_config(Path("configs/datasets/injection_molding.yaml"))
 
-    assert config.name == "solidair"
+    assert config.dataset == "injection_molding"
     assert config.stage == "mvp"
     assert config.enabled is False
 
@@ -17,7 +17,7 @@ def test_load_dataset_config() -> None:
 def test_reject_unknown_dataset_config_field(tmp_path: Path) -> None:
     path = tmp_path / "dataset.yaml"
     path.write_text(
-        "name: example\nstage: mvp\nenabled: false\nversion: test\nunknown: value\n",
+        "dataset: example\nstage: mvp\nenabled: false\nversion: test\nunknown: value\n",
         encoding="utf-8",
     )
 

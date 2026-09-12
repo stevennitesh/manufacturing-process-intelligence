@@ -1,5 +1,5 @@
-name: bosch-plasma
-stage: v2
+dataset: bosch_plasma
+stage: semiconductor_transfer
 enabled: false
 source_url: null
 version: unacquired

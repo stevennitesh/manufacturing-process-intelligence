@@ -2,7 +2,7 @@
 
 ## Work in this repository
 
-- This is a manufacturing quality and process-intelligence project developed from a greenfield specification.
+- This is a manufacturing process and quality-intelligence project developed from a greenfield specification.
 - Use the runtime declared in `.python-version` and `pyproject.toml`, with dependencies resolved by `uv.lock`. Follow `README.md` for setup and `pyproject.toml` for package layout and entry points.
 - Work within the user's authorized scope. Milestone order and technical scope come from the specification routed by `docs/agents/domain.md`; current progress comes from `docs/implementation-roadmap.md` and its linked milestone documents.
 - Keep dataset-specific parsing and semantics in dataset adapters. Do not turn the project into a generic ML framework.

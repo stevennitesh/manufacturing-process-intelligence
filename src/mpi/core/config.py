@@ -1,7 +1,6 @@
 """Validated configuration models and loaders."""
 
 from pathlib import Path
-from typing import Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
@@ -12,8 +11,8 @@ class DatasetConfig(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    name: str = Field(min_length=1)
-    stage: Literal["mvp", "v1", "v2"]
+    dataset: str = Field(min_length=1)
+    stage: str = Field(min_length=1)
     enabled: bool = False
     source_url: str | None = None
     version: str = Field(min_length=1)

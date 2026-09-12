@@ -1,5 +1,5 @@
-name: cip-dmd
-stage: v1
+dataset: cip_dmd
+stage: process_intelligence
 enabled: false
 source_url: null
 version: unacquired

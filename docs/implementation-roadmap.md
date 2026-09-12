@@ -1,10 +1,11 @@
 # Implementation roadmap
 
 This is the concise status view of the
-[greenfield implementation plan](plans/Manufacturing%20Quality%20%26%20Process%20Intelligence%20%E2%80%94%20Greenfield%20Technical%20Specification%20%26%20Implementation%20Plan.md).
-The plan remains the authority for scope and acceptance criteria.
+[canonical greenfield implementation plan](plans/Manufacturing%20Process%20%26%20Quality%20Intelligence%20%E2%80%94%20Greenfield%20Specification%20and%20Implementation%20Plan.md).
+The plan owns scope and acceptance criteria; this roadmap owns current position.
 
-**Current position:** Milestone 0 is complete. Milestone 1 is next.
+**Current position:** Milestone 0 is complete. Milestone 1 is next and has not
+started; its first gate is verification of the injection-molding source contract.
 
 ## Status key
 
@@ -16,25 +17,25 @@ The plan remains the authority for scope and acceptance criteria.
 
 ```mermaid
 flowchart TB
-    F["✓ M0 · Foundation<br/>Platform system: runtime, package, CLI, configuration, logging, tests, CI"]
+    F["✓ M0 · Foundation<br/>Runtime, mpi package and CLI, configuration, logging, tests, CI"]
 
-    MVP["v0.1 · Predictive Quality MVP<br/>▶ M1 Data: SoliDAIR ingestion<br/>○ M2 Evaluation: splits and baselines<br/>○ M3 Modeling: quality model<br/>○ M4 Uncertainty: conformal coverage<br/>○ M5 Decisions: inspection policy<br/>○ M6 Experience: dashboard and release"]
+    MVP["v0.1 · Predictive Quality MVP<br/>▶ M1 Source contract + ingestion<br/>○ M2 Data audit<br/>○ M3 Validation strategy<br/>○ M4 Baselines<br/>○ M5 Time-series representation<br/>○ M6 GBDT quality model<br/>○ M7 Uncertainty<br/>○ M8 Selective measurement<br/>○ M9 Explainability<br/>○ M10 Dashboard"]
 
-    V1["v0.2 · Process Intelligence<br/>○ M7 Data: CiP-DMD adapter<br/>○ M8 Monitoring: process statistics<br/>○ M9 Detection: physical anomalies<br/>○ M10 Diagnostics: attribution and QC linkage"]
+    PI["v0.2 · Process Intelligence<br/>○ CiP-DMD ingestion, SPC, anomaly detection, diagnosis"]
+    PROD["v0.3 · Productionization<br/>○ Tracking, API, batch scoring, Docker, drift, operational CI"]
+    SEMI["v0.4 · Semiconductor Transfer<br/>○ BOSCH plasma virtual metrology and transfer validation"]
+    PHARMA["v0.5 · Regulated Transfer<br/>○ Pharmaceutical batch quality and genealogy"]
+    ADV["v0.6 · Optional Advanced Manufacturing<br/>○ Additional transfer case only if earlier gates justify it"]
 
-    V15["v0.3 · Productionization<br/>○ M11 Operational platform: tracking, API, batch, Docker, drift, CI"]
-
-    V2["v0.4 · Semiconductor Transfer<br/>○ M12 Data: plasma ingestion and synchronization<br/>○ M13 Modeling: virtual metrology<br/>○ M14 Validation: transfer, drift, and architecture reuse"]
-
-    F --> MVP --> V1 --> V15 --> V2
+    F --> MVP --> PI --> PROD --> SEMI --> PHARMA --> ADV
 ```
 
 ## Milestone drill-downs
 
 - [M0 — Repository foundation](milestones/m00-foundation.md)
-- [M1 — SoliDAIR ingestion](milestones/m01-solidair-ingestion.md)
+- [M1 — Injection-molding source contract and ingestion](milestones/m01-injection-molding-ingestion.md)
 
 The [planning and progression guide](agents/planning-and-progression.md) defines
 when to expand milestone plans, how to track subsystem progress, and what evidence
 is required to close a gate. These diagrams summarize readiness; linked milestone
-documents hold the execution details and evidence.
+documents hold execution details and evidence.

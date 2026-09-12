@@ -1,17 +1,17 @@
-"""Top-level MQI command line interface."""
+"""Top-level MPI command line interface."""
 
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
-from mqi import __version__
-from mqi.core.config import load_dataset_config
-from mqi.core.logging import configure_logging
+from mpi import __version__
+from mpi.core.config import load_dataset_config
+from mpi.core.logging import configure_logging
 
 app = typer.Typer(
-    name="mqi",
-    help="Manufacturing Quality & Process Intelligence.",
+    name="mpi",
+    help="Manufacturing Process & Quality Intelligence.",
     no_args_is_help=True,
 )
 config_app = typer.Typer(help="Validate and inspect project configuration.")
@@ -47,4 +47,4 @@ def validate_config(
 ) -> None:
     """Validate a dataset configuration file."""
     config = load_dataset_config(path)
-    typer.echo(f"valid dataset config: {config.name} ({config.stage})")
+    typer.echo(f"valid dataset config: {config.dataset} ({config.stage})")

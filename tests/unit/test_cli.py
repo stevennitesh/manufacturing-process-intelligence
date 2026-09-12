@@ -1,7 +1,7 @@
 from typer.testing import CliRunner
 
-from mqi import __version__
-from mqi.cli.app import app
+from mpi import __version__
+from mpi.cli.app import app
 
 runner = CliRunner()
 
@@ -14,7 +14,7 @@ def test_version() -> None:
 
 
 def test_validate_dataset_config() -> None:
-    result = runner.invoke(app, ["config", "validate", "configs/datasets/solidair.yaml"])
+    result = runner.invoke(app, ["config", "validate", "configs/datasets/injection_molding.yaml"])
 
     assert result.exit_code == 0
-    assert "valid dataset config: solidair (mvp)" in result.stdout
+    assert "valid dataset config: injection_molding (mvp)" in result.stdout

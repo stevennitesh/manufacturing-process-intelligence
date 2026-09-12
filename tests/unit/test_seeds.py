@@ -1,6 +1,6 @@
 import random
 
-from mqi.core.seeds import set_global_seed
+from mpi.core.seeds import set_global_seed
 
 
 def test_seed_repeats_standard_library_randomness() -> None:
