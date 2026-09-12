@@ -167,7 +167,7 @@ This architecture should survive the addition of new manufacturing domains witho
 
 This should be the first implementation.
 
-The dataset provides physical process measurements linked directly to manufactured parts, including scalar machine parameters and high-resolution injection-pressure and flow trajectories. Each trajectory contains 2,049 samples at 6 ms resolution, and manufactured parts have physical quality measurements such as weight and dimensions. The experiments include deliberate changes in process settings, startup states, pauses and multiple production days. See the [peer-reviewed data description](https://doi.org/10.3390/polym15040978) and [publisher dataset repository](https://github.com/sc4t1m/scatimdata).
+The dataset provides physical process measurements linked directly to manufactured parts, including scalar machine parameters and high-resolution injection-pressure and flow trajectories. The paper describes 2,049 samples at 6 ms resolution; inspection of the pinned release found 2,048 elapsed-time rows with a predominantly 6 ms grid and three 4 ms transitions. The released structure and its validation boundary are recorded in the [source contract](../datasets/injection-molding-source-contract.md). Manufactured parts have physical quality measurements such as weight and dimensions. The experiments include deliberate changes in process settings, startup states, pauses and multiple production days. See the [peer-reviewed data description](https://doi.org/10.3390/polym15040978) and [publisher dataset repository](https://github.com/sc4t1m/scatimdata).
 
 The publisher dataset repository states a [CC BY 4.0 license](https://github.com/sc4t1m/scatimdata#license). M1 must verify the exact admitted files and terms before acquisition.
 

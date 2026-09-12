@@ -5,8 +5,9 @@ uncertainty-aware inspection, process monitoring, and excursion diagnostics acro
 manufacturing domains.
 
 **Milestone 0: repository foundation** is complete. **Milestone 1: injection-molding
-source contract and ingestion** is next. The repository intentionally contains no
-modeling or performance claims yet.
+source contract and ingestion** is in progress: the source contract is accepted
+with limitations, reproducible acquisition is complete, and raw validation is next.
+The repository intentionally contains no modeling or performance claims yet.
 
 See the [implementation roadmap](docs/implementation-roadmap.md) for the current
 milestone, subsystem status, and acceptance gates. The
@@ -41,10 +42,19 @@ uv run pre-commit install
 ```powershell
 uv run mpi --help
 uv run mpi config validate configs/datasets/injection_molding.yaml
+uv run mpi data acquire injection_molding
 ```
 
-Dataset ingestion, training, evaluation, dashboard, and API commands will be added
-only in their owning milestones.
+The acquisition command downloads only the manifest-admitted Dataset 2 archive to
+`data/raw/injection_molding/`, verifies its exact size and SHA-256, and writes a
+local receipt. Use `--raw-root <directory>` for an isolated destination. A matching
+archive is verified and reused without network access. A mismatched archive is
+preserved and reported; move or remove it manually only after investigating its
+identity. Acquisition does not extract, parse, validate, or prepare the dataset,
+and the dataset configuration remains disabled for preparation.
+
+Training, evaluation, dashboard, and API commands will be added only in their
+owning milestones.
 
 ## Data policy
 
@@ -70,6 +80,7 @@ quality-intelligence milestones are complete.
 
 Milestone 0 provides the `mpi` package and CLI shell, configuration validation,
 structured logging, deterministic seed utility, tests, static checks, pre-commit
-hooks, and GitHub Actions workflow. M1 begins by freezing and verifying the
-high-resolution injection-molding source contract before any data is acquired or
-adapter code is written.
+hooks, and GitHub Actions workflow. M1 has frozen and verified the
+high-resolution injection-molding source contract and now provides verified,
+idempotent acquisition of its pinned Dataset 2 archive. Raw validation and adapter
+code remain unimplemented.

@@ -1,0 +1,80 @@
+{
+  "dataset": "injection_molding",
+  "manifest_scope": "source_inspection",
+  "admission_decision": "accept_with_limitations",
+  "admitted_candidate": "dataset2",
+  "source": {
+    "publisher": "sc4t1m",
+    "repository_url": "https://github.com/sc4t1m/scatimdata",
+    "git_url": "https://github.com/sc4t1m/scatimdata.git",
+    "source_version_type": "git_commit",
+    "source_version": "7bd35941d75c97a3f276439377dc430ab47402be",
+    "source_commit_timestamp": "2023-02-21T12:23:38+01:00",
+    "release_note": "The repository has no tags or GitHub releases at the inspected version; the commit is the immutable release identity.",
+    "retrieved_at_utc": "2026-09-12T22:00:01.030Z",
+    "retrieval_method": "anonymous git clone followed by detached checkout of source_version",
+    "local_root": "data/raw/injection_molding/scatimdata-7bd35941d75c97a3f276439377dc430ab47402be"
+  },
+  "paper": {
+    "title": "Online Prediction of Molded Part Quality in the Injection Molding Process Using High-Resolution Time Series",
+    "doi": "10.3390/polym15040978",
+    "url": "https://doi.org/10.3390/polym15040978",
+    "pmcid": "PMC9959070",
+    "published": "2023-02-16"
+  },
+  "license": {
+    "spdx_expression": "CC-BY-4.0",
+    "dataset_coverage_evidence": "https://github.com/sc4t1m/scatimdata/blob/7bd35941d75c97a3f276439377dc430ab47402be/README.md#license",
+    "evidence_blob_sha": "8e7e09c51c5d24d998a7ba98a96aaee86e71ddb5",
+    "legal_code": "https://creativecommons.org/licenses/by/4.0/legalcode.en",
+    "automated_retrieval": "permitted for the public Git repository; anonymous git retrieval was verified",
+    "local_processing": "permitted under the license grant",
+    "raw_redistribution": "permitted subject to CC BY 4.0 attribution, license notice, source link, and modification notice where applicable",
+    "derived_publication": "permitted subject to CC BY 4.0 attribution and modification notice where applicable",
+    "repository_policy": "raw and prepared data remain outside Git even though the source license permits redistribution"
+  },
+  "files": [
+    {
+      "candidate": "dataset1",
+      "source_path": "dataset1.zip",
+      "source_blob_sha": "3c6796453f724fd99e4c692edd1c9a6ad4a84c4f",
+      "immutable_download_url": "https://raw.githubusercontent.com/sc4t1m/scatimdata/7bd35941d75c97a3f276439377dc430ab47402be/dataset1.zip",
+      "local_path": "data/raw/injection_molding/scatimdata-7bd35941d75c97a3f276439377dc430ab47402be/dataset1.zip",
+      "bytes": 5431885,
+      "sha256": "f8c7f6363ecbd541735b374746ce8549aaa50dae754aaaa2efa980c227b19c09",
+      "inspected": true,
+      "admitted": false,
+      "exclusion_reason": "The paper and released Distance A values disagree, and the paper's day/intervention table has an overlapping ordinal interval while the files contain no day field."
+    },
+    {
+      "candidate": "dataset2",
+      "source_path": "dataset2.zip",
+      "source_blob_sha": "f271b73093612d21d153dbbe3f7f7b2457206941",
+      "immutable_download_url": "https://raw.githubusercontent.com/sc4t1m/scatimdata/7bd35941d75c97a3f276439377dc430ab47402be/dataset2.zip",
+      "local_path": "data/raw/injection_molding/scatimdata-7bd35941d75c97a3f276439377dc430ab47402be/dataset2.zip",
+      "bytes": 8708313,
+      "sha256": "69294087889a52791c296734051d6b21b30847c2859613e4178074182150c491",
+      "inspected": true,
+      "admitted": true,
+      "admission_membership": "the 829 scalar-and-quality cycle IDs and their matching injection-pressure and injection-flow columns; signal-only cycles remain source evidence but are not admitted as labeled units"
+    },
+    {
+      "candidate": "dataset3",
+      "source_path": "dataset3.zip",
+      "source_blob_sha": "697cb54676b0af9b25768eb7ec2c0768a1beeb20",
+      "immutable_download_url": "https://raw.githubusercontent.com/sc4t1m/scatimdata/7bd35941d75c97a3f276439377dc430ab47402be/dataset3.zip",
+      "local_path": "data/raw/injection_molding/scatimdata-7bd35941d75c97a3f276439377dc430ab47402be/dataset3.zip",
+      "bytes": 7754358,
+      "sha256": "b6baa4f5f5dbdf0c1bbe23a7b854358967d9004b75de4a16502730a77aed316e",
+      "inspected": true,
+      "admitted": false,
+      "exclusion_reason": "The paper's day/intervention table overlaps ordinal intervals and stops 92 rows before the released labeled data, while the files contain no day field."
+    }
+  ],
+  "deferred_fields": {
+    "processed_hashes": "deferred until persistence",
+    "adapter_version": "deferred until adapter implementation",
+    "git_commit": "deferred until preparation records the producing project revision",
+    "split_definition": "deferred until M3"
+  }
+}

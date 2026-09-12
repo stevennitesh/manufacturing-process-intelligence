@@ -10,21 +10,25 @@ Before adding a dataset adapter or download command:
 4. keep raw, interim, and processed data outside Git unless redistribution is explicitly permitted;
 5. commit only acquisition instructions, schemas, manifests, and small synthetic test fixtures.
 
-## High-resolution injection molding — candidate MVP source
+## High-resolution injection molding — admitted MVP source
 
 - **Candidate authority:** the publisher-maintained
   [scatimdata repository](https://github.com/sc4t1m/scatimdata), associated with
   Bogedale et al., [Online Prediction of Molded Part Quality in the Injection
   Molding Process Using High-Resolution Time Series](https://doi.org/10.3390/polym15040978).
-- **Admission status:** not yet admitted. M1 must freeze the exact source identity,
-  file roles, hashes, joins, acquisition method, and terms before download or adapter
-  implementation.
-- **Stated license:** the publisher repository states
-  [CC BY 4.0](https://github.com/sc4t1m/scatimdata#license). This must be verified
-  against the exact files selected in the M1 source contract.
+- **Admission status:** Dataset 2's 829 labeled cycles are admitted with limitations
+  at commit `7bd35941d75c97a3f276439377dc430ab47402be`. The
+  [source contract](docs/datasets/injection-molding-source-contract.md) owns the
+  selection, join, chronology, units, and claim boundaries; the
+  [manifest](data/manifests/injection-molding-source.json) owns exact hashes.
+- **Verified license:** the pinned publisher README applies
+  [CC BY 4.0](https://github.com/sc4t1m/scatimdata/blob/7bd35941d75c97a3f276439377dc430ab47402be/README.md#license)
+  to the dataset. Raw and derived redistribution is permitted with the license's
+  attribution, license/source link, and modification-notice conditions.
 - **Repository policy:** raw and prepared data remain outside Git. Only the verified
   source contract, acquisition manifest, schemas, instructions, and synthetic fixtures
-  may be version controlled.
+  may be version controlled. This project policy is intentionally stricter than the
+  source license.
 
 ## SoliDAIR — evaluated and retired
 
