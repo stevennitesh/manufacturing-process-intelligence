@@ -1,0 +1,77 @@
+# Python environments and caches
+.venv/
+.uv-cache/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.pre-commit-cache/
+.mypy_cache/
+.pyright/
+.coverage
+coverage.xml
+htmlcov/
+
+# Build and package output
+build/
+dist/
+*.egg-info/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+.secrets/
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+service-account*.json
+
+# Third-party and generated data
+data/raw/**
+data/interim/**
+data/processed/**
+data/downloads/**
+data/staging/**
+data/cache/**
+data/warehouse/**
+!data/manifests/
+!data/manifests/**
+*.csv
+*.tsv
+*.parquet
+*.feather
+*.arrow
+*.h5
+*.hdf5
+!tests/fixtures/**/*.csv
+!tests/fixtures/**/*.tsv
+!tests/fixtures/**/*.parquet
+
+# Generated models, reports, and experiment state
+artifacts/**
+!artifacts/.gitkeep
+models/
+mlruns/
+mlartifacts/
+*.joblib
+*.pkl
+*.pickle
+*.onnx
+
+# Logs, notebooks, and editor state
+*.log
+.ipynb_checkpoints/
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+.DS_Store
+
+# Local scratch space
+.scratch/
+tmp/
+temp/
