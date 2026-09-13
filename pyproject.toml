@@ -11,6 +11,7 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
   "h5py>=3.16,<4",
   "numpy>=2.3,<3",
+  "polars>=1.34,<2",
   "pydantic>=2.11,<3",
   "pyyaml>=6.0,<7",
   "typer>=0.16,<1",

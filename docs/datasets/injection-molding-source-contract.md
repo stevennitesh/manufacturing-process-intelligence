@@ -617,8 +617,9 @@ The dataset configuration remains disabled for preparation.
 
 ## Next action
 
-Implement the [Dataset 2 canonicalization plan](../milestones/m01-injection-molding-ingestion.md#next-phase--canonicalization)
-from the completed raw-validation handoff when authorized. Keep
-`configs/datasets/injection_molding.yaml` disabled until adapter preparation can
-consume the admitted source. ManufacturingBundle mapping is planned, not implemented;
-canonical Parquet, M2 audit, and M3 split design remain deferred.
+Plan and implement persistence from the completed
+[Dataset 2 canonicalization handoff](../milestones/m01-injection-molding-ingestion.md#completed-phase--canonicalization)
+when authorized. Keep `configs/datasets/injection_molding.yaml` disabled until
+adapter preparation can consume the admitted source. The protected in-memory
+`ManufacturingBundle` mapping is implemented and verified; canonical Parquet, the
+preparation CLI, M2 audit, and M3 split design remain deferred.

@@ -1,6 +1,6 @@
 # M1 — Injection-molding source contract and ingestion
 
-**Status:** `◐ In progress — raw validation complete`
+**Status:** `◐ In progress — canonicalization complete`
 
 **Objective:** verify the high-resolution injection-molding source, preserve its
 provenance and semantics, and reproducibly transform it into the canonical
@@ -17,8 +17,8 @@ flowchart LR
     S["✓ Source contract<br/>Dataset 2 · 829 labeled cycles"]
     A["✓ Acquisition<br/>pinned HTTPS, byte verification, local receipts"]
     V["✓ Validation<br/>schema, shapes, identifiers, missingness"]
-    C["▶ Canonicalization<br/>ManufacturingBundle mapping"]
-    P["○ Persistence<br/>typed Parquet and metadata"]
+    C["✓ Canonicalization<br/>protected in-memory ManufacturingBundle"]
+    P["▶ Persistence<br/>typed Parquet and metadata"]
     G{"○ M1 gate<br/>one command reproduces the bundle"}
 
     S --> A --> V --> C --> P --> G
@@ -545,11 +545,11 @@ inferred. Optional groups being outside validation coverage is also explicit.
   `uv run mpi data validate --help`, and `git diff --check` passed. The full-source
   CLI run also passed offline and reported the required membership and limitations.
 
-## Next phase — Canonicalization
+## Completed phase — Canonicalization
 
-**Execution state:** planned, not implemented. This is the next bounded M1 slice;
-planning does not authorize execution or close M1. Acquisition and raw validation
-provide the implemented prerequisites for this phase.
+**Execution state:** complete. This bounded M1 slice maps the production-validated
+Dataset 2 source to a protected, typed in-memory bundle. It does not close M1;
+persistence and the final one-command gate remain outstanding.
 
 ### Outcome and scope
 
@@ -833,23 +833,74 @@ signal-only cycles from a numerical range.
    CLI version) plus CLI help, documentation-link and whitespace checks. Reconcile
    this phase's evidence, diagram and roadmap only after its gate passes.
 
-- [ ] The real validated-source handoff produces a complete typed bundle without
+- [x] The real validated-source handoff produces a complete typed bundle without
   I/O, invented semantics, value loss or unauthorized features.
-- [ ] Distinguishing fixture tests establish key-based joins, target separation,
+- [x] Distinguishing fixture tests establish key-based joins, target separation,
   null/time/identity preservation, deterministic output and whole-result rejection.
-- [ ] Every source field has exactly one documented canonical destination, English
+- [x] Every source field has exactly one documented canonical destination, English
   aliases match the explicit map, opaque geometry codes remain unchanged, and
   lineage can recover the original source names without duplicate alias columns.
-- [ ] Bundle metadata preserves confirmed material/equipment context, inferred day
+- [x] Bundle metadata preserves confirmed material/equipment context, inferred day
   hypotheses, the moisture discrepancy and published feature-set constraints as
   distinct evidence states; canonical days/limits remain null and raw values intact.
-- [ ] Weight-only MVP policy and deferred geometry are explicit without deleting
+- [x] Weight-only MVP policy and deferred geometry are explicit without deleting
   quality evidence, granting feature eligibility or inventing conformance labels.
-- [ ] Full admitted-source evidence establishes exact mappings and counts; fixture
+- [x] Full admitted-source evidence establishes exact mappings and counts; fixture
   success alone does not prove this gate. Unavailable local bytes leave this proof
   outstanding, not waived.
-- [ ] Repository checks pass; raw data, generated tables and receipts stay outside
+- [x] Repository checks pass; raw data, generated tables and receipts stay outside
   Git, and acquisition/validation behavior remains intact.
+
+### Canonicalization completion evidence
+
+Implementation is owned by
+`src/mpi/datasets/injection_molding_canonicalization.py` and the shared protected
+table/metadata contract in `src/mpi/data/canonical.py`. Polars is a direct locked
+runtime dependency. The bundle owns its source-derived values and returns cloned
+tables on access; metadata, evidence states, lineage and exclusions are immutable.
+No raw archive, canonical table, receipt or other generated dataset is tracked.
+
+The full-source proof is reproducible from existing identity-matching raw bytes:
+
+```powershell
+$env:UV_CACHE_DIR = Join-Path (Get-Location) '.uv-cache'
+uv run python scripts/verify_injection_molding_canonicalization.py data/raw/injection_molding
+```
+
+The verified source was commit
+`7bd35941d75c97a3f276439377dc430ab47402be`, archive SHA-256
+`69294087889a52791c296734051d6b21b30847c2859613e4178074182150c491`
+(8,708,313 bytes), and manifest SHA-256
+`2fa05d39dfb5f2915df163a874305b95b9350661c5f8999e2a8cf10323e0c6f3`.
+The verifier reported `status: passed`, compared all 40 source scalar fields
+(33,160 scalar cells), and independently compared all 1,697,792 pressure values,
+all 1,697,792 flow values and all 1,697,792 elapsed-time values by cycle key.
+It confirmed 829 rows each for units, operations, process features and context;
+1,697,792 signal rows; 3,316 quality rows; 303 quality nulls; and all 92 explicit
+`no_released_scalar_quality_row` exclusions.
+
+Generated ZIP/HDF5 fixture tests exercise the actual validator-to-canonicalizer
+handoff with independently shuffled channel columns, distinguishable channel
+values, the native irregular increment, signal-only membership, nullable context,
+missing and exact-integer geometry, all 40 independently asserted destinations,
+source nonmutation, owned-copy protection and deterministic output. Negative cases
+reject unsupported identity, inconsistent/duplicate/missing membership and
+references, altered channel mappings, equal-but-corrupted time axes, field-relocated
+nulls, nonfinite process values, interleaved experiment rows, missing/extra scalar
+mappings, duplicate destinations, reserved collisions, target-owner changes and
+unversioned renames. Metadata assertions distinguish paper facts from proposed
+crosswalks and check experiment-bound raw/paper run values and their units directly.
+
+Verification on 2026-09-13 passed locked dependency sync, Ruff lint and format
+checks, strict Pyright, the full Pytest suite, CLI version/help smoke tests,
+relative documentation-link validation and Git whitespace checks. The commands
+were `uv sync --locked --group dev`, `uv run ruff check .`,
+`uv run ruff format --check .`, `uv run pyright`, `uv run pytest`,
+`uv run mpi --version`, `uv run mpi --help`, `uv run mpi data validate --help`,
+the repository-local relative-link assertion, and `git diff --check`. Results were
+36 locked packages audited, 48 files formatted, zero Ruff or Pyright findings,
+68 tests passed, CLI version `0.0.1`, all help invocations successful, 14 Markdown
+files checked with no missing relative targets, and no whitespace errors.
 
 Unresolved geometry/machine units, experiment-to-day mapping and prediction cutoff
 remain owned by source evidence and later phases; this mapping preserves their
@@ -878,7 +929,7 @@ geometry-target decision; Dataset 3's corrected table end is not a resolved day
 crosswalk. Do not make resolution of these non-admitted candidates a blocker for
 the authorized Dataset 2 canonicalization gate.
 
-**Next action:** implement this canonicalization plan when authorized. Persistence
+**Next action:** plan and implement persistence when authorized. Persistence
 and the end-to-end M1 preparation gate remain deferred.
 
 The [implementation roadmap](../implementation-roadmap.md) owns cross-milestone status.

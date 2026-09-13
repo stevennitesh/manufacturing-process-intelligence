@@ -14,7 +14,8 @@ does not mean PASS/FAIL or product conformance.
 **Milestone 0: repository foundation** is complete. **Milestone 1: injection-molding
 source contract and ingestion** is in progress: the source contract is accepted
 with limitations, reproducible acquisition and raw validation are complete, and
-Dataset 2 canonicalization is next.
+protected in-memory Dataset 2 canonicalization is complete. Persistence and the
+final preparation command remain outstanding.
 The repository intentionally contains no modeling or performance claims yet.
 
 See the [implementation roadmap](docs/implementation-roadmap.md) for the current
@@ -104,4 +105,7 @@ hooks, and GitHub Actions workflow. M1 has frozen and verified the
 high-resolution injection-molding source contract and now provides verified,
 idempotent acquisition of its pinned Dataset 2 archive. Raw validation now produces
 a typed source-native handoff with exact schema, grid, join, missingness, and
-experiment checks. Canonicalization remains unimplemented.
+experiment checks. The dataset-specific canonicalizer maps that handoff to
+protected Polars tables with exhaustive English lineage, explicit exclusions and
+structured source-fact/inference/discrepancy/project-policy metadata. Persistence
+and preparation remain unimplemented, and dataset enablement stays false.

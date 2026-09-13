@@ -5,10 +5,11 @@ This is the concise status view of the
 The plan owns scope and acceptance criteria; this roadmap owns current position.
 
 **Current position:** Milestone 0 is complete. Milestone 1 is in progress: the
-injection-molding source contract, reproducible Dataset 2 acquisition, and strict
-raw validation are complete. Dataset 2 canonicalization is the next subsystem;
-its [detailed plan](milestones/m01-injection-molding-ingestion.md#next-phase--canonicalization)
-is saved and awaiting implementation authorization. Persistence remains deferred.
+injection-molding source contract, reproducible Dataset 2 acquisition, strict raw
+validation, and protected in-memory Dataset 2 canonicalization are complete.
+Persistence is the next subsystem; its detailed plan remains deferred in the
+[M1 plan](milestones/m01-injection-molding-ingestion.md). The canonicalizer retains
+all admitted source evidence while enforcing the weight-only MVP policy boundary.
 The [all-candidate source refresh](datasets/injection-molding-source-contract.md#all-candidate-evidence-refresh--2026-09-12)
 has been incorporated into that plan; Dataset 1/3 remain inspected, not admitted.
 

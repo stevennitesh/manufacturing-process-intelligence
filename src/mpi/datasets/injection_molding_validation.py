@@ -344,6 +344,11 @@ def _expected_time_grid(rows: int) -> npt.NDArray[np.float64]:
     return np.concatenate((np.array([0.0]), np.cumsum(increments)))
 
 
+def expected_injection_molding_time_grid(rows: int) -> npt.NDArray[np.float64]:
+    """Return the pinned native Dataset 2 elapsed-time grid for a row count."""
+    return _expected_time_grid(rows)
+
+
 def _read_signal(group: h5py.Group, name: str, expectations: _Expectations) -> SourceSignalMatrix:
     columns, values = _read_frame(group, f"signals.{name}.representation")
     if columns.count("time") != 1 or columns[0] != "time":
