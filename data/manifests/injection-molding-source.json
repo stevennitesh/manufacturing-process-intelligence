@@ -68,7 +68,7 @@
       "sha256": "b6baa4f5f5dbdf0c1bbe23a7b854358967d9004b75de4a16502730a77aed316e",
       "inspected": true,
       "admitted": false,
-      "exclusion_reason": "The paper's day/intervention table overlaps ordinal intervals and stops 92 rows before the released labeled data, while the files contain no day field."
+      "exclusion_reason": "The paper's day/intervention table has overlapping day assignments and an unresolved ordinal basis (ending at 1340 versus 1332 labeled rows and 1405 signal columns), while the files contain no day or experiment field. Dataset 2 provides stronger explicit validation groups."
     }
   ],
   "deferred_fields": {

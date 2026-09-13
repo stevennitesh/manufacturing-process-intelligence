@@ -6,6 +6,12 @@
 provenance and semantics, and reproducibly transform it into the canonical
 manufacturing bundle without adding modeling.
 
+**Revised MVP alignment:** this ingestion supports a weight-only predictive-quality
+experiment under process shift. Keep completed acquisition/raw-validation evidence
+and the canonicalization scope below intact. Retaining four quality characteristics
+is a provenance requirement, not four modeling targets. M1 does not implement SPC,
+pass/fail classification, physical RCA, experiment splits or model training.
+
 ```mermaid
 flowchart LR
     S["✓ Source contract<br/>Dataset 2 · 829 labeled cycles"]
@@ -187,6 +193,23 @@ the corresponding implementation can actually consume the admitted source.
   units, experiment-versus-day boundary limits, and candidate exclusions.
 - Repository checks and the inspection rerun passed on 2026-09-12; raw inputs remained
   outside the Git upload set.
+
+### All-candidate context refresh
+
+The [all-candidate evidence refresh](../datasets/injection-molding-source-contract.md#all-candidate-evidence-refresh--2026-09-12)
+rechecked the three archive identities and Dataset 1/3 full joins, and reconciled
+the complete online article tables. It corrects our earlier Dataset 3 table-end
+claim (1,340, not 1,240); the manifest exclusion reason now reflects the remaining
+overlap and unresolved ordinal basis. Dataset 1's geometry discrepancy persists
+in both mean and variance. Dataset 3's target agreement improves its case for
+later admission, but neither CSV provides Dataset 2's explicit experiment groups.
+
+This is source-context and plan maintenance, not new ingestion progress. Dataset 2
+remains the sole admitted source. Candidate 1/3 material, interventions, zero
+duration observations and ordinal hypotheses belong to their own evidence, not
+Dataset 2 unit metadata. Reconsider their admission only with a defensible
+validation contract and a separately scoped mapping plan; do not concatenate
+the three sources or add placeholder adapters during this phase.
 
 ## Completed phase — Reproducible acquisition
 
@@ -541,6 +564,10 @@ Include all 829 admitted units, both required trajectories, all released quality
 characteristics, and source scalar/context values. Keep the 92 signal-only cycles
 out of canonical tables, with their identities and exclusion reason attached to
 the bundle. Their raw evidence and validated source matrices remain unchanged.
+Record `weight` as the required MVP target in grams and geometry as
+experimental/deferred in dataset policy metadata, distinct from the publisher's
+measurement facts. Preserve all existing quality rows/nulls; do not drop geometry
+to enforce a modeling policy or rename the source characteristic to `part_weight`.
 
 Excluded: new acquisition or source admission, Dataset 1/3, Parquet publication or
 loading, the final preparation CLI, dataset enablement, optional cavity/state
@@ -583,16 +610,17 @@ objects. Keep any small-fixture path internal; production must retain the pinned
 
 The specification's model is conceptual and explicitly permits unsupported fields.
 Use these concrete Dataset 2 mappings; do not reinterpret conceptual `timestamp`
-as a wall-clock date. Source-native names below are literal identifiers.
+as a wall-clock date. Canonical fields use the English names defined below;
+raw validation continues to use literal source identifiers.
 
 | Section | Grain, fields and rules |
 | --- | --- |
-| `units` | One row per admitted cycle, in scalar source order. `unit_id = injection_molding/dataset2/<cycle_counter>`; retain integer `cycle_counter` and zero-based `source_row_index`. `product_family = stacking box`. Unsupported `batch_id`, `material`, `production_time` are typed nulls, not guessed from `Charge`. |
+| `units` | One row per admitted cycle, in scalar source order. `unit_id = injection_molding/dataset2/<cycle_counter>`; retain integer `cycle_counter` and zero-based `source_row_index`. `product_family = stacking box`; `material = BASF Ultramid B3EG6 (PA6-GF30)` is a paper-declared dataset constant, not a raw per-row observation. Record its dataset-level lineage. Unsupported `batch_id` and `production_time` are typed nulls, not guessed from `Charge`. |
 | `operations` | One row per unit, same order. `operation_id = <unit_id>/injection_molding`, `process_stage = injection_molding`; `machine_id`, `start_time`, `end_time` are typed nulls. The known machine model belongs in metadata, not an invented machine identifier. |
-| `process_features` | One row per unit/operation in source order. Preserve the 31 scalar columns remaining after removing `cycle_counter`, `Versuch`, the three context fields and four quality fields below. Keep source names, numeric types and values; this is a process-data table, not an approved training matrix. Identify the 15 `integral_` columns in metadata as retained optional source summaries with feature eligibility deferred. |
+| `process_features` | One row per unit/operation in source order. Map the 31 source process columns to their English names below, preserving numeric types and values; this is a process-data table, not an approved training matrix. Identify the 15 `integral_` columns in metadata as retained optional source summaries with feature eligibility deferred. |
 | `signals` | Wide channels: one row per admitted unit and sample, with `unit_id`, `operation_id`, zero-based integer `sample_index`, Float64 `elapsed_time_seconds`, Float64 `injection_pressure`, Float64 `injection_flow`. Order by scalar source unit order, then original sample index. Preserve all 2,048 samples without interpolation. Use pressure's actual time values as the shared axis after enforcing the validator's pressure/flow agreement tolerance; metadata records this choice and tolerance. |
 | `quality` | Long form: one row per unit and characteristic, in source unit order then `weight`, `GE-GE002*`, `GERADEHEIT-L*`, `PT-PT002L*` order. `characteristic` preserves these names; `measured_value` is nullable Float64, `measurement_unit` is `g` for weight and null for geometry. `lower_spec` and `upper_spec` are nullable Float64 and always null. Keep missing measurements as rows with null values. |
-| `context` | One row per unit, source order, retaining `Versuch`, `mittlerer Feuchtegehalt`, `Twkz`, `Charge` with native names/types and nulls. `production_day` is typed null. `Versuch` is an experiment boundary; none of these fields is automatically an available predictor. Do not synthesize recipe, operating state or batch genealogy. |
+| `context` | One row per unit, source order, with `experiment_id`, `mean_moisture_content`, `mold_temperature`, `source_charge_code` mapped below; preserve source types and nulls. `production_day` is typed null. `experiment_id` is an experiment boundary, not a day; none of these fields is automatically an available predictor. Do not synthesize recipe, operating state or batch genealogy. |
 | `metadata` | Bind source/manifest/archive identity, validator and adapter/schema versions, optional verified receipt reference, citations/license, source-to-canonical mapping, source dtypes and units, transformations, table counts, exclusions, validation/mapping evidence and limitations to this result. Preserve unknown units explicitly. Processed hashes, split definition and a download timestamp not supplied by verified provenance remain absent; the future persistence manifest owns them when applicable. |
 
 Nullable wall-clock fields use an explicit datetime dtype, but no timezone or
@@ -609,6 +637,144 @@ column has exactly one value owner; metadata links original names to those owner
 Quality fields must never appear among process features or context predictors.
 Do not rename an unresolved geometry field to the paper's “Distance B.”
 
+### English naming and source lineage
+
+**Accepted plan revision:** canonical tables use stable English `snake_case`
+field names. Raw archives, the source-native validator/result, source schema
+expectations and historical inspection evidence retain their original names.
+This is a representation change only: no change to admission, values, nulls,
+units, physical meaning, feature eligibility or the 40-column partition.
+
+The following is the exhaustive scalar mapping. For `quality`, the destination
+is a `characteristic` value rather than a wide column. Opaque geometry identifiers
+are deliberate exceptions to English naming: retain their exact spelling,
+punctuation and case, including `GERADEHEIT-L*`, as source measurement codes.
+Do not turn a literal translation into a newly claimed physical target definition.
+
+| Source scalar field | Canonical section | Canonical field / characteristic |
+| --- | --- | --- |
+| `Versuch` | context | `experiment_id` |
+| `mittlerer Feuchtegehalt` | context | `mean_moisture_content` |
+| `Twkz` | context | `mold_temperature` |
+| `Charge` | context | `source_charge_code` |
+| `cycle_counter` | units | `cycle_counter` |
+| `cycle_time` | process_features | `cycle_duration` |
+| `Max. Spritzdruck` | process_features | `maximum_injection_pressure` |
+| `Umschaltspritzdruck` | process_features | `switchover_injection_pressure` |
+| `staudruck_ist` | process_features | `actual_back_pressure` |
+| `einspritzzeit` | process_features | `injection_time` |
+| `Massepolster` | process_features | `melt_cushion` |
+| `dosierzeit` | process_features | `dosing_time` |
+| `zylinderheizzone_1` | process_features | `barrel_heating_zone_1` |
+| `zylinderheizzone_2` | process_features | `barrel_heating_zone_2` |
+| `zylinderheizzone_3` | process_features | `barrel_heating_zone_3` |
+| `zylinderheizzone_4` | process_features | `barrel_heating_zone_4` |
+| `zylinderheizzone_5` | process_features | `barrel_heating_zone_5` |
+| `zylinderheizzone_6` | process_features | `barrel_heating_zone_6` |
+| `zylinderheizzone_7` | process_features | `barrel_heating_zone_7` |
+| `zylinderheizzone_8` | process_features | `barrel_heating_zone_8` |
+| `werkzeugheizkreis_1` | process_features | `mold_heating_circuit_1` |
+| `integral_idx_0_werkzeuginnendruck_ist_state_1` | process_features | `integral_idx_0_actual_cavity_pressure_state_1` |
+| `integral_idx_0_werkzeuginnendruck_ist_state_2` | process_features | `integral_idx_0_actual_cavity_pressure_state_2` |
+| `integral_idx_0_werkzeuginnendruck_ist_state_8` | process_features | `integral_idx_0_actual_cavity_pressure_state_8` |
+| `integral_idx_0_messgrafik_state_1` | process_features | `integral_idx_0_measurement_trace_state_1` |
+| `integral_idx_0_messgrafik_state_2` | process_features | `integral_idx_0_measurement_trace_state_2` |
+| `integral_idx_0_messgrafik_state_8` | process_features | `integral_idx_0_measurement_trace_state_8` |
+| `integral_idx_1_messgrafik_state_1` | process_features | `integral_idx_1_measurement_trace_state_1` |
+| `integral_idx_1_messgrafik_state_2` | process_features | `integral_idx_1_measurement_trace_state_2` |
+| `integral_idx_1_messgrafik_state_8` | process_features | `integral_idx_1_measurement_trace_state_8` |
+| `integral_idx_0_einspritzdruck_ist_state_1` | process_features | `integral_idx_0_actual_injection_pressure_state_1` |
+| `integral_idx_0_einspritzdruck_ist_state_2` | process_features | `integral_idx_0_actual_injection_pressure_state_2` |
+| `integral_idx_0_einspritzdruck_ist_state_8` | process_features | `integral_idx_0_actual_injection_pressure_state_8` |
+| `integral_idx_0_einspritzstrom_ist_state_1` | process_features | `integral_idx_0_actual_injection_flow_state_1` |
+| `integral_idx_0_einspritzstrom_ist_state_2` | process_features | `integral_idx_0_actual_injection_flow_state_2` |
+| `integral_idx_0_einspritzstrom_ist_state_8` | process_features | `integral_idx_0_actual_injection_flow_state_8` |
+| `weight` | quality | `weight` |
+| `GE-GE002*` | quality | `GE-GE002*` |
+| `GERADEHEIT-L*` | quality | `GERADEHEIT-L*` |
+| `PT-PT002L*` | quality | `PT-PT002L*` |
+
+Signal mappings remain `Einspritzdruck` → `injection_pressure` and
+`Einspritzstrom` → `injection_flow`, with source `time` →
+`elapsed_time_seconds`. Store the source groups and per-cycle source column
+identities, or their exact reversible prefix/cycle rule, in lineage metadata.
+
+English aliases are project labels, not new publisher declarations. In particular,
+`source_charge_code` preserves the nullable source value without claiming a valid
+material-batch key; `mold_temperature` does not assert setpoint versus actual.
+`measurement_trace`, `idx_0`/`idx_1` and state numbers preserve opaque source
+distinctions: do not assign those traces to pressure/flow or name physical phases.
+`actual` translates the source token `ist`, not verified sensor calibration or
+prediction-time availability. Do not add unit suffixes such as `_s`, `_bar`,
+`_celsius` or `_mm` to unresolved source measurements. Only the established
+elapsed-time axis has a seconds suffix; weight's established grams stay in unit
+metadata. The name `cycle_duration` does not establish its numerical unit.
+
+Implement one explicit dataset-owned mapping, not runtime translation, automatic
+slugification or a second set of German alias columns. Generate bundle lineage
+from that same mapping: source group/name, canonical section/name (or quality
+characteristic), source/canonical dtype, unit and unresolved-unit state, plus
+representation changes. The map must exactly cover the validator's 40 scalar
+fields once, with no duplicate destinations within a section or collisions with
+structural columns such as `unit_id` and `operation_id`. Reject missing, extra or
+colliding entries; never silently leave an unmapped German field in canonical
+output. Original names in metadata and the explicit geometry exceptions are
+intentional, not mapping failures.
+
+Treat these names as the first canonical schema, with a mapping version bound to
+adapter/schema versions. Later renames must update that version and affected
+contracts/consumers; this phase has no existing canonical consumers or persisted
+bundles to migrate. Acquisition/raw-validation behavior and evidence are unchanged.
+
+### Source-context handoff requirements
+
+The [source contract](../datasets/injection-molding-source-contract.md#paper-supported-material-and-measurement-context)
+owns the follow-up evidence and citations. Preserve these distinctions in bundle
+metadata rather than leaving them only in prose outside the consuming handoff:
+
+- Paper-declared material/manufacturer/grade and measurement equipment specifications,
+  with their source sections and dataset-level scope. Keep optical maximum deviation
+  and balance linearity deviation as different quantities with their own units;
+  neither populates `lower_spec`/`upper_spec` or a per-record uncertainty column.
+- Observed context run lengths/values and the inferred experiment-to-paper-day
+  hypotheses (20 → 2, 23 → 3, 15 → 1), explicitly marked inferred with evidence
+  references. Canonical `production_day` stays null. Do not turn paper ordinal
+  start-up/running intervals into canonical labels without a confirmed crosswalk.
+- The unresolved experiment-15 moisture discrepancy: preserve raw 0.050/0.100/0.150
+  alongside separately identified paper values 0.066%/0.097%/0.150% in discrepancy
+  metadata, never as replacement measurements. Distinguish paper-declared context
+  units from unverified storage-unit mappings. No null backfill is permitted.
+- The paper's enumerated 12-scalar conceptual feature set and exclusion of moisture interventions
+  from its predictors. Keep `mean_moisture_content` context-only for this handoff;
+  retain all 31 process columns without presenting them as that published feature
+  set or an approved training matrix. Preserve the distinction between direct
+  name correspondences and the proposed `werkzeugheizkreis_1` → hot-runner
+  temperature crosswalk; do not promote that proposal to a confirmed semantic
+  mapping. Exact paper replication is not this gate.
+- Geometry-scale evidence may include the matching mean/variance comparison,
+  explicitly marked inferred. Geometry units remain null and values stay native.
+  Signal-only range summaries describe observed counter positions, not causes or
+  authoritative experiment assignments. Actual exclusion IDs and the existing
+  `no_released_scalar_quality_row` reason remain the consuming contract.
+- The remaining source gaps and provenance links. A successful raw-schema check
+  does not resolve physical meaning, export discrepancies or inference availability.
+- The accepted weight-only MVP use, deferred geometry role, and process-only
+  modeling boundary as project policy, not source-declared facts. Distinguish the
+  pinned published release from a complete original laboratory database. Retained
+  process/context fields do not automatically enter the future feature allowlist.
+
+Tests must distinguish a paper-declared dataset constant from a raw per-row value,
+an inferred day from an authoritative label, and a reported equipment specification
+from a quality limit. Verify discrepancy metadata remains bound to the relevant
+source/experiment and original values; no change to raw admission or parsing is
+required. Use structured fields for these distinctions, not an undifferentiated
+string that a later consumer must interpret as settled fact.
+Include a source-contract evidence reference and dataset scope for each claim;
+the all-candidate research does not require copying Dataset 1/3 observations into
+the Dataset 2 bundle. Tests must keep proposed feature mappings and geometry
+conversions distinct from confirmed facts, and must not manufacture labels for
+signal-only cycles from a numerical range.
+
 ### Invariants, rejection and reproducibility
 
 - Unit IDs and operation IDs are unique; every foreign key resolves to the same
@@ -618,7 +784,8 @@ Do not rename an unresolved geometry field to the paper's “Distance B.”
 - Production counts are 829 rows each for units, operations, process features
   and context; 1,697,792 signal rows (829 × 2,048, two channel columns); and
   3,316 quality rows (829 × 4), of which exactly 303 measurements are null, all
-  for `PT-PT002L*`. Context retains null counts 526/526/303 for Charge/Twkz/moisture.
+  for `PT-PT002L*`. Context retains null counts 526/526/303 for
+  `source_charge_code`/`mold_temperature`/`mean_moisture_content`.
 - Pressure and flow are looked up independently by cycle ID. Equal dimensions
   or row counts cannot substitute for key agreement. Missing or duplicated keys,
   mismatched references, incomplete scalar partition or unsupported field types
@@ -637,8 +804,9 @@ Do not rename an unresolved geometry field to the paper's “Distance B.”
 ### Execution and acceptance evidence
 
 1. Define the minimal bundle/table contracts and dataset-specific field partition.
-   Lock Polars, keep code strictly typed, and document source-name, null and time
-   mappings. Do not create placeholder subsystems for later datasets.
+   Implement the explicit English mapping above and derive lineage from it. Lock
+   Polars, keep code strictly typed, and document null and time mappings. Do not
+   create placeholder subsystems for later datasets.
 2. Implement the pure mapping and whole-bundle contract check. Preserve provenance
    and validation limitations, add explicit transformation/membership evidence,
    and keep deterministic ordering independent of signal column order.
@@ -649,7 +817,10 @@ Do not rename an unresolved geometry field to the paper's “Distance B.”
    geometry, exact integer geometry, and irregular time values.
 4. Add negative boundary cases for inconsistent handoffs, unsupported identity,
    duplicate/missing membership and references, and target leakage into process
-   columns. Assert whole-result rejection, source nonmutation, determinism, values
+   columns. Test missing/extra mapping entries, duplicate destinations and reserved
+   name collisions. Independently assert all 40 expected English/code destinations
+   and original-name lineage; do not derive test expectations from the production
+   mapping itself. Assert whole-result rejection, source nonmutation, determinism, values
    after resource cleanup, and the chosen protection/revalidation behavior.
 5. Run actual production validation followed by canonicalization on the full
    admitted archive. Independently compare each canonical source-derived column
@@ -666,6 +837,14 @@ Do not rename an unresolved geometry field to the paper's “Distance B.”
   I/O, invented semantics, value loss or unauthorized features.
 - [ ] Distinguishing fixture tests establish key-based joins, target separation,
   null/time/identity preservation, deterministic output and whole-result rejection.
+- [ ] Every source field has exactly one documented canonical destination, English
+  aliases match the explicit map, opaque geometry codes remain unchanged, and
+  lineage can recover the original source names without duplicate alias columns.
+- [ ] Bundle metadata preserves confirmed material/equipment context, inferred day
+  hypotheses, the moisture discrepancy and published feature-set constraints as
+  distinct evidence states; canonical days/limits remain null and raw values intact.
+- [ ] Weight-only MVP policy and deferred geometry are explicit without deleting
+  quality evidence, granting feature eligibility or inventing conformance labels.
 - [ ] Full admitted-source evidence establishes exact mappings and counts; fixture
   success alone does not prove this gate. Unavailable local bytes leave this proof
   outstanding, not waived.
@@ -678,6 +857,26 @@ unknown/deferred state and does not depend on resolving them. Persistence will b
 planned next, including typed Parquet round trips, publication/recovery, processed
 provenance, and the final one-command M1 gate. No new ADR or domain owner is needed
 for this bounded realization of the accepted source contract.
+
+Later-phase handoff: M2 must report experimental interventions and raw/paper
+discrepancies without silently repairing data. M3 must resolve predictor
+availability and an explicit allowlist, keeping project choices separate from
+the paper's feature set. Its primary benchmark is leave-one-experiment-out on
+15/20/23, with separate ID results and leakage-safe tuning/calibration membership.
+Never assign canonical days from the current hypotheses. M4–M6 compare weight
+models on scalar, engineered and compressed representations; M5 owns any
+feature-level sampling/early-cycle representation decision. M7/M8 evaluate
+uncertainty under shift and AUTO-PREDICT / MEASURE risk-coverage, not conformance.
+SPC and physical diagnosis are not MVP tasks. These are
+constraints for later planning, not authorization to implement those milestones.
+
+If Dataset 1/3 is proposed later, its M2 audit must expose literal zero cycle
+durations and counter gaps without silent repair. Its M3 plan must distinguish
+paper ordinals from released row/counter identities and justify grouping before
+claiming cross-day generalization. Dataset 1 additionally needs an explicit
+geometry-target decision; Dataset 3's corrected table end is not a resolved day
+crosswalk. Do not make resolution of these non-admitted candidates a blocker for
+the authorized Dataset 2 canonicalization gate.
 
 **Next action:** implement this canonicalization plan when authorized. Persistence
 and the end-to-end M1 preparation gate remain deferred.

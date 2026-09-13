@@ -9,6 +9,15 @@ injection-molding source contract, reproducible Dataset 2 acquisition, and stric
 raw validation are complete. Dataset 2 canonicalization is the next subsystem;
 its [detailed plan](milestones/m01-injection-molding-ingestion.md#next-phase--canonicalization)
 is saved and awaiting implementation authorization. Persistence remains deferred.
+The [all-candidate source refresh](datasets/injection-molding-source-contract.md#all-candidate-evidence-refresh--2026-09-12)
+has been incorporated into that plan; Dataset 1/3 remain inspected, not admitted.
+
+**Accepted scope:** v0.1 tests Dataset 2 part-weight prediction under experiment
+shift: scalar versus engineered/compressed trajectories, conformal uncertainty
+and AUTO-PREDICT / MEASURE. Geometry is retained but deferred, and SPC/physical
+diagnostics are outside this MVP. This revision changes plans, not completion
+status. Leave-one-experiment-out is the primary benchmark; M3 must freeze its
+cutoff, feature allowlist and leakage-safe calibration/tuning protocol before M4.
 
 ## Status key
 
@@ -22,16 +31,24 @@ is saved and awaiting implementation authorization. Persistence remains deferred
 flowchart TB
     F["✓ M0 · Foundation<br/>Runtime, mpi package and CLI, configuration, logging, tests, CI"]
 
-    MVP["v0.1 · Predictive Quality MVP<br/>◐ M1 Source contract + ingestion<br/>○ M2 Data audit<br/>○ M3 Validation strategy<br/>○ M4 Baselines<br/>○ M5 Time-series representation<br/>○ M6 GBDT quality model<br/>○ M7 Uncertainty<br/>○ M8 Selective measurement<br/>○ M9 Explainability<br/>○ M10 Dashboard"]
+    MVP["v0.1 · Weight Prediction Under Process Shift<br/>◐ M1 Dataset 2 ingestion<br/>○ M2 Audit<br/>○ M3 Experiment holdouts + feature contract<br/>○ M4 Mean, Ridge, PLS<br/>○ M5 Engineered + compressed trajectories<br/>○ M6 LightGBM + representation comparison<br/>○ M7 Conformal + shift evaluation<br/>○ M8 Selective measurement<br/>○ M9 Bounded predictive explanation<br/>○ M10 Five-page dashboard"]
 
-    PI["v0.2 · Process Intelligence<br/>○ CiP-DMD ingestion, SPC, anomaly detection, diagnosis"]
-    PROD["v0.3 · Productionization<br/>○ Tracking, API, batch scoring, Docker, drift, operational CI"]
-    SEMI["v0.4 · Semiconductor Transfer<br/>○ BOSCH plasma virtual metrology and transfer validation"]
-    PHARMA["v0.5 · Regulated Transfer<br/>○ Pharmaceutical batch quality and genealogy"]
+    AUDIT{"○ Source decision gate<br/>PyScrew vs CiP-DMD<br/>Cross-process-chain audit"}
+    PI["v0.2 · Process / Assembly Intelligence<br/>○ Selected adapter, SPC/MSPC, anomalies, supported diagnostics"]
+    SEMI["v0.3 · Semiconductor Transfer<br/>○ Bosch Plasma source gate, virtual metrology and shift study"]
+    PROD["v0.4 · Productionization<br/>○ Tracking, API, batch scoring, Docker, drift, operational CI"]
+    PHARMA["v0.5 · Optional Regulated Transfer<br/>○ Pharmaceutical batch quality and genealogy"]
     ADV["v0.6 · Optional Advanced Manufacturing<br/>○ Additional transfer case only if earlier gates justify it"]
 
-    F --> MVP --> PI --> PROD --> SEMI --> PHARMA --> ADV
+    F --> MVP --> AUDIT --> PI --> SEMI --> PROD --> PHARMA --> ADV
 ```
+
+Apply at a credible v0.1 (target week 6); later source audits and the semiconductor
+case study strengthen the story. Semiconductor work can be prioritized for an
+interview once prerequisites pass, without requiring productionization first.
+Pharma/advanced manufacturing are optional in the first three months. The
+canonical plan's section 79 owns the relative 12-week schedule. SoliDAIR is retired
+from the required core. No new source is admitted by this roadmap.
 
 ## Milestone drill-downs
 

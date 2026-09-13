@@ -40,5 +40,10 @@ remain valid under the replacement plan.
 
 ## References
 
+This record preserves the pivot-time decision and prerequisites, not current M1
+status. Subsequent source admission and the accepted Dataset 2 weight-only MVP
+refinement are maintained in the source contract and canonical plan; use the
+implementation roadmap for completed work. SoliDAIR remains outside the core.
+
 - Canonical plan: `docs/plans/Manufacturing Process & Quality Intelligence — Greenfield Specification and Implementation Plan.md`
 - Historical evidence: `.archive/docs/plans/SoliDAIR Discovery Findings — Original Plan Review.md`

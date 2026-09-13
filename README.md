@@ -1,8 +1,15 @@
 # Manufacturing Process & Quality Intelligence
 
-A greenfield, production-oriented data science system for predictive quality,
-uncertainty-aware inspection, process monitoring, and excursion diagnostics across
-manufacturing domains.
+A greenfield manufacturing data-science project starting with a focused question:
+does high-resolution machine telemetry improve part-weight prediction beyond
+scalar measurements, and does it generalize under controlled process changes?
+
+The MVP uses **scatimdata Dataset 2 only**: 829 labeled cycles, pressure/flow
+trajectories and weight in grams. Its three experimental production groups
+represent controlled process-condition changes, not verified calendar days.
+Leave-one-experiment-out evaluation, uncertainty and selective physical measurement
+are required. Geometry is retained as deferred evidence; AUTO-PREDICT / MEASURE
+does not mean PASS/FAIL or product conformance.
 
 **Milestone 0: repository foundation** is complete. **Milestone 1: injection-molding
 source contract and ingestion** is in progress: the source contract is accepted
@@ -75,9 +82,15 @@ any dataset.
 The project follows this progression:
 
 ```text
-measure -> predict -> quantify uncertainty -> decide
-        -> detect change -> diagnose -> deploy -> prove transfer
+predict -> test generalization -> quantify uncertainty -> selectively measure
+        -> detect abnormalities -> diagnose supported contributors -> transfer
 ```
+
+After the MVP: audit PyScrew versus CiP-DMD and the cross-process-chain candidate
+for process/assembly intelligence (v0.2), prioritize Bosch Plasma semiconductor
+transfer (v0.3), then production polish (v0.4). Pharma (v0.5) and advanced
+manufacturing (v0.6) are optional later extensions. These are planned capabilities,
+not implemented results; SPC and physical RCA are not Dataset 2 MVP requirements.
 
 The core excludes predictive maintenance, computer vision, distributed
 infrastructure, agentic AI, and autonomous process control until the defined
