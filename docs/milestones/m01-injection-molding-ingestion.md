@@ -1,6 +1,6 @@
 # M1 — Injection-molding source contract and ingestion
 
-**Status:** `◐ In progress — source contract and acquisition complete`
+**Status:** `◐ In progress — raw validation complete`
 
 **Objective:** verify the high-resolution injection-molding source, preserve its
 provenance and semantics, and reproducibly transform it into the canonical
@@ -10,8 +10,8 @@ manufacturing bundle without adding modeling.
 flowchart LR
     S["✓ Source contract<br/>Dataset 2 · 829 labeled cycles"]
     A["✓ Acquisition<br/>pinned HTTPS, byte verification, local receipts"]
-    V["▶ Validation<br/>schema, shapes, identifiers, missingness"]
-    C["○ Canonicalization<br/>ManufacturingBundle mapping"]
+    V["✓ Validation<br/>schema, shapes, identifiers, missingness"]
+    C["▶ Canonicalization<br/>ManufacturingBundle mapping"]
     P["○ Persistence<br/>typed Parquet and metadata"]
     G{"○ M1 gate<br/>one command reproduces the bundle"}
 
@@ -351,8 +351,335 @@ does not require an ADR or change any accepted manufacturing semantics.
   link checks, and Git whitespace/raw-artifact hygiene. No raw archive, receipt, or
   temporary acquisition file is in the Git upload set.
 
-**Next action:** detail and implement raw validation when authorized. It must recheck
-the acquisition result's archive identity at its own read boundary. Canonicalization
-and persistence remain deferred.
+## Completed phase — Raw validation
+
+**Execution state:** complete and verified. Source admission and acquisition feed
+a source-native validated Dataset 2 handoff for later canonicalization. This phase
+does not close M1.
+
+### Outcome and scope
+
+A developer can validate the acquired archive offline and receive either a typed
+successful result with explicit limitations or an actionable rejection. A matching
+hash alone is not schema validation. The governing evidence is the
+[source contract](../datasets/injection-molding-source-contract.md); canonical
+sections 28, 29, and 38 define the adapter boundary and eventual M1 gate.
+
+Validate all scalar/quality records and both required pressure/flow matrices,
+including signal-only columns before establishing labeled membership. Preserve
+the source's full scalar schema, native numeric values, nulls, row order, column
+labels, and explicit elapsed-time values. Optional cavity-pressure and state
+groups are inventoried but not decoded into the MVP handoff; integral columns
+already present in the scalar table remain source values, not approved features.
+
+Excluded: Dataset 1/3 ingestion, new source admission, raw repair or replacement,
+unit conversion, resampling, feature selection/engineering, ManufacturingBundle
+mapping, Parquet, M2 statistical audit, M3 splits, and models. Configuration stays
+disabled for preparation. No generic adapter framework is needed for this phase.
+
+### Caller journey and produced result
+
+Planned command from the repository root:
+
+```powershell
+uv run mpi data validate injection_molding
+```
+
+Support the same `--raw-root <directory>` layout as acquisition. This command is
+local-only: resolve the pinned archive using the current manifest/configuration,
+fail with acquisition guidance if absent, and never download implicitly. A
+missing acquisition receipt does not invalidate matching raw bytes; report that
+provenance reference as absent rather than fabricate a download event.
+
+The Python validation entry point must also consume the actual `AcquisitionResult`
+produced by acquisition. Reconcile its dataset, candidate, version, size/hash and
+path against authoritative configuration/manifest identity, then rehash the actual
+bytes before opening the archive. A stale or inconsistent handoff is rejected.
+Share production identity checks where useful; do not import the inspection script
+or duplicate its three-candidate orchestration into the production path.
+
+Return a typed source-native validated result containing:
+
+- archive/version/manifest identity and validator version;
+- scalar fields and values in original row order, plus explicit cycle identities;
+- both full required signal matrices, their source column-to-cycle mappings and
+  elapsed-time axes; no silent positional alignment;
+- explicit matched and signal-only memberships, preserving scalar order for the
+  labeled membership and signal source order for matrix indexing;
+- structured validation evidence: check identifiers, expected/observed counts,
+  passed checks, and known limitations.
+
+Data must remain usable after temporary HDF5 resources close: do not return a dead
+file handle or a path to a deleted extract. Source-native arrays/tables are sufficient;
+this is not a canonical bundle. The later canonicalizer must not need to reconstruct
+joins from summary counts. A saved summary alone never authorizes reuse of changed
+raw bytes, and mutable data must not retain an unchecked validity claim.
+
+CLI success prints a concise validation summary and limitations; exit zero only
+after every required check passes. Rejections exit nonzero and identify the failing
+check, file/group/field, and expected versus observed evidence where available.
+No durable validation report store is required in this slice: expose structured
+evidence through the Python result and record the full-source gate outcome here.
+Do not rewrite acquisition receipts or the source manifest during validation.
+
+### Required checks and interpretation
+
+| Boundary | Required behavior |
+| --- | --- |
+| Archive identity | Validate manifest/config agreement and exact archive size/SHA-256 before ZIP/HDF5 parsing. Preserve mismatches unchanged. Ensure the bytes parsed are the bytes verified, using a stable read/snapshot or equivalent mutation detection. |
+| ZIP member | Require exactly one `dataset2/dynamic_data_versuch_large.h5`; reject duplicate, missing, corrupt or unsupported/encrypted members. Copy only that named member to an owned temporary file, never use unrestricted extraction. Bound expanded bytes against the inspected member size recorded during implementation; verify actual copy length/CRC. |
+| HDF5 representation | Decode the released numeric pandas fixed-format blocks with explicit axes and block-item mapping. Validate unique field names, dimensions, numeric types, and complete one-to-one block coverage of columns. Reject unsupported object/pickle payloads or external-link data access rather than executing/deserializing them. |
+| Scalar schema | Require the source contract's 829 rows and exact 40-column set. Preserve source order and integer identity without lossy float-to-int coercion. Check nonnull unique `cycle_counter`, nonnull integral `Versuch`, and finite nonmissing numeric values. |
+| Missingness | Assert source null counts: `Charge` and `Twkz` 526 each, moisture and `PT-PT002L*` 303 each, and zero elsewhere in scalar data. Weight and the two complete geometry columns must remain complete. Null is not zero; never impute or drop rows. |
+| Required signals | Each of `Einspritzdruck` and `Einspritzstrom` has 921 uniquely identified cycle columns and an explicit `time` column across 2,048 rows. Reject malformed/unrecognized cycle labels, duplicate decoded cycle IDs, nonfinite signals, or incompatible axes; do not silently skip columns. |
+| Time grid | Validate increasing finite time values from 0 through 12.276 seconds, 0.006-second increments except 0.004 at destination indices 512, 1024, 1536. Compare with absolute tolerance `1e-9` seconds and no relative tolerance; preserve actual values rather than replacing them with the expected grid. Required signal axes must agree within that tolerance. |
+| Joins | Compare keys, not positions: required signal cycle sets equal; exactly 829 matched, zero labeled-only and 92 signal-only; no duplicate keys. Expose actual memberships and mapping indices, not only counts. The 92 are documented exclusions from labeled membership, not defective cycles or grounds for rejection. |
+| Experiments | Preserve `Versuch` blocks in source order 20, 23, 15 with 223, 303, 303 rows and source-contract cycle ranges. Do not globally sort cycle counters or invent production-day labels/timestamps. |
+
+The schema expectations are pin-specific, not universal manufacturing limits.
+Implementation must freeze full field names and exact member size from the admitted
+bytes/inspection evidence and cite them in tests; abbreviated documentation names
+are not literal HDF5 field names. If the pinned bytes contradict a required check,
+record the discrepancy before altering the accepted source contract or gate.
+
+Known geometry storage units, machine-native units, absent specification limits,
+and experiment-to-day ambiguity remain explicit limitations in successful output.
+No physical bounds, converted geometry, day labels or conformance verdicts are
+inferred. Optional groups being outside validation coverage is also explicit.
+
+### Execution and verification
+
+1. Establish the dataset-specific typed result and raw-reader contract. Use the
+   existing inspection code as evidence for HDF5 layout, not production dependency.
+   Add a locked runtime HDF5 reader dependency (the inspected `h5py` route is the
+   starting point) and declare NumPy directly if production code imports it. Do
+   not add Pandas/PyTables solely to deserialize this known numeric layout.
+2. Implement safe identity-to-member reading and pure structural/semantic checks.
+   Keep temporary-resource ownership explicit and clean only invocation-owned
+   files on success, rejection, or handled interruption. Errors must not return
+   partial data with a successful validation status.
+3. Connect the local-only CLI and acquisition-result entry point to the same
+   validator. Synthetic fixtures should exercise genuine small ZIP/HDF5 layouts
+   generated in tests; no downloaded binary fixtures belong in Git. Internal
+   small-fixture expectations must not become a public bypass of the pinned gate.
+4. Verify all required rules with distinguishing negative cases: wrong hash before
+   parser access; missing/duplicate member; malformed blocks/axes; duplicate or
+   fractional identities; missing target versus allowed null context; unexpected
+   signal columns; mismatched sets despite equal counts; irregular-grid mismatch;
+   and experiment-order changes. Independently shuffle signal columns in a fixture
+   and prove mappings still associate the correct cycle values.
+5. Pass an actual acquisition result into validation, including a changed-archive
+   rejection after acquisition. Prove output data remain accessible after cleanup,
+   and that failures leave raw bytes and prior receipts unchanged. Exercise CLI
+   success and rejection without network access, not just a mocked validator.
+6. Run the full admitted archive through the production validator, compare counts,
+   memberships, missingness, experiment blocks and time grid to the independent
+   source evidence, and record command/version/results here. No fresh download is
+   required when existing bytes match. Run repository CI checks and CLI help;
+   reconcile README, source-contract next action, roadmap and this diagram only
+   after the validation gate passes.
+
+### Acceptance gate for this phase
+
+- [x] The local-only command validates the full pinned Dataset 2 archive and reports
+  829 matched / 0 labeled-only / 92 signal-only, with all required checks passing.
+- [x] Actual acquisition output reaches validation, stale identity is rejected,
+  and the successful typed handoff preserves source values, nulls, order, axes,
+  join mappings, provenance and limitations after resources close.
+- [x] Synthetic malformed-data tests distinguish structural failure from accepted
+  limitations; failures cannot publish a successful or partially validated result.
+- [x] Raw archives/receipts remain untouched; owned extracts are cleaned and no
+  generated dataset enters Git. Full-source proof complements offline CI fixtures.
+- [x] Ruff lint/format, Pyright, pytest, CLI smoke/help, documentation links and
+  whitespace checks pass. Evidence and tracker status agree.
+
+### Raw-validation completion evidence
+
+- Production code: `src/mpi/datasets/injection_molding_validation.py` provides the
+  typed source-native result, strict fixed-format HDF5 reader, archive/member safety,
+  exact schema/semantic checks, and acquisition-result handoff. `mpi data validate
+  injection_molding` is local-only and supports `--raw-root`.
+- Full-source run on 2026-09-12 used Python 3.12, h5py 3.16.0, and NumPy 2.5.3
+  against archive SHA-256
+  `69294087889a52791c296734051d6b21b30847c2859613e4178074182150c491`.
+  All 10 production checks passed: 829 scalar rows and 40 exact fields; required
+  pressure and flow shapes of 2,048 × 921; exact missingness; pinned time grid;
+  experiment blocks 20/23/15 with 223/303/303 rows; and 829 matched / 0
+  labeled-only / 92 signal-only memberships.
+- A reused `AcquisitionResult` from the ignored `.scratch` live-acquisition root
+  passed through the production validator with its identity-bound receipt reference
+  intact. Local validation does not guess among receipts, and unrelated supplied
+  receipts are not advertised as provenance. The 21 raw-validation tests cover
+  post-acquisition byte changes, mutation during validation, stale handoffs,
+  malformed and duplicate ZIP members, malformed HDF object kinds, external links
+  and external numeric storage, fractional identities, mismatched equal-count signal
+  sets, grid and experiment-order drift, shuffled signal columns, allowed context
+  nulls versus missing targets, actual temporary-extract cleanup after success,
+  rejection and interruption, immutable output arrays, and preservation of raw
+  evidence on rejection.
+- Repository verification: `uv run ruff check .`, `uv run ruff format --check .`,
+  `uv run pyright`, `uv run pytest`, `uv run mpi --version`, `uv run mpi --help`,
+  `uv run mpi data validate --help`, and `git diff --check` passed. The full-source
+  CLI run also passed offline and reported the required membership and limitations.
+
+## Next phase — Canonicalization
+
+**Execution state:** planned, not implemented. This is the next bounded M1 slice;
+planning does not authorize execution or close M1. Acquisition and raw validation
+provide the implemented prerequisites for this phase.
+
+### Outcome and scope
+
+Turn the actual `ValidatedInjectionMoldingSource` into a typed, in-memory
+`ManufacturingBundle` that later persistence and analytics can consume without
+reopening HDF5 or reconstructing source-specific joins. Canonical specification
+sections 13–14, 27–29 and 38 govern the representation and boundary; the
+[source contract](../datasets/injection-molding-source-contract.md#canonical-bundle-handoff)
+governs Dataset 2 meaning and limitations.
+
+Include all 829 admitted units, both required trajectories, all released quality
+characteristics, and source scalar/context values. Keep the 92 signal-only cycles
+out of canonical tables, with their identities and exclusion reason attached to
+the bundle. Their raw evidence and validated source matrices remain unchanged.
+
+Excluded: new acquisition or source admission, Dataset 1/3, Parquet publication or
+loading, the final preparation CLI, dataset enablement, optional cavity/state
+decoding, engineered features, statistical audit, splitting and modeling. Retaining
+source integral columns does not approve them as model features. No geometry
+conversion, imputation, normalization, resampling, inferred days or conformance
+classification is permitted. Keep `enabled: false` until the later preparation gate.
+
+### Caller journey and implementation boundary
+
+1. A caller runs existing local validation (or validates an actual acquisition
+   result), then passes that returned object to a dataset-specific canonicalizer.
+2. The canonicalizer checks supported dataset/source/validator identity and the
+   structural invariants it consumes. It joins trajectories by explicit cycle
+   mappings, projects the admitted membership, and constructs canonical tables.
+3. It checks table schemas, keys, references and semantic invariants, then returns
+   one complete bundle with bound metadata, exclusions and mapping evidence.
+   A failure returns an actionable exception, never a partially successful bundle.
+4. The caller can inspect tables and metadata after all source resources close.
+   There is no download, disk output, archive reparse or implicit preparation in
+   this transformation. A current validation result is an in-memory snapshot, not
+   a promise that a path on disk will remain unchanged indefinitely.
+
+Use Polars as the specification's primary dataframe engine, adding a directly
+declared, locked dependency when implementation starts. Introduce only the typed
+bundle and explicit table contracts needed here; reuse existing identifier types.
+Dataset-specific mappings belong under `src/mpi/datasets/`; shared bundle shape
+and dataset-independent key/reference checks may live under `core`/`data` in the
+canonical layout. Do not build a generic adapter registry or implement the entire
+conceptual adapter interface. PyArrow/storage policy can wait for persistence.
+
+The ordinary entry point takes the validated object, not arbitrary paths or a
+JSON summary. Its public dataclass type alone is not proof of validation: reject
+inconsistent memberships, shapes or mappings and unsupported identity/version.
+Do not repeat HDF5 parsing or claim to cryptographically authenticate caller-made
+objects. Keep any small-fixture path internal; production must retain the pinned
+829/0/92 contract. Existing acquisition and validation commands remain unchanged.
+
+### Canonical tables and meaning
+
+The specification's model is conceptual and explicitly permits unsupported fields.
+Use these concrete Dataset 2 mappings; do not reinterpret conceptual `timestamp`
+as a wall-clock date. Source-native names below are literal identifiers.
+
+| Section | Grain, fields and rules |
+| --- | --- |
+| `units` | One row per admitted cycle, in scalar source order. `unit_id = injection_molding/dataset2/<cycle_counter>`; retain integer `cycle_counter` and zero-based `source_row_index`. `product_family = stacking box`. Unsupported `batch_id`, `material`, `production_time` are typed nulls, not guessed from `Charge`. |
+| `operations` | One row per unit, same order. `operation_id = <unit_id>/injection_molding`, `process_stage = injection_molding`; `machine_id`, `start_time`, `end_time` are typed nulls. The known machine model belongs in metadata, not an invented machine identifier. |
+| `process_features` | One row per unit/operation in source order. Preserve the 31 scalar columns remaining after removing `cycle_counter`, `Versuch`, the three context fields and four quality fields below. Keep source names, numeric types and values; this is a process-data table, not an approved training matrix. Identify the 15 `integral_` columns in metadata as retained optional source summaries with feature eligibility deferred. |
+| `signals` | Wide channels: one row per admitted unit and sample, with `unit_id`, `operation_id`, zero-based integer `sample_index`, Float64 `elapsed_time_seconds`, Float64 `injection_pressure`, Float64 `injection_flow`. Order by scalar source unit order, then original sample index. Preserve all 2,048 samples without interpolation. Use pressure's actual time values as the shared axis after enforcing the validator's pressure/flow agreement tolerance; metadata records this choice and tolerance. |
+| `quality` | Long form: one row per unit and characteristic, in source unit order then `weight`, `GE-GE002*`, `GERADEHEIT-L*`, `PT-PT002L*` order. `characteristic` preserves these names; `measured_value` is nullable Float64, `measurement_unit` is `g` for weight and null for geometry. `lower_spec` and `upper_spec` are nullable Float64 and always null. Keep missing measurements as rows with null values. |
+| `context` | One row per unit, source order, retaining `Versuch`, `mittlerer Feuchtegehalt`, `Twkz`, `Charge` with native names/types and nulls. `production_day` is typed null. `Versuch` is an experiment boundary; none of these fields is automatically an available predictor. Do not synthesize recipe, operating state or batch genealogy. |
+| `metadata` | Bind source/manifest/archive identity, validator and adapter/schema versions, optional verified receipt reference, citations/license, source-to-canonical mapping, source dtypes and units, transformations, table counts, exclusions, validation/mapping evidence and limitations to this result. Preserve unknown units explicitly. Processed hashes, split definition and a download timestamp not supplied by verified provenance remain absent; the future persistence manifest owns them when applicable. |
+
+Nullable wall-clock fields use an explicit datetime dtype, but no timezone or
+instant is inferred. Nullable text fields use String. Canonical IDs are nonnull
+String; indices are nonnegative integers. Source integer context/process fields
+remain integers and floating-point values retain Float64 precision. Source NaN
+missing values become typed nulls, never zeros. Long-form quality may widen exact
+source int32 geometry to Float64 without value loss; record that representation
+change and original dtype. Do not truncate measurements or stringify numbers.
+
+The exhaustive scalar partition is 1 cycle identity + 1 experiment field + 3
+context fields + 31 process fields + 4 quality fields = 40. Every source scalar
+column has exactly one value owner; metadata links original names to those owners.
+Quality fields must never appear among process features or context predictors.
+Do not rename an unresolved geometry field to the paper's “Distance B.”
+
+### Invariants, rejection and reproducibility
+
+- Unit IDs and operation IDs are unique; every foreign key resolves to the same
+  admitted unit, and each operation belongs to exactly one unit. No signal-only
+  unit occurs in any canonical table. Exclusion metadata contains all 92 actual
+  IDs with reason `no_released_scalar_quality_row`, not a defective-part label.
+- Production counts are 829 rows each for units, operations, process features
+  and context; 1,697,792 signal rows (829 × 2,048, two channel columns); and
+  3,316 quality rows (829 × 4), of which exactly 303 measurements are null, all
+  for `PT-PT002L*`. Context retains null counts 526/526/303 for Charge/Twkz/moisture.
+- Pressure and flow are looked up independently by cycle ID. Equal dimensions
+  or row counts cannot substitute for key agreement. Missing or duplicated keys,
+  mismatched references, incomplete scalar partition or unsupported field types
+  reject the whole transformation with the failed rule and relevant identity.
+- Preserve experiment blocks 20/23/15 and counts 223/303/303; preserve each source
+  sample and irregular time grid. No global cycle-counter sort is allowed.
+- Repeated mapping of the same validated result gives the same schemas, ordered
+  values and semantic metadata. Do not inject random IDs or “now” timestamps.
+  Do not mutate source arrays/maps or expose a reusable passed-check claim that
+  callers can invalidate unnoticed. Bundle consumers must receive protected data
+  or revalidate after mutation; a frozen wrapper around mutable tables is not
+  sufficient proof by itself. Persistence must enforce its own boundary later.
+- Unknown units, absent time/limits, deferred feature availability and omitted
+  optional signals are successful limitations, not fabricated values or rejection.
+
+### Execution and acceptance evidence
+
+1. Define the minimal bundle/table contracts and dataset-specific field partition.
+   Lock Polars, keep code strictly typed, and document source-name, null and time
+   mappings. Do not create placeholder subsystems for later datasets.
+2. Implement the pure mapping and whole-bundle contract check. Preserve provenance
+   and validation limitations, add explicit transformation/membership evidence,
+   and keep deterministic ordering independent of signal column order.
+3. Use generated small ZIP/HDF5 fixtures through the real validator-to-canonicalizer
+   handoff, not only manually constructed happy-path objects. Independently shuffle
+   pressure and flow cycle columns and use distinguishable per-cycle/sample values
+   to prove correct joins. Include signal-only cycles, nullable context, missing
+   geometry, exact integer geometry, and irregular time values.
+4. Add negative boundary cases for inconsistent handoffs, unsupported identity,
+   duplicate/missing membership and references, and target leakage into process
+   columns. Assert whole-result rejection, source nonmutation, determinism, values
+   after resource cleanup, and the chosen protection/revalidation behavior.
+5. Run actual production validation followed by canonicalization on the full
+   admitted archive. Independently compare each canonical source-derived column
+   and both complete trajectory channels by key against the validated input, not
+   just row counts. Verify the table counts above, exact null masks, all exclusion
+   identities, experiment order, sampling values, lineage and absent metadata.
+   Existing matching local bytes suffice; no fresh download or saved bundle is
+   required. Record the reproducible Python invocation, source identity and results.
+6. Run the repository CI checks (locked sync, Ruff lint/format, Pyright, pytest,
+   CLI version) plus CLI help, documentation-link and whitespace checks. Reconcile
+   this phase's evidence, diagram and roadmap only after its gate passes.
+
+- [ ] The real validated-source handoff produces a complete typed bundle without
+  I/O, invented semantics, value loss or unauthorized features.
+- [ ] Distinguishing fixture tests establish key-based joins, target separation,
+  null/time/identity preservation, deterministic output and whole-result rejection.
+- [ ] Full admitted-source evidence establishes exact mappings and counts; fixture
+  success alone does not prove this gate. Unavailable local bytes leave this proof
+  outstanding, not waived.
+- [ ] Repository checks pass; raw data, generated tables and receipts stay outside
+  Git, and acquisition/validation behavior remains intact.
+
+Unresolved geometry/machine units, experiment-to-day mapping and prediction cutoff
+remain owned by source evidence and later phases; this mapping preserves their
+unknown/deferred state and does not depend on resolving them. Persistence will be
+planned next, including typed Parquet round trips, publication/recovery, processed
+provenance, and the final one-command M1 gate. No new ADR or domain owner is needed
+for this bounded realization of the accepted source contract.
+
+**Next action:** implement this canonicalization plan when authorized. Persistence
+and the end-to-end M1 preparation gate remain deferred.
 
 The [implementation roadmap](../implementation-roadmap.md) owns cross-milestone status.

@@ -168,6 +168,13 @@ def _load_identity(
     return config, identity, hashlib.sha256(manifest_bytes).hexdigest()
 
 
+def load_archive_identity(
+    config_path: Path, manifest_path: Path
+) -> tuple[DatasetConfig, ArchiveIdentity, str]:
+    """Load and reconcile the configured admitted archive identity."""
+    return _load_identity(config_path, manifest_path)
+
+
 def _destination(raw_root: Path, identity: ArchiveIdentity) -> tuple[Path, Path, Path]:
     try:
         root = raw_root.absolute().resolve(strict=False)
@@ -180,6 +187,13 @@ def _destination(raw_root: Path, identity: ArchiveIdentity) -> tuple[Path, Path,
     if archive_path.is_symlink():
         raise AcquisitionError(f"archive destination must not be a symbolic link: {archive_path}")
     return root, version_dir, archive_path
+
+
+def resolve_archive_destination(
+    raw_root: Path, identity: ArchiveIdentity
+) -> tuple[Path, Path, Path]:
+    """Resolve the admitted archive path beneath a raw-data root."""
+    return _destination(raw_root, identity)
 
 
 def _measure(path: Path) -> tuple[int, str]:

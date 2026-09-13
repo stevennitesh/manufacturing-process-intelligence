@@ -5,8 +5,10 @@ This is the concise status view of the
 The plan owns scope and acceptance criteria; this roadmap owns current position.
 
 **Current position:** Milestone 0 is complete. Milestone 1 is in progress: the
-injection-molding source contract is accepted with limitations, reproducible
-Dataset 2 acquisition is complete, and raw validation is the next subsystem.
+injection-molding source contract, reproducible Dataset 2 acquisition, and strict
+raw validation are complete. Dataset 2 canonicalization is the next subsystem;
+its [detailed plan](milestones/m01-injection-molding-ingestion.md#next-phase--canonicalization)
+is saved and awaiting implementation authorization. Persistence remains deferred.
 
 ## Status key
 

@@ -150,3 +150,16 @@ def test_cli_normalizes_real_receipt_obstruction_and_recovers_offline(
     assert "downloaded_at_utc" not in receipt
     assert archive.read_bytes() == content
     assert not (version_dir / ".acquisition.lock").exists()
+
+
+def test_validate_cli_missing_archive_is_local_only(tmp_path: Path) -> None:
+    raw_root = tmp_path / "raw"
+
+    result = runner.invoke(
+        app, ["data", "validate", "injection_molding", "--raw-root", str(raw_root)]
+    )
+
+    assert result.exit_code == 1
+    assert "check=archive.present" in result.output
+    assert "mpi data acquire injection_molding" in result.output
+    assert not raw_root.exists()

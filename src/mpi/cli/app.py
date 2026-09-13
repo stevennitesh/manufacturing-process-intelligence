@@ -13,6 +13,10 @@ from mpi.datasets.injection_molding import (
     AcquisitionError,
     acquire_injection_molding,
 )
+from mpi.datasets.injection_molding_validation import (
+    RawValidationError,
+    validate_injection_molding,
+)
 
 app = typer.Typer(
     name="mpi",
@@ -20,7 +24,7 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 config_app = typer.Typer(help="Validate and inspect project configuration.")
-data_app = typer.Typer(help="Acquire manufacturing dataset sources.")
+data_app = typer.Typer(help="Acquire and validate manufacturing dataset sources.")
 app.add_typer(config_app, name="config")
 app.add_typer(data_app, name="data")
 
@@ -83,3 +87,43 @@ def acquire_data(
     typer.echo(f"receipt: {result.receipt_path}")
     typer.echo(f"disposition: {result.disposition}")
     typer.echo("verification: byte-verified; schema validation and preparation not performed")
+
+
+@data_app.command("validate")
+def validate_data(
+    dataset: Annotated[str, typer.Argument(help="Dataset identifier.")],
+    raw_root: Annotated[
+        Path,
+        typer.Option(help="Root directory containing immutable raw source evidence."),
+    ] = DEFAULT_RAW_ROOT,
+) -> None:
+    """Validate an acquired source archive without network access."""
+    if dataset != "injection_molding":
+        typer.echo(f"Error: unsupported validation dataset: {dataset}", err=True)
+        raise typer.Exit(code=1)
+    try:
+        result = validate_injection_molding(raw_root=raw_root)
+    except (AcquisitionError, RawValidationError) as error:
+        typer.echo(f"Error: {error}", err=True)
+        if isinstance(error, RawValidationError) and error.check_id == "archive.present":
+            typer.echo(
+                "Acquire the pinned source with `mpi data acquire injection_molding`.",
+                err=True,
+            )
+        raise typer.Exit(code=1) from error
+    typer.echo(f"dataset: {result.dataset}")
+    typer.echo(f"candidate: {result.candidate}")
+    typer.echo(f"source version: {result.source_version}")
+    typer.echo(f"archive: {result.archive_path}")
+    typer.echo(f"validator version: {result.validator_version}")
+    typer.echo(f"checks passed: {len(result.checks)}")
+    typer.echo(
+        "membership: "
+        f"{len(result.matched_cycle_ids)} matched / "
+        f"{len(result.labeled_only_cycle_ids)} labeled-only / "
+        f"{len(result.signal_only_cycle_ids)} signal-only"
+    )
+    typer.echo(f"receipt: {result.receipt_path if result.receipt_path else 'absent'}")
+    typer.echo("limitations:")
+    for limitation in result.limitations:
+        typer.echo(f"- {limitation}")

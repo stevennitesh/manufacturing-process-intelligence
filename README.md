@@ -6,7 +6,8 @@ manufacturing domains.
 
 **Milestone 0: repository foundation** is complete. **Milestone 1: injection-molding
 source contract and ingestion** is in progress: the source contract is accepted
-with limitations, reproducible acquisition is complete, and raw validation is next.
+with limitations, reproducible acquisition and raw validation are complete, and
+Dataset 2 canonicalization is next.
 The repository intentionally contains no modeling or performance claims yet.
 
 See the [implementation roadmap](docs/implementation-roadmap.md) for the current
@@ -43,6 +44,7 @@ uv run pre-commit install
 uv run mpi --help
 uv run mpi config validate configs/datasets/injection_molding.yaml
 uv run mpi data acquire injection_molding
+uv run mpi data validate injection_molding
 ```
 
 The acquisition command downloads only the manifest-admitted Dataset 2 archive to
@@ -52,6 +54,11 @@ archive is verified and reused without network access. A mismatched archive is
 preserved and reported; move or remove it manually only after investigating its
 identity. Acquisition does not extract, parse, validate, or prepare the dataset,
 and the dataset configuration remains disabled for preparation.
+
+The validation command is local-only. It rechecks the acquired bytes before safely
+reading the single pinned HDF5 member, validates the complete scalar, pressure, and
+flow source contract, and reports labeled and signal-only membership plus accepted
+limitations. It does not canonicalize, resample, impute, or prepare data.
 
 Training, evaluation, dashboard, and API commands will be added only in their
 owning milestones.
@@ -82,5 +89,6 @@ Milestone 0 provides the `mpi` package and CLI shell, configuration validation,
 structured logging, deterministic seed utility, tests, static checks, pre-commit
 hooks, and GitHub Actions workflow. M1 has frozen and verified the
 high-resolution injection-molding source contract and now provides verified,
-idempotent acquisition of its pinned Dataset 2 archive. Raw validation and adapter
-code remain unimplemented.
+idempotent acquisition of its pinned Dataset 2 archive. Raw validation now produces
+a typed source-native handoff with exact schema, grid, join, missingness, and
+experiment checks. Canonicalization remains unimplemented.

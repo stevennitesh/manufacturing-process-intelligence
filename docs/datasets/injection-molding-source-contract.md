@@ -347,16 +347,16 @@ archive publication. The standard-library HTTPS reader cannot be cancelled in th
 middle of a blocking read before its finite transport timeout returns, but a read or
 EOF that returns after the overall deadline is rejected and never published.
 
-The typed Python result and CLI output mean byte-verified only. They do not establish
-archive structure, the 829-cycle schema/join contract, or preparation readiness.
-Raw validation must recheck archive identity when it later consumes this handoff.
+The typed acquisition result and acquisition CLI output mean byte-verified only.
+They do not establish archive structure, the 829-cycle schema/join contract, or
+preparation readiness. Production raw validation rechecks archive identity when it
+consumes this handoff.
 The dataset configuration remains disabled for preparation.
 
 ## Next action
 
-Detail and implement raw validation after authorization, consuming the
-[byte-verified acquisition handoff](../milestones/m01-injection-molding-ingestion.md#completed-phase--reproducible-acquisition)
-and rechecking its identity at the read boundary. Keep
+Implement the [Dataset 2 canonicalization plan](../milestones/m01-injection-molding-ingestion.md#next-phase--canonicalization)
+from the completed raw-validation handoff when authorized. Keep
 `configs/datasets/injection_molding.yaml` disabled until adapter preparation can
-consume the admitted source. Adapter implementation, canonical Parquet, M2 audit,
-and M3 split design remain deferred.
+consume the admitted source. ManufacturingBundle mapping is planned, not implemented;
+canonical Parquet, M2 audit, and M3 split design remain deferred.
