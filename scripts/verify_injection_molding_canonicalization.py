@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 
@@ -66,7 +65,6 @@ EXPECTED_PROCESS = {
     "integral_idx_0_einspritzstrom_ist_state_8": ("integral_idx_0_actual_injection_flow_state_8"),
 }
 EXPECTED_QUALITY = ("weight", "GE-GE002*", "GERADEHEIT-L*", "PT-PT002L*")
-EXPECTED_RESEARCH_SHA256 = "eb441ab7b98b7dc3ce0005986501fd50bdcce1a58fad59cedb0524733c8b6e1a"
 EXPECTED_MAPPING = {
     **{name: ("context", destination) for name, destination in EXPECTED_CONTEXT.items()},
     "cycle_counter": ("units", "cycle_counter"),
@@ -113,7 +111,6 @@ def verify(raw_root: Path, artifact: Path | None = None) -> dict[str, object]:
             observed_metadata.scalar_lineage,
             observed_metadata.signal_lineage,
             observed_metadata.exclusions,
-            observed_metadata.research_context,
         ) == (
             expected_metadata.dataset,
             expected_metadata.candidate,
@@ -124,7 +121,6 @@ def verify(raw_root: Path, artifact: Path | None = None) -> dict[str, object]:
             expected_metadata.scalar_lineage,
             expected_metadata.signal_lineage,
             expected_metadata.exclusions,
-            expected_metadata.research_context,
         )
     units = bundle.units
     operations = bundle.operations
@@ -206,10 +202,6 @@ def verify(raw_root: Path, artifact: Path | None = None) -> dict[str, object]:
     }
     admitted_ids = set(unit_ids)
     assert not admitted_ids.intersection(item.unit_id for item in bundle.metadata.exclusions)
-    research_bytes = json.dumps(
-        bundle.metadata.research_context, sort_keys=True, separators=(",", ":")
-    ).encode()
-    assert hashlib.sha256(research_bytes).hexdigest() == EXPECTED_RESEARCH_SHA256
 
     return {
         "status": "passed",
@@ -227,8 +219,6 @@ def verify(raw_root: Path, artifact: Path | None = None) -> dict[str, object]:
         "trajectory_time_values_compared": 829 * 2048,
         "quality_nulls": quality["measured_value"].null_count(),
         "exclusions": len(bundle.metadata.exclusions),
-        "research_records": len(bundle.metadata.research_context),
-        "research_sha256": EXPECTED_RESEARCH_SHA256,
         "durable_artifact_compared": str(artifact.resolve()) if artifact else None,
     }
 

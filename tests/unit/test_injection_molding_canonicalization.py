@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import replace
 from pathlib import Path
-from types import MappingProxyType
 from typing import cast
 
 import numpy as np
@@ -102,7 +101,6 @@ def test_handoff_preserves_reworded_limitations_and_different_producer_version(
 
     bundle = canonicalize_fixture(changed, expectations)
 
-    assert bundle.metadata.project_version == "99.0.0"
     assert bundle.metadata.limitations == ("Same source limitation, revised wording.",)
 
 
@@ -147,108 +145,10 @@ def test_real_validator_handoff_maps_keys_values_nulls_lineage_and_evidence(tmp_
         (item.source_name, (item.canonical_section, item.canonical_name))
         for item in bundle.metadata.scalar_lineage
     ] == [(name, EXPECTED_MAPPING[name]) for name in SCALAR_COLUMNS]
-    evidence_states = {
-        str(item["subject"]): item["state"] for item in bundle.metadata.research_context
-    }
-    assert evidence_states["material"] == "documented_fact"
-    assert evidence_states["experiment_to_paper_day"] == "inference"
-    assert evidence_states["experiment_15_moisture"] == "discrepancy"
-    assert evidence_states["mvp_target"] == "project_policy"
-    evidence = {str(item["subject"]): item for item in bundle.metadata.research_context}
-    optical = cast(list[dict[str, object]], evidence["optical_measurement_equipment"]["quantities"])
-    weight = cast(list[dict[str, object]], evidence["weight_measurement_equipment"]["quantities"])
-    assert optical[0]["value"] == 8.0
-    assert optical[0]["unit"] == "um"
-    assert weight[0]["value"] == 2.0
-    assert weight[0]["unit"] == "mg"
-    assert evidence["hot_runner_export_crosswalk"]["state"] == "inference"
-    assert (
-        dict(cast(list[list[str]], evidence["hot_runner_export_crosswalk"]["details"]))["confirmed"]
-        == "false"
-    )
-    assert "hot_runner_crosswalk" not in dict(
-        cast(list[list[str]], evidence["paper_scalar_feature_set"]["details"])
-    )
-    assert [
-        (item["source_experiment_id"], item["proposed_paper_day"])
-        for item in cast(
-            list[dict[str, object]], evidence["experiment_to_paper_day"]["associations"]
-        )
-    ] == [(20, 2), (23, 3), (15, 1)]
-    discrepancy_runs = cast(list[dict[str, object]], evidence["experiment_15_moisture"]["runs"])
-    assert {(item["experiment_id"], item["value_source"]) for item in discrepancy_runs} == {
-        (15, "released_raw"),
-        (15, "paper"),
-    }
-    assert [(item["count"], item["value"], item["unit"]) for item in discrepancy_runs] == [
-        (89, 0.050, None),
-        (89, 0.066, "%"),
-        (98, 0.100, None),
-        (98, 0.097, "%"),
-        (116, 0.150, None),
-        (116, 0.150, "%"),
-    ]
-    assert all(item["source_section"] for item in bundle.metadata.research_context)
-    assert all("#" in str(item["source_reference"]) for item in bundle.metadata.research_context)
     assert bundle.metadata.exclusions[0].cycle_counter == 102
     assert bundle.metadata.exclusions[0].reason == "no_released_scalar_quality_row"
     for name, snapshot in scalar_snapshots.items():
         np.testing.assert_array_equal(source.scalars.values[name], snapshot)
-
-
-def test_bundle_tables_are_copy_on_access_and_mapping_is_deterministic(tmp_path: Path) -> None:
-    source, expectations = validated_fixture(tmp_path)
-    first = canonicalize_fixture(source, expectations)
-    second = canonicalize_fixture(source, expectations)
-
-    external = first.units
-    external[0, "product_family"] = "changed"
-    assert external["product_family"].to_list() == ["changed", "stacking box"]
-    assert first.units["product_family"].to_list() == ["stacking box", "stacking box"]
-    assert first.units is not first.units
-    for table_name in ("units", "operations", "process_features", "signals", "quality", "context"):
-        assert getattr(first, table_name).equals(getattr(second, table_name))
-    assert first.metadata == second.metadata
-    assert len(EXPECTED_MAPPING) == len(SCALAR_COLUMNS) == 40
-    assert [
-        (item.source_name, (item.canonical_section, item.canonical_name))
-        for item in first.metadata.scalar_lineage
-    ] == [(name, EXPECTED_MAPPING[name]) for name in SCALAR_COLUMNS]
-
-
-def test_bundle_owns_values_even_if_a_caller_constructs_mutable_handoff_arrays(
-    tmp_path: Path,
-) -> None:
-    source, expectations = validated_fixture(tmp_path)
-    scalar_values = dict(source.scalars.values)
-    mutable_weight = scalar_values["weight"].copy()
-    scalar_values["weight"] = mutable_weight
-    pressure = source.signals["Einspritzdruck"]
-    mutable_pressure = pressure.values.copy()
-    mutable_source = replace(
-        source,
-        scalars=replace(source.scalars, values=MappingProxyType(scalar_values)),
-        signals=MappingProxyType(
-            {
-                **source.signals,
-                "Einspritzdruck": replace(pressure, values=mutable_pressure),
-            }
-        ),
-    )
-
-    bundle = canonicalize_fixture(mutable_source, expectations)
-    original_weight = bundle.quality.filter(pl.col("characteristic") == "weight")["measured_value"][
-        0
-    ]
-    original_pressure = bundle.signals["injection_pressure"][0]
-    mutable_weight[0] = -1.0
-    mutable_pressure[0, pressure.cycle_to_column[100]] = -1.0
-
-    assert (
-        bundle.quality.filter(pl.col("characteristic") == "weight")["measured_value"][0]
-        == original_weight
-    )
-    assert bundle.signals["injection_pressure"][0] == original_pressure
 
 
 @pytest.mark.parametrize(

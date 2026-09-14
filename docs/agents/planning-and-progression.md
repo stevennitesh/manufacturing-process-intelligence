@@ -51,6 +51,8 @@ limitations and unrelated edits. Verification follows the engineering contract,
 not a growing list of historical check commands.
 
 A milestone closes when its promised ordinary workflow and scoped gate pass.
+Milestone completion does not restrict later changes. Assess improvements by their
+current scientific, workflow or maintenance value, using the engineering contract.
 Keep a compact record of the output, decisive checks/input identity, limitations
 and next action. Do not copy every attempt or repair round into active context.
 Planning alone does not advance status. A maintenance simplification does not

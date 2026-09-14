@@ -3,10 +3,8 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Mapping
 from dataclasses import dataclass
-from importlib.resources import files
 from typing import Final, NoReturn, cast
 
 import numpy as np
@@ -211,21 +209,6 @@ def _build_lineage(mapping: Mapping[str, tuple[str, str]]) -> tuple[FieldLineage
     return tuple(result)
 
 
-def _research_context() -> tuple[dict[str, object], ...]:
-    """Load the source dossier as packaged data, outside executable mapping logic."""
-    resource = files("mpi.datasets").joinpath("resources/injection_molding_research.json")
-    try:
-        value: object = json.loads(resource.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as error:
-        _fail("research.resource", str(error))
-    if not isinstance(value, list):
-        _fail("research.resource", "packaged research context must be a JSON array of objects")
-    records = cast(list[object], value)
-    if any(not isinstance(record, dict) for record in records):
-        _fail("research.resource", "packaged research context must be a JSON array of objects")
-    return tuple(cast(list[dict[str, object]], value))
-
-
 def _canonicalize_validated(
     source: ValidatedInjectionMoldingSource,
     *,
@@ -355,16 +338,6 @@ def _canonicalize_validated(
         archive_size=source.archive_size,
         archive_sha256=source.archive_sha256,
         manifest_sha256=source.manifest_sha256,
-        project_version=source.project_version,
-        verified_receipt_path=str(source.receipt_path) if source.receipt_path else None,
-        source_repository_url=None,
-        prepared_at_utc=None,
-        acquisition_time_utc=None,
-        acquisition_time_source=None,
-        acquisition_time_unavailable_reason=None,
-        git_commit=None,
-        git_dirty=None,
-        git_unavailable_reason=None,
         source_contract_reference=SOURCE_CONTRACT_REFERENCE,
         citations=(
             "Bogedale et al. (2023), Online Prediction of Molded Part Quality in the "
@@ -403,10 +376,6 @@ def _canonicalize_validated(
         ),
         transformations=_TRANSFORMATIONS,
         exclusions=exclusions,
-        research_context=_research_context(),
-        validation_checks=tuple(
-            (check.check_id, check.expected, check.observed) for check in source.checks
-        ),
         limitations=source.limitations,
         retained_optional_source_groups=source.optional_groups,
         retained_optional_process_fields=_INTEGRAL_FIELDS,
@@ -424,10 +393,8 @@ def _canonicalize_validated(
     return bundle
 
 
-def _validate_bundle(
-    bundle: ManufacturingBundle,
-    expectations: _CanonicalExpectations,
-) -> None:
+def validate_bundle_schema(bundle: ManufacturingBundle) -> None:
+    """Check table columns and dtypes without repeating the source audit."""
     tables = {
         "units": bundle.units,
         "operations": bundle.operations,
@@ -490,6 +457,17 @@ def _validate_bundle(
         observed_schema = [(field, str(dtype)) for field, dtype in table.schema.items()]
         if observed_schema != expected_schemas[name]:
             _fail("bundle.schema", f"{name} schema differs from the Dataset 2 contract")
+
+
+def _validate_bundle(
+    bundle: ManufacturingBundle,
+    expectations: _CanonicalExpectations,
+) -> None:
+    validate_bundle_schema(bundle)
+    tables = {
+        name: getattr(bundle, name)
+        for name in ("units", "operations", "process_features", "signals", "quality", "context")
+    }
     expected_rows = expectations.scalar_rows
     if (
         tuple(
@@ -662,11 +640,6 @@ def _validate_bundle(
         for unit_id, derived_id, reason in expected_exclusion_shape
     ):
         _fail("bundle.exclusions", "excluded cycle identities or reasons are inconsistent")
-
-
-def validate_injection_molding_bundle(bundle: ManufacturingBundle) -> None:
-    """Validate the complete fixed Dataset 2 canonical contract."""
-    _validate_bundle(bundle, _CanonicalExpectations())
 
 
 def canonicalize_injection_molding(

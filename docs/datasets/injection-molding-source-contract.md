@@ -623,15 +623,18 @@ $env:UV_CACHE_DIR = Join-Path (Get-Location) '.uv-cache'
 uv run mpi data prepare injection_molding --raw-root data/raw/injection_molding
 ```
 
-Preparation performs no download or source repair. It preserves the six canonical
-tables, typed field lineage and the complete packaged research dossier in the
-current metadata record. Reload verifies the required file hashes and scientific
-whole-bundle invariants before publication. An exact existing destination
-is reused unchanged; other existing destinations fail with guidance to choose a
-new output. The default is `data/processed/injection_molding/dataset2`.
-The artifact has no schema version or compatibility machinery.
-The small artifact manifest records only required payload file
-hashes; it is integrity evidence, not publisher authentication.
+Preparation performs no download or source repair. It writes the six tables and
+metadata containing source identity, license, typed lineage, transformations,
+actual exclusions and limitations. The full 15-record
+[research dossier](injection-molding-research.json) is documentation, not a runtime
+dependency or copied artifact payload.
+
+Loading checks table schema and metadata structure; it does not repeat the source
+audit or hash generated files. Preparation can reuse an existing output with the
+configured source identity. See [README](../../README.md) for setup;
+its preparation section explains explicit regeneration and incomplete outputs.
+The default is `data/processed/injection_molding/dataset2`; there is no schema
+version or compatibility machinery.
 
 ## Next action
 

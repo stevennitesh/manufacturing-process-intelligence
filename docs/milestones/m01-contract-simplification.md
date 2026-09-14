@@ -1,46 +1,37 @@
 # M1 — Portfolio-sized data contract
 
-One current, unversioned artifact layout. No legacy readers, schema-version
-fields, adapters or migration machinery. This replaces the pre-release cleanup
-plans; there are no deployed artifact consumers.
+One current, unversioned layout: six Parquet tables and `metadata.json`.
+No legacy readers, schema versions, artifact registry or migration machinery.
 
 ## Ownership
 
-- Source manifests own admission, upstream commit and archive hashes.
+- Source manifests own admission, upstream commit and raw archive hashes.
 - Raw validation owns source schema, native timestamps and cycle membership.
-- Canonicalization owns six tables and scientific invariants.
-- Metadata owns provenance, lineage, actual exclusions and research context.
-- Packaged JSON preserves all 15 research records without executable constructors.
-- The artifact manifest contains only required payload names and hashes.
-- Loading needs no network, raw files, configuration, Git or current research file.
-
-Upstream source commits and the Python package version are provenance, not artifact
-schema versions. Future roadmap releases do not impose data compatibility.
+- Canonicalization owns table mappings, joins, null representation and units.
+- Metadata carries source identity, license, lineage, transformations, exclusions
+  and limitations. Research evidence stays in
+  [dataset documentation](../datasets/injection-molding-source-contract.md).
+- Persistence writes tables and metadata. Loading checks schema, not source science
+  or generated-file checksums. Tables are ordinary Polars dataframes.
 
 ## Workflow
 
 Acquire the pinned source, prepare it at
 `data/processed/injection_molding/dataset2`, and use `load_bundle(path)`.
-The folder contains six Parquet tables, `metadata.json` and `manifest.json`.
-Extra analyst notes are allowed. Equivalent output reuses existing files unchanged;
-different or corrupt output fails without automatic repair or overwrite.
+Preparation reuses an existing output from the configured source without raw
+revalidation or exact table comparisons. Reuse does not establish freshness after
+code changes; explicitly remove generated output or select a new directory to
+regenerate. Existing files are never overwritten; failed writes may leave an
+incomplete directory for inspection. No automatic repair or concurrent writer
+support is promised.
 
-No versioned output folders or old-schema recovery paths are maintained. Retired
-generated copies are removed in the explicit clean cutover; raw evidence remains.
-Preparation recreates the current artifact from that raw source.
+## Scientific boundary
 
-## Scientific boundary and verification
+Preserve 829 labeled units, 92 actual exclusions, 40 scalar fields, independent
+pressure/flow cycle joins and the native 2,048-point irregular grid.
+Keep experiment order 20/23/15 (223/303/303), weight in grams, deferred geometry,
+unknown units and null production days/specification limits. Retention does not
+grant model-feature eligibility.
 
-Preserve all 829 labeled units, 92 actual exclusions, 40 scalar fields, pressure
-and flow joined independently by cycle, and the released 2,048-point irregular grid.
-Retain experiment order 20/23/15 (223/303/303), weight in grams, deferred geometry,
-unknown units and null production days/specification limits. Retention is not
-model feature eligibility.
-
-Independent full-source comparison established exact scalar and trajectory values,
-nulls, lineage, exclusions and research context. The unversioned cutover changes
-artifact labeling, not scientific transformations. Verify ordinary preparation,
-standalone loading, unchanged reuse and configured checks.
-
-The [M1 summary](m01-injection-molding-ingestion.md) and
-[roadmap](../implementation-roadmap.md) own progress. M2 audit planning is next.
+The [M1 summary](m01-injection-molding-ingestion.md) owns completion evidence.
+[M2 audit planning](../implementation-roadmap.md) is next.

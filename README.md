@@ -70,17 +70,18 @@ reading the single pinned HDF5 member, validates the complete scalar, pressure, 
 flow source contract, and reports labeled and signal-only membership plus accepted
 limitations. It does not canonicalize, resample, impute, or prepare data.
 
-The preparation command is also offline. It resolves configuration and source
-identity once, validates the pinned local bytes, canonicalizes all six tables, and
-first checks an existing destination for exact tables and source identity.
-A compatible bundle is returned with its original provenance and no writes. Fresh
-output is written to an invocation-owned staging directory, verified through one
-serialized loader round trip, and published by the local single-writer workflow
-without overwriting an existing destination.
-Corrupt, partial, incompatible, or different destinations fail without repair. The
-default output is `data/processed/injection_molding/dataset2`; `--output` can name
-another directory. There is one current, unversioned artifact layout containing six Parquet files, sole-owner `metadata.json`,
-and a small file/hash `manifest.json`. Extra analyst notes do not affect loading.
+The preparation command is offline. For a new output it validates the pinned raw
+source, canonicalizes it, and writes six Parquet tables plus `metadata.json`.
+Metadata retains source identity, license, field lineage, transformations,
+exclusions and limitations; the research dossier lives in dataset documentation.
+The default output is `data/processed/injection_molding/dataset2`.
+
+An existing output is loaded after schema and configured-source checks, without
+reprocessing raw data or writing files. Reuse is not a code-freshness check: after
+changing transformations, explicitly remove the generated output or choose a new
+`--output` directory. Existing files are never overwritten. An interrupted write
+may leave an incomplete directory; inspect/remove it or choose another output.
+There are no artifact manifests, schema versions or compatibility readers.
 Both raw and prepared data remain outside Git.
 
 Training, evaluation, dashboard, and API commands will be added only in their

@@ -29,8 +29,11 @@ same full checks at every helper. Validate changed semantics at their owner.
 Keep schema compatibility separate from package versions, documentation wording,
 code formatting and historical execution evidence.
 
-Preserve recorded provenance and research context; only machine-relevant
-invariants belong in runtime rejection rules. Existing artifacts are evidence,
+Keep source identity, lineage and limitations with prepared data; keep the research
+dossier and interpretation history in dataset documentation, not mandatory runtime
+payloads. Local derived data needs ordinary serialization and schema checks, not
+an artifact registry, per-file checksum protocol or automatic freshness machinery.
+Existing artifacts are evidence,
 not an obligation to support every old implementation forever. When changing a
 format, state explicitly whether it remains readable or needs regeneration;
 never overwrite existing user data as an implicit migration.
@@ -61,8 +64,11 @@ wrong scientific conclusions, lost information, broken ordinary workflows and
 clear maintenance costs. Ask whether the requirement itself is useful before
 demanding another layer to satisfy it.
 
-New review requirements need a concrete supported scenario and consequence.
-Potential enterprise use is not sufficient. Keep optional hardening nonblocking.
+New review requirements need a concrete supported scenario and consequence:
+a wrong scientific result, broken current workflow or substantial maintenance cost.
+Review the requirement before implementing or testing it; a test for an unnecessary
+mechanism does not justify keeping that mechanism. Potential enterprise use is not
+sufficient. Keep optional hardening nonblocking.
 Do not create mandatory ADRs, reports, tickets or delegation from this guide.
 Explicitly invoked skills still govern their routing and custody.
 

@@ -1,7 +1,6 @@
 # M1 — Injection-molding source contract and ingestion
 
 **Status:** complete, including the portfolio-scale simplification follow-up.
-The reviewed persistence implementation is uncommitted on base `59e0b92`.
 The [roadmap](../implementation-roadmap.md) owns current cross-milestone position.
 
 ## Outcome and scope
@@ -31,12 +30,12 @@ flowchart LR
 - Weight is in grams. Retain geometry with unknown units/deferred modeling role;
   days and specification limits stay null. No source repair, feature eligibility
   or conformance labels are implied.
-- The six-table protected bundle and complete recorded context survive Parquet/JSON
-  round trips. The offline preparation CLI and independent loader are documented
+- Six ordinary Polars tables and useful source metadata survive Parquet/JSON
+  round trips. The research dossier remains in dataset documentation. The offline preparation CLI and independent loader are documented
   in [README](../../README.md). Raw/prepared data and local receipts stay ignored.
 - Source identity, types/nulls, joins and operational semantics remain required.
   Exact research prose, code-byte fingerprints and historical platform gates are
-  not compatibility requirements; producer evidence remains recorded unchanged.
+  not runtime requirements.
 
 ## English naming and source lineage
 
@@ -51,15 +50,11 @@ contract, not in aliases.
 ## Preparation completion evidence
 
 The [portfolio-sized data contract](m01-contract-simplification.md) owns the current
-unversioned artifact layout. Independent proof matched all 33,160 scalar cells,
-1,697,792 values each for pressure, flow and elapsed time, all 92 actual exclusions
-and all 15 research records. The prepared artifact lives at
-`data/processed/injection_molding/dataset2`; repeat preparation reuses it unchanged.
-Raw source evidence is retained. Retired generated artifact copies are removed.
-
-The unversioned cutover passed all 69 tests, lint, formatting, typing and CLI
-checks. Preparation reused the current artifact successfully; its manifest SHA-256
-is `7512a1eae56f1e58406143174d7b84ebe7aea881521b7f56bbb1d456dd53f376`.
+layout. The latest simplification removes artifact hashing/staging, Git-state
+metadata, runtime research payloads and copy-on-access wrappers. Scientific
+transformations remain unchanged. See the
+[overbuilding report](../reports/m1-overbuilding-review.md) for the changes,
+verification and causes. M1 is complete.
 
 The verifier is
 [scripts/verify_injection_molding_canonicalization.py](../../scripts/verify_injection_molding_canonicalization.py).

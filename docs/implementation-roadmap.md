@@ -5,13 +5,10 @@ This is the concise status view of the
 The plan owns scope and acceptance criteria; this roadmap owns current position.
 
 **Current position:** Milestones 0 and 1 are complete. The injection-molding source
-contract, reproducible Dataset 2 acquisition, strict raw validation, protected
-canonicalization, exact Parquet/JSON persistence, safe publication/reuse and the
-offline preparation command are verified. The durable loader needs only the named
-artifact and returns the same protected bundle contract. The
+contract, reproducible Dataset 2 acquisition, raw validation, canonicalization and
+local Parquet/JSON save/load are verified. The
 [portfolio-sized data contract](milestones/m01-contract-simplification.md) uses one
-unversioned artifact layout, without legacy readers or compatibility machinery.
-Reuse writes nothing and preparation resolves its inputs and receipt once.
+unversioned layout without an artifact registry or compatibility machinery.
 M2 audit planning is next; M2 implementation has not begun.
 The adapter retains all admitted source evidence
 while enforcing the weight-only MVP policy boundary.

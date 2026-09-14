@@ -146,7 +146,7 @@ def prepare_data(
         typer.Option(help="Complete destination directory for the prepared bundle."),
     ] = DEFAULT_OUTPUT,
 ) -> None:
-    """Prepare and safely publish a verified canonical bundle without network access."""
+    """Prepare or reuse local canonical tables without network access."""
     if dataset != "injection_molding":
         typer.echo(f"Error: unsupported preparation dataset: {dataset}", err=True)
         raise typer.Exit(code=1)
@@ -164,7 +164,6 @@ def prepare_data(
     typer.echo(f"disposition: {result.disposition}")
     typer.echo(f"source version: {result.source_version}")
     typer.echo(f"source manifest sha256: {result.source_manifest_sha256}")
-    typer.echo(f"artifact manifest sha256: {result.manifest_sha256}")
     typer.echo("counts:")
     for table in ("units", "operations", "process_features", "signals", "quality", "context"):
         typer.echo(f"- {table}: {getattr(result.bundle, table).height}")
