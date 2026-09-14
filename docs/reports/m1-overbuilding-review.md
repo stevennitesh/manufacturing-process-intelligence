@@ -1,132 +1,153 @@
-# M1 overbuilding review and bounded simplification
+# M1 overbuilding review
 
-## Conclusion
+## Current conclusion
 
-The feedback is substantially right. M1 had accumulated production-style
-reliability around a small, local, reproducible dataset. The source investigation
-was valuable; the artifact-management machinery was not proportional to this
-personal manufacturing-data-science portfolio.
+The remaining excess was primarily process/context overhead and acquisition
+bookkeeping, not the manufacturing science. This second pass removes those
+requirements rather than introducing another refactor architecture.
+M1 remains complete and open to useful future changes. M2 audit planning is next,
+not started by this cleanup.
 
-This follow-up simplifies that machinery and leaves M1 complete. M2's dataset
-audit is next; M1 remains open to useful changes as the project evolves.
+## Changes in this pass
 
-## What changed
-
-| Area | Excess | Replacement |
+| Area | Finding | Correction |
 | --- | --- | --- |
-| Persistence | Per-payload hashes, manifest models, staged publication, fsync, link checks, serialized self-validation and exact candidate comparison | Six Parquet writes plus metadata; ordinary loading and table-schema checks |
-| Reuse | Revalidate raw data, reconstruct every table and compare with saved tables | Load existing output and check configured source identity; regeneration is explicit |
-| Bundle | Private table handles and clone-on-every-access properties | Frozen dataclass containing ordinary Polars tables |
-| Metadata | Git discovery/dirty state, acquisition-time state machine, copied validation log, runtime research dossier | Source commit/archive identity, citations/license, lineage, transformations, exclusions and limitations |
-| Research | Packaged JSON required to canonicalize and copied into every output | All 15 records preserved in dataset documentation, linked from the source contract |
-| Tests | Mechanism-specific tampering, staging, context-state and defensive-copy cases | Table/metadata round trip, missing table/schema errors, no overwrite, source mismatch and real raw-to-CLI integration |
-| Context | Standing instructions and progress text describing the elaborate artifact contract | Reconciled README, source contract, M1 contract/summary and roadmap; concrete scope rules at existing guidance owners |
+| Acquisition | Download receipts, chronology and hard-link/fsync publication for one small pinned ZIP | Read at most expected size + one byte, verify size/SHA, save with exclusive creation; matching local bytes reuse offline |
+| Raw validation | Receipt discovery, field checks, chronology ranking and unused producer-version fields | Removed end to end; HDF parsing and scientific checks unchanged |
+| CLI/tests | Receipt output/obstruction tests, legacy-lock test and assertions about deleted temporary-file machinery | Removed; retained normal download/reuse, wrong bytes, failed network, joins and raw-to-prepared integration |
+| Agent guidance | Root instructions plus five separate governance/routing documents | One 52-line AGENTS.md with conditional context reads and proportionate engineering |
+| Master specification | 2,926 lines of science mixed with future scaffolds, recipes and contradictory provenance obligations | 254-line docs/spec.md preserving scientific milestones, acceptance, release priorities and limitations |
+| Historical files | Nine abandoned source/plan/script/test files inside .archive | Removed from current tree; recoverable at Git commit 60e3c25 |
+| Future scaffold | Unadmitted Bosch/CiP configs and six .gitkeep files | Removed; add real files when their work begins |
+| References | Pointers to retired guides/plan/archive and receipt behavior | Reconciled README, roadmap, source contract, licensing, ADR and milestone text |
 
-Persistence fell from 461 to 140 lines; the canonical data types fell from 150 to
-84. The suite went from 69 to 59 tests. These are consequences of deleting
-requirements, not targets or evidence of correctness by themselves.
+The five old guides plus root instructions totaled 287 lines; the new root file
+has 52. Acquisition fell from 456 to 323 lines; raw validation from 778 to 680.
+The spec is about 16 KB. Line counts describe the deletion, not quality targets.
+Persistence and canonical tables were not redesigned in this pass.
+Ignored raw/prepared data and existing local receipt files were left untouched;
+receipt files are no longer read, written or required by the program.
 
-No schema versions, compatibility readers or new dependencies were added.
-The current ignored prepared output was cut over to the smaller metadata and its
-obsolete generated manifest removed. Its six Parquet files were unchanged.
+## Why this was overbuilt
 
-## What remains justified
+### The detailed spec contradicted the simplified context
 
-- Pinned source commit, raw archive hash and licensing evidence.
-- 829 labeled cycles, 92 actual signal-only exclusions and independent cycle-key
-  alignment for pressure and flow.
-- Native 2,048-point irregular timestamps, weight in grams, preserved nulls and
-  honest unknown geometry units, chronology and specification limits.
-- Validation of raw inputs and the canonical transformation. Loading now checks
-  structure rather than repeating the full scientific audit.
-- The six existing tables and explicit English/source field mapping. Their shape
-  is larger than a single modeling dataframe, but another redesign now would
-  spend time without advancing the experiment.
-- Configured lint, formatting, typing, tests and one useful CLI integration.
+The retired plan's section 29 still said every processed dataset should generate
+download timestamps, processed hashes, adapter versions and Git commits. Its
+earlier portfolio-scale disclaimer and the newer M1 contract said otherwise.
+An agent could reasonably follow the concrete checklist while missing the broad
+exception. The previous cleanup corrected implementations and nearby guidance
+but failed to remove that competing instruction.
 
-Acquisition still has more defensive machinery than this project strictly needs.
-It was left unchanged: it works, and replacing it would enlarge this maintenance
-pass without improving the next analysis. It is not a template for later phases.
-The independent source-comparison script remains an occasional verification tool,
-not an additional mandatory gate for unrelated edits.
+Its large proposed directory tree and conceptual adapter interface also made
+future capabilities look like current implementation tasks. The new spec retains
+outcomes and scientific constraints, not that scaffold or provenance checklist.
 
-## Deliberate tradeoffs
+### A retired consumer left a live subsystem
 
-This is a trusted local workflow, not a tamper-resistant artifact store.
-Schema-valid manual changes to saved values are not automatically detected.
-Reuse does not detect changed transformation code; explicitly regenerate when
-transformations change. An interrupted write may leave a partial directory for
-inspection/removal. Concurrent publication and automatic recovery are not supported.
-These limitations are now documented instead of hidden behind extensive machinery.
+The first simplification removed chronology from bundle metadata but left receipt
+creation, discovery and validation behind. Download time no longer had a consumer
+or a scientific role. I followed the earlier recommendation to leave acquisition
+alone without tracing what the metadata deletion made unnecessary. That was a
+scope-selection mistake, not a need for another receipt framework.
 
-## Where the overbuilding happened and why
+### Anti-ceremony rules became ceremony
 
-These are inferences from the reviewed code, tests, active contracts and supplied
-feedback, not a reconstruction of every prior agent decision.
+The repo instructed agents to read separate engineering, domain and progression
+documents, alongside roadmap/milestone material. Tracker templates existed despite
+no tracker requirement for direct work. Even though many reads were conditional,
+this split inflated the default path and created multiple places to synchronize.
+I added more proportionality prose in the previous pass instead of removing the
+indirection. The correction is one compact local owner, not another governance layer.
 
-1. **Scientific reproducibility expanded into artifact certification.** Keeping a
-   raw hash and correct cycle joins was necessary. Rehashing derived Parquet,
-   checking producer Git state and validating staged publication solved different,
-   lower-value reliability problems. I should have kept that distinction explicit.
-2. **Preserving research became a runtime contract.** Important source facts,
-   inferences and discrepancies were treated as mandatory machine payloads.
-   Documentation was the appropriate owner for the dossier; useful lineage and
-   limitations still belong with the tables.
-3. **Defensive programming became a default rather than a response to a caller.**
-   Protected dataframe handles and candidate equality assumed consumers and failure
-   modes beyond the actual single-user workflow.
-4. **Requirements reinforced themselves through tests and plans.** Once a
-   hardening mechanism appeared in an acceptance checklist, removing it looked
-   like losing coverage. The correct question was whether that requirement helped
-   the supported experiment, not whether its implementation could be cleaner.
-5. **Earlier simplification did not sufficiently challenge the contract.**
-   Removing duplication or rearranging helpers could leave the expensive behavior
-   intact. Broad reminders to avoid production engineering were already present;
-   the failure was applying them to concrete decisions, not merely missing wording.
+### Reproducibility was conflated with resilience
 
-Responsibility rests with the planning/review decisions I accepted, not simply
-with an implementer producing code to the assigned contract.
+A source hash, valid joins and correct units protect the result. Receipt chronology,
+fsync and hard-link publication address a different operational concern. For one
+8.7 MB public archive on a local single-user workflow, a bounded in-memory download
+and no-overwrite save are sufficient. I should have separated those concerns
+before accepting the implementation obligations.
 
-## Corrections in context and future skill use
+### Tests and history made mechanisms look permanent
 
-The existing engineering guide now distinguishes scientific metadata from a
-research dossier and explicitly excludes a derived-data artifact registry by
-default. It also requires reviewing the usefulness of a mechanism before adding
-tests for it. The progression guide clarifies that milestone completion does not
-restrict later changes; improvements are assessed by their current value.
+Tests can protect an unnecessary subsystem as effectively as a useful one.
+Likewise, archiving old scripts/tests kept retired ideas discoverable in the
+checkout. Git already preserves them. The correction is to assess the behavior's
+current value, remove its obsolete tests with it, and retain history in Git.
 
-For future planning, implementation and review skill use:
+These causes are supported by the reviewed code, context and installed skills.
+They do not establish which historical skill revision produced each earlier line;
+the planning/review choices I accepted remain my responsibility.
 
-- State the current scientific/demo outcome and its stopping condition in the
-  existing brief. Do not create a separate governance document.
-- Admit additional requirements only for a concrete wrong result, broken ordinary
-  workflow or substantial maintenance burden. Hypothetical production use is not
-  sufficient.
-- Assign an implementer the smallest complete path and the actual acceptance
-  scenarios, not a list of desirable infrastructure properties.
-- Have reviewers challenge unnecessary requirements as well as incorrect code.
-  Optional robustness should not silently become a delivery blocker.
-- Verify the authorized result. Judge further improvements by concrete project
-  value, not by the possibility of adding more defenses or abstractions.
+## Do the skills contribute?
 
-These are recommended operating changes for the planning/cost-aware workflows,
-not claims that their skills mandated the excess. Global skill files were not
-changed or audited in this pass. The writing-for-agents skill guided the local
-context reconciliation: concrete decisions at existing owners, without a new
-workflow or extra approval gate.
+Yes, specific defaults can cause overbuilding. Others mainly need proportionate
+application. This audit read the installed instructions; it did not execute their
+delegation workflows or change personal/global skill files.
 
-## Verification
+| Skill/reference | Concrete pressure | Recommended skill correction |
+| --- | --- | --- |
+| repo-bootstrap, references/setup-defaults.md and agent-instructions.md | Initial setup seeds four separate agent documents and domain/tracker routes; instruction guidance expects a separate engineering pointer | Default small single-user repos to one AGENTS.md. Split only when content has a demonstrated separate reader. Make tracker setup conditional on actual tracker use. Preserve a compact local override on later refreshes. |
+| shape-work, references/durable-decisions.md | Directs wholly obsolete documents into repository-root .archive | Allow deletion of Git-tracked obsolete material after preserving active decisions and fixing links. Make an archive directory opt-in, not universal. |
+| shape-work, SKILL.md and acceptance-meaning.md | Detailed boundary/state questions can be expanded into failure-state catalogs | Keep the existing supported-workflow/cheapest-evidence rules; explicitly stop details that do not change a consequential outcome. These instructions already say optional mechanisms are not acceptance. |
+| cost-aware-coding, SKILL.md and references/planned-delivery.md | Pair custody, review and checkpoint records add fixed coordination cost | Use its existing direct-work exception when a handoff cannot repay its cost. Use final-only review when no intermediate boundary justifies a checkpoint; do not turn each subsystem into a gate. |
+| writing-for-agents | Reconciliation can become another document inventory if applied mechanically | Use its existing one-owner/prune rules to consolidate documents, as here; no additional workflow is needed. |
 
-- 59 tests passed; Ruff lint and formatting, Pyright and CLI version passed.
-- Fresh offline preparation and existing-output reuse passed.
-- Independent full-source comparison passed for both the freshly written bundle
-  and the current local output: all 33,160 scalar cells, 1,697,792 values each for
-  pressure, flow and elapsed time, plus lineage, nulls and all 92 exclusions.
-- All six fresh Parquet files were byte-identical to the existing files.
-- All 15 research records were preserved structurally during the documentation move.
-- Raw source bytes and acquisition code were unchanged.
+The strongest actual default problems are bootstrap's file inventory and shaping's
+mandatory local archiving. Cost-aware coding does not prescribe receipts, hashes
+for generated files, defensive dataframe wrappers or a large runtime framework.
+Its guidance already limits trivial-task delegation and unnecessary reviewers.
+Blaming the implementer or the entire skill pack would miss the faulty accepted
+requirements and competing project instructions.
 
-The upstream source is scatimdata commit
-`7bd35941d75c97a3f276439377dc430ab47402be`; source hashes remain owned by
-the version-controlled source manifest. No training, M2 implementation, commit or
-push was performed.
+The repo now explicitly records the compact-file/Git-history convention in
+AGENTS.md so future skill-template refreshes should not recreate the removed
+structure. Global skill edits remain a separate, cross-repository decision.
+
+## What was deliberately kept
+
+- Exact source commit/hash/license and all dataset research, including unresolved
+  units, chronology, quality limits and paper/release discrepancies.
+- Source membership, pressure/flow joins and native time-grid checks.
+- Existing HDF parser, canonical transformation and six-table shape. Some internal
+  format checks and transformation self-checks remain more exact than necessary,
+  but rewriting them here would add risk without advancing analysis.
+- A small injectable transport for offline tests, bounded network timeout, source
+  URL/config agreement and basic destination handling. These have current callers;
+  they are not a generic downloader framework.
+- Existing completed milestone summaries, source ADR, independent comparison
+  script, CI and locked environment. Small useful evidence need not be deleted
+  simply because the phase is complete.
+
+For later adapters, verify source identity, parse needed data and check meaningful
+keys/shapes. Do not reproduce the exhaustive source-discovery audit at every helper.
+Keep transformation correctness primarily in focused reference tests.
+
+## Verification and tradeoffs
+
+- 56 tests pass, plus Ruff lint/format, Pyright and CLI version.
+- Actual local archive acquisition/reuse and raw validation pass:
+  829 matched, zero labeled-only and 92 signal-only cycles.
+- The raw-to-prepared CLI integration uses a generated HDF fixture; scientific
+  parsing/mapping behavior remains covered. No new live network download was needed.
+- Current prepared-output reuse and independent full-source comparison pass:
+  all 33,160 scalar cells, pressure/flow/time values and 92 exclusions match.
+- Local Markdown file links and Git whitespace checks pass.
+- No model training, M2 implementation, commit or push was performed.
+
+The downloader now holds roughly 8.7 MB in memory. A filesystem write failure can
+leave a partial destination; a later hash check rejects it and tells the user to
+inspect/remove it. It does not promise atomic publication, concurrent-writer
+recovery or download chronology. These are explicit local-workflow tradeoffs,
+not missing production features.
+
+## Previous pass, retained as history
+
+Commit 60e3c25 removed artifact manifests/checksums/staging, Git-state metadata,
+runtime research payloads and copy-on-access wrappers. Persistence fell from 461
+to 140 lines and canonical types from 150 to 84; tests went from 69 to 59.
+All 15 research records moved unchanged to dataset documentation.
+Independent verification matched 33,160 scalar cells and 1,697,792 pressure,
+flow and time values each, with all 92 exclusions. Fresh and existing Parquet
+files were byte-identical. That proof remains relevant to unchanged transformations;
+it did not justify keeping the now-unused receipt subsystem.

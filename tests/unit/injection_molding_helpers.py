@@ -5,13 +5,11 @@ from __future__ import annotations
 
 import hashlib
 import zipfile
-from dataclasses import replace
 from pathlib import Path
 
 import h5py
 import numpy as np
 
-from mpi import __version__
 from mpi.data.canonical import ManufacturingBundle
 from mpi.datasets.injection_molding import ArchiveIdentity
 from mpi.datasets.injection_molding_canonicalization import (
@@ -133,8 +131,7 @@ def validated_fixture(
         matched=2,
         signal_only=1,
     )
-    source = _validate_path(archive_path, identity, "a" * 64, None, raw_expectations)
-    source = replace(source, project_version=__version__)
+    source = _validate_path(archive_path, identity, "a" * 64, raw_expectations)
     canonical_expectations = _CanonicalExpectations(
         scalar_rows=2,
         signal_samples=513,

@@ -22,7 +22,7 @@ The repository intentionally contains no modeling or performance claims yet.
 
 See the [implementation roadmap](docs/implementation-roadmap.md) for the current
 milestone, subsystem status, and acceptance gates. The
-[greenfield specification and implementation plan](docs/plans/Manufacturing%20Process%20%26%20Quality%20Intelligence%20%E2%80%94%20Greenfield%20Specification%20and%20Implementation%20Plan.md)
+[project specification](docs/spec.md)
 is the canonical scope authority.
 
 ## Development setup
@@ -59,8 +59,8 @@ uv run mpi data prepare injection_molding --raw-root data/raw/injection_molding
 ```
 
 The acquisition command downloads only the manifest-admitted Dataset 2 archive to
-`data/raw/injection_molding/`, verifies its exact size and SHA-256, and writes a
-local receipt. Use `--raw-root <directory>` for an isolated destination. A matching
+`data/raw/injection_molding/` and verifies its exact size and SHA-256 before saving.
+Use `--raw-root <directory>` for an isolated destination. A matching
 archive is verified and reused without network access. A mismatched archive is
 preserved and reported; move or remove it manually only after investigating its
 identity. Acquisition does not extract, parse, validate, or prepare the dataset.

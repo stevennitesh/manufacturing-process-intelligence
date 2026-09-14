@@ -102,23 +102,18 @@ def _acquire(
     )
 
 
-def test_download_returns_typed_handoff_and_atomic_receipt(tmp_path: Path) -> None:
+def test_download_returns_verified_archive(tmp_path: Path) -> None:
     content = b"synthetic dataset 2 archive"
 
     result = _acquire(tmp_path, content)
 
     assert result.disposition == "downloaded"
     assert result.archive_path.read_bytes() == content
-    assert not list(result.archive_path.parent.glob("*.part"))
-    receipt = json.loads(result.receipt_path.read_text(encoding="utf-8"))
-    assert receipt["archive_path"] == str(result.archive_path)
-    assert receipt["observed_size"] == result.size == len(content)
-    assert receipt["observed_sha256"] == result.sha256 == hashlib.sha256(content).hexdigest()
-    assert receipt["disposition"] == result.disposition
-    assert receipt["downloaded_at_utc"] <= receipt["verified_at_utc"]
+    assert result.size == len(content)
+    assert result.sha256 == hashlib.sha256(content).hexdigest()
 
 
-def test_matching_archive_is_reused_without_network_or_false_download_time(tmp_path: Path) -> None:
+def test_matching_archive_is_reused_without_network(tmp_path: Path) -> None:
     content = b"offline reusable bytes"
     downloaded = _acquire(tmp_path, content)
     original_stat = downloaded.archive_path.stat()
@@ -134,10 +129,6 @@ def test_matching_archive_is_reused_without_network_or_false_download_time(tmp_p
 
     assert reused.disposition == "reused"
     assert reused.archive_path.stat().st_mtime_ns == original_stat.st_mtime_ns
-    assert reused.receipt_path != downloaded.receipt_path
-    receipt = json.loads(reused.receipt_path.read_text(encoding="utf-8"))
-    assert "downloaded_at_utc" not in receipt
-    assert receipt["disposition"] == "reused"
 
 
 def test_manifest_config_mismatch_fails_before_destination_effects(tmp_path: Path) -> None:
@@ -207,7 +198,7 @@ def test_existing_mismatch_is_preserved_without_network(tmp_path: Path) -> None:
         (b"same-size-bad", "checksum mismatch"),
     ],
 )
-def test_bad_download_never_publishes_or_leaves_owned_partial(
+def test_bad_download_does_not_save_archive(
     tmp_path: Path, transport_content: bytes, match: str
 ) -> None:
     expected = b"same-size-ok!"
@@ -223,7 +214,6 @@ def test_bad_download_never_publishes_or_leaves_owned_partial(
 
     version_dir = tmp_path / "raw" / f"scatimdata-{_VERSION}"
     assert not (version_dir / "dataset2.zip").exists()
-    assert not list(version_dir.glob("*.part"))
 
 
 def test_http_failure_does_not_publish_archive(tmp_path: Path) -> None:
@@ -240,7 +230,7 @@ def test_http_failure_does_not_publish_archive(tmp_path: Path) -> None:
     assert not (tmp_path / "raw" / f"scatimdata-{_VERSION}" / "dataset2.zip").exists()
 
 
-def test_interruption_removes_only_owned_partial(tmp_path: Path) -> None:
+def test_network_interruption_does_not_save_archive(tmp_path: Path) -> None:
     content = b"expected"
     config_path, manifest_path = _write_inputs(tmp_path, content)
 
@@ -265,23 +255,3 @@ def test_interruption_removes_only_owned_partial(tmp_path: Path) -> None:
     version_dir = tmp_path / "raw" / f"scatimdata-{_VERSION}"
     assert not (version_dir / "dataset2.zip").exists()
     assert not list(version_dir.glob("*.part"))
-
-
-def test_existing_legacy_lock_is_unrelated_and_preserved(tmp_path: Path) -> None:
-    content = b"expected"
-    config_path, manifest_path = _write_inputs(tmp_path, content)
-    version_dir = tmp_path / "raw" / f"scatimdata-{_VERSION}"
-    version_dir.mkdir(parents=True)
-    lock = version_dir / ".acquisition.lock"
-    lock.write_text("other-owner", encoding="utf-8")
-
-    result = acquire_injection_molding(
-        raw_root=tmp_path / "raw",
-        config_path=config_path,
-        manifest_path=manifest_path,
-        transport=_bytes_transport(content),
-    )
-
-    assert result.disposition == "downloaded"
-    assert lock.read_text(encoding="utf-8") == "other-owner"
-    assert (version_dir / "dataset2.zip").read_bytes() == content

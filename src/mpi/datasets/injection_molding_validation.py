@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import re
 import tempfile
 import zipfile
@@ -19,7 +18,6 @@ import h5py
 import numpy as np
 import numpy.typing as npt
 
-from mpi import __version__
 from mpi.datasets.injection_molding import (
     DEFAULT_CONFIG_PATH,
     DEFAULT_MANIFEST_PATH,
@@ -152,15 +150,6 @@ class SourceSignalMatrix:
 
 
 @dataclass(frozen=True)
-class ValidatedReceiptInfo:
-    """Identity-validated receipt facts carried through preparation."""
-
-    path: Path
-    downloaded_at_utc: str | None
-    chronology_utc: str
-
-
-@dataclass(frozen=True)
 class ValidatedInjectionMoldingSource:
     """Usable source-native handoff after all pinned checks pass."""
 
@@ -171,9 +160,6 @@ class ValidatedInjectionMoldingSource:
     archive_size: int
     archive_sha256: str
     manifest_sha256: str
-    project_version: str
-    receipt_path: Path | None
-    receipt_downloaded_at_utc: str | None
     scalars: SourceScalarTable
     signals: Mapping[str, SourceSignalMatrix]
     matched_cycle_ids: tuple[int, ...]
@@ -556,86 +542,10 @@ def _measure_stream(stream: BinaryIO) -> tuple[int, str]:
     return size, digest.hexdigest()
 
 
-def _validated_receipt(
-    receipt_path: Path | None,
-    *,
-    archive_path: Path,
-    identity: ArchiveIdentity,
-    manifest_sha256: str,
-) -> ValidatedReceiptInfo | None:
-    if receipt_path is None or receipt_path.is_symlink() or not receipt_path.is_file():
-        return None
-    try:
-        resolved_receipt = receipt_path.resolve(strict=True)
-        if resolved_receipt.parent != archive_path.parent / "receipts":
-            return None
-        raw: object = json.loads(resolved_receipt.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
-    if not isinstance(raw, dict) or not all(isinstance(key, str) for key in raw):
-        return None
-    receipt = cast(dict[str, object], raw)
-    expected: dict[str, object] = {
-        "dataset": identity.dataset,
-        "candidate": identity.candidate,
-        "source_version": identity.source_version,
-        "source_path": identity.source_path,
-        "size": identity.size,
-        "sha256": identity.sha256,
-        "expected_size": identity.size,
-        "expected_sha256": identity.sha256,
-        "observed_size": identity.size,
-        "observed_sha256": identity.sha256,
-        "archive_path": str(archive_path),
-        "manifest_sha256": manifest_sha256,
-    }
-    if any(receipt.get(field) != value for field, value in expected.items()):
-        return None
-    downloaded = receipt.get("downloaded_at_utc")
-    verified = receipt.get("verified_at_utc")
-    if isinstance(downloaded, str) and downloaded:
-        return ValidatedReceiptInfo(resolved_receipt, downloaded, downloaded)
-    if isinstance(verified, str) and verified:
-        return ValidatedReceiptInfo(resolved_receipt, None, verified)
-    return None
-
-
-def _discover_validated_receipt(
-    archive_path: Path,
-    *,
-    identity: ArchiveIdentity,
-    manifest_sha256: str,
-) -> ValidatedReceiptInfo | None:
-    """Select a valid acquisition receipt, preferring true download chronology."""
-    receipts_dir = archive_path.parent / "receipts"
-    if receipts_dir.is_symlink() or not receipts_dir.is_dir():
-        return None
-    candidates: list[ValidatedReceiptInfo] = []
-    try:
-        receipt_paths = tuple(receipts_dir.glob("*.json"))
-    except OSError:
-        return None
-    for receipt_path in receipt_paths:
-        validated = _validated_receipt(
-            receipt_path,
-            archive_path=archive_path,
-            identity=identity,
-            manifest_sha256=manifest_sha256,
-        )
-        if validated is None:
-            continue
-        candidates.append(validated)
-    if not candidates:
-        return None
-    preferred = [item for item in candidates if item.downloaded_at_utc is not None] or candidates
-    return max(preferred, key=lambda item: (item.chronology_utc, str(item.path)))
-
-
 def _validate_path(
     archive_path: Path,
     identity: ArchiveIdentity,
     manifest_sha256: str,
-    receipt: ValidatedReceiptInfo | None,
     expectations: _Expectations,
 ) -> ValidatedInjectionMoldingSource:
     if archive_path.is_symlink() or not archive_path.is_file():
@@ -735,9 +645,6 @@ def _validate_path(
         archive_size=size,
         archive_sha256=sha256,
         manifest_sha256=manifest_sha256,
-        project_version=__version__,
-        receipt_path=receipt.path if receipt else None,
-        receipt_downloaded_at_utc=receipt.downloaded_at_utc if receipt else None,
         scalars=scalars,
         signals=signals,
         matched_cycle_ids=matched,
@@ -770,9 +677,4 @@ def validate_resolved_injection_molding(
     manifest_sha256 = resolved.manifest_sha256
     _, _, archive_path = resolve_archive_destination(raw_root, identity)
     resolved_archive = archive_path.resolve(strict=False)
-    receipt = _discover_validated_receipt(
-        resolved_archive,
-        identity=identity,
-        manifest_sha256=manifest_sha256,
-    )
-    return _validate_path(resolved_archive, identity, manifest_sha256, receipt, _Expectations())
+    return _validate_path(resolved_archive, identity, manifest_sha256, _Expectations())

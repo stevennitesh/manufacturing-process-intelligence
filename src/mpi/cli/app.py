@@ -90,7 +90,6 @@ def acquire_data(
     typer.echo(f"archive: {result.archive_path}")
     typer.echo(f"size: {result.size}")
     typer.echo(f"sha256: {result.sha256}")
-    typer.echo(f"receipt: {result.receipt_path}")
     typer.echo(f"disposition: {result.disposition}")
     typer.echo("verification: byte-verified; schema validation and preparation not performed")
 
@@ -128,7 +127,6 @@ def validate_data(
         f"{len(result.labeled_only_cycle_ids)} labeled-only / "
         f"{len(result.signal_only_cycle_ids)} signal-only"
     )
-    typer.echo(f"receipt: {result.receipt_path if result.receipt_path else 'absent'}")
     typer.echo("limitations:")
     for limitation in result.limitations:
         typer.echo(f"- {limitation}")

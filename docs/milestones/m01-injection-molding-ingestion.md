@@ -32,7 +32,7 @@ flowchart LR
   or conformance labels are implied.
 - Six ordinary Polars tables and useful source metadata survive Parquet/JSON
   round trips. The research dossier remains in dataset documentation. The offline preparation CLI and independent loader are documented
-  in [README](../../README.md). Raw/prepared data and local receipts stay ignored.
+  in [README](../../README.md). Raw/prepared data stay ignored.
 - Source identity, types/nulls, joins and operational semantics remain required.
   Exact research prose, code-byte fingerprints and historical platform gates are
   not runtime requirements.
@@ -54,7 +54,9 @@ layout. The latest simplification removes artifact hashing/staging, Git-state
 metadata, runtime research payloads and copy-on-access wrappers. Scientific
 transformations remain unchanged. See the
 [overbuilding report](../reports/m1-overbuilding-review.md) for the changes,
-verification and causes. M1 is complete.
+verification and causes, including the subsequent receipt and repository-context
+cleanup. Acquisition no longer writes receipts; the compact specification and
+AGENTS.md replace the former planning/governance structure. M1 is complete.
 
 The verifier is
 [scripts/verify_injection_molding_canonicalization.py](../../scripts/verify_injection_molding_canonicalization.py).

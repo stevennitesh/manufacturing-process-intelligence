@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import tempfile
 import zipfile
 from pathlib import Path
@@ -165,7 +164,7 @@ def _write_source(
 
 
 def _validate_fixture(archive_path: Path, identity: ArchiveIdentity, expectations: _Expectations):
-    return _validate_path(archive_path, identity, "manifest-hash", None, expectations)
+    return _validate_path(archive_path, identity, "manifest-hash", expectations)
 
 
 def _track_production_extracts(monkeypatch: pytest.MonkeyPatch) -> list[Path]:
@@ -215,72 +214,6 @@ def test_allowed_nullable_context_is_preserved_without_imputation(tmp_path: Path
 
     assert np.isnan(result.scalars.values["context"][0])
     assert result.scalars.values["context"][1] == 5.0
-
-
-def test_local_validation_does_not_discover_unrelated_receipt(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    archive_path, identity, expectations = _write_source(tmp_path)
-    content = archive_path.read_bytes()
-    config_path = tmp_path / "local-config.yaml"
-    manifest_path = tmp_path / "local-manifest.json"
-    raw_root = tmp_path / "local-raw"
-    version_dir = raw_root / f"scatimdata-{identity.source_version}"
-    receipts_dir = version_dir / "receipts"
-    receipts_dir.mkdir(parents=True)
-    (version_dir / "dataset2.zip").write_bytes(content)
-    (receipts_dir / "acquisition-ffffffff.json").write_text("{}", encoding="utf-8")
-    config_path.write_text(
-        "\n".join(
-            (
-                "dataset: injection_molding",
-                "stage: mvp",
-                "enabled: false",
-                "source_url: https://github.com/sc4t1m/scatimdata",
-                f"version: {identity.source_version}",
-                "",
-            )
-        ),
-        encoding="utf-8",
-    )
-    download_url = (
-        "https://raw.githubusercontent.com/sc4t1m/scatimdata/"
-        f"{identity.source_version}/dataset2.zip"
-    )
-    manifest_path.write_text(
-        json.dumps(
-            {
-                "dataset": "injection_molding",
-                "source": {
-                    "repository_url": identity.repository_url,
-                    "source_version": identity.source_version,
-                },
-                "files": [
-                    {
-                        "candidate": "dataset2",
-                        "source_path": "dataset2.zip",
-                        "immutable_download_url": download_url,
-                        "bytes": len(content),
-                        "sha256": hashlib.sha256(content).hexdigest(),
-                        "admitted": True,
-                    }
-                ],
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    def fixture_expectations() -> _Expectations:
-        return expectations
-
-    monkeypatch.setattr(injection_molding_validation, "_Expectations", fixture_expectations)
-    result = injection_molding_validation.validate_injection_molding(
-        raw_root=raw_root,
-        config_path=config_path,
-        manifest_path=manifest_path,
-    )
-
-    assert result.receipt_path is None
 
 
 def test_changed_archive_is_rejected_before_zip_read_and_preserved(

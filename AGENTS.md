@@ -1,42 +1,52 @@
-# Repository agent instructions
+# Repository guidance
 
-## Work in this repository
+This is a personal manufacturing-data-science portfolio, not a production service.
+Prefer a correct, understandable end-to-end result over infrastructure breadth.
 
-- This is a personal résumé/portfolio project for manufacturing data science, not a production service. Use the scope boundary in the canonical specification and the proportional engineering guidance in `docs/agents/engineering-contract.md`.
-- Use the runtime declared in `.python-version` and `pyproject.toml`, with dependencies resolved by `uv.lock`. Follow `README.md` for setup and `pyproject.toml` for package layout and entry points.
-- Work within the user's authorized scope. Milestone order and technical scope come from the specification routed by `docs/agents/domain.md`; current progress comes from `docs/implementation-roadmap.md` and its linked milestone documents.
-- Keep dataset-specific parsing and semantics in dataset adapters. Do not turn the project into a generic ML framework.
+## Context and progress
 
-## Plan and progress
+- For milestone planning/status, read [the roadmap](docs/implementation-roadmap.md)
+  and only the relevant milestone. For scientific scope, use [the spec](docs/spec.md).
+  Source meanings, evidence and limitations live in [dataset contracts](docs/datasets/).
+  A routine code change does not require reading the whole plan or every milestone.
+- Plan only decisions the next work needs; a small change needs no saved plan.
+  Keep progress/evidence in the roadmap or relevant milestone, not here.
+  Planning does not authorize implementation. Completion does not restrict later changes.
+- This compact file owns engineering and progression guidance. Do not recreate
+  separate domain/engineering/tracker guides or an archive directory to satisfy
+  skill templates. Git history retains obsolete documents; preserve useful facts
+  at their current owner before deletion. This is a deliberate local convention.
+- Issues and ADRs are optional, not coding prerequisites. If tracker work is requested,
+  use the configured remote's Issues and inspect current labels/relationships.
+  Existing GitHub conventions use native sub-issues/dependencies and close implemented
+  issues only within the authorized workflow; no remote changes are implied here.
 
-- Before planning, implementing, resuming, or reporting milestone work, read `docs/agents/planning-and-progression.md`, the roadmap, and the relevant milestone document.
-- Plan the overall milestone first; add subsystem detail only for decisions the next implementation needs. Progress through dependencies and verify outputs before claiming completion. A milestone closes when its scoped acceptance gate passes, not when speculative infrastructure is exhausted.
-- Keep status, next actions, blockers, and completion evidence in the roadmap and milestone documents, not in this file. Creating a plan does not authorize its implementation or advance its implementation status.
+## Implementation
 
-## Verify changes
+- Keep parsing and source semantics in dataset adapters. Reuse established guarantees
+  within a pipeline; do not duplicate the source audit at every helper boundary.
+  Prefer transformation tests over runtime assertions of values just constructed.
+- Protect source identity, cycle joins, units/nulls, native sampling, target separation
+  and leakage-safe evaluation. Keep unknowns explicit; do not invent chronology,
+  specification limits or causal claims.
+- Add a layer, test or dependency for a concrete correct result, realistic failure
+  or materially simpler ordinary workflow—not hypothetical production use.
+  Create future directories/configs only when they have a current consumer.
+- Local single-user batch processing is sufficient. Preserve existing files on
+  failure; no artifact registry, acquisition receipts, concurrent-writer protocol
+  or compatibility machinery is required. Source hashes/lineage/limitations matter;
+  research history belongs in documentation, not mandatory runtime payloads.
+- Keep work within the requested scope and preserve unrelated changes.
 
-Run the required checks declared in `.github/workflows/ci.yml`, using the tool
-configuration in `pyproject.toml` for code changes, plus focused verification of
-the affected behavior. For documentation-only changes, check content and affected
-links instead. Reuse checks tied to unchanged code/inputs; run CLI smoke tests when
-the CLI or packaging changes. Keep full dataset training out of CI. Report checks that could not run
-and the resulting verification gap.
+## Verification and data
 
-## Protect data and history
-
-- Never commit raw, interim, or processed third-party data unless redistribution is explicitly permitted.
-- Keep acquisition provenance and hashes in version-controlled manifests under `data/manifests/`.
-- Do not commit credentials, local environments, generated artifacts, model binaries, or experiment stores.
-- Preserve unrelated work. Inspect the staged diff and run `git diff --cached --check` before committing.
-
-## Read the owning guidance
-
-- For substantive design, implementation, debugging, refactoring, or review, read `docs/agents/engineering-contract.md`.
-- When manufacturing meaning, statistical validity, scope, or an accepted architectural decision matters, read `docs/agents/domain.md` and follow its routes.
-- For tracker-backed work, read `docs/agents/issue-tracker.md` and `docs/agents/triage-labels.md`.
-
-Direct coding does not require a GitHub issue. These pointers do not start extra workflows on their own.
-
-Update this file when repository-wide policy or an owning document's location
-changes, not when milestones advance, commands are added, or dependency versions
-change. Update those facts at their owners and keep affected links consistent.
+- Follow README setup; runtime/package configuration and dependencies are owned by
+  `.python-version`, `pyproject.toml` and `uv.lock`.
+- For code changes run the checks in `.github/workflows/ci.yml` plus a focused
+  ordinary-path test. Reuse checks for unchanged code/inputs. Transformation changes
+  need an independent reference comparison; full training stays out of CI.
+  Documentation-only edits need content/link checks. Report verification gaps.
+- Keep raw/prepared third-party data, credentials, environments and generated
+  outputs out of Git. Record admitted-source provenance/hashes in `data/manifests/`;
+  follow DATA_LICENSES.md. Use synthetic fixtures in tests.
+- Inspect the staged diff and run `git diff --cached --check` before committing.

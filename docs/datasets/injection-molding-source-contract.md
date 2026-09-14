@@ -591,18 +591,16 @@ uv run mpi data acquire injection_molding
 The default destination is
 `data/raw/injection_molding/scatimdata-7bd35941d75c97a3f276439377dc430ab47402be/dataset2.zip`.
 Use `--raw-root <directory>` to isolate the destination. The command validates
-configuration/manifest agreement before effects, streams to an invocation-owned
-partial file, checks the manifest size and SHA-256, publishes without overwriting,
-and writes an immutable local receipt beneath the source-version directory. This
-is a local single-writer workflow; it does not create or clear acquisition locks.
-A matching existing archive is rehashed and reused without a network request.
+configuration/manifest agreement before effects, reads at most the expected size
+plus one byte into memory (the admitted archive is about 8.7 MB), verifies size
+and SHA-256, and saves with exclusive creation. It does not extract or validate
+the HDF5 content.
 
-If existing bytes differ, the command exits nonzero and leaves them untouched;
-investigate and preserve or remove those bytes manually before retrying. An HTTP,
-timeout, truncation, excess-size, checksum, destination, or receipt failure also exits
-nonzero. Only partial files owned by the failing invocation are removed. A verified
-archive retained after receipt failure is safely recovered by rerunning the command,
-which reuses the bytes and writes a new receipt.
+A matching existing archive is rehashed and reused without network access.
+A mismatched file is preserved with an error; inspect/remove it before retrying.
+Network/checksum failures do not create an archive. A filesystem write failure may
+leave a partial file, which the next invocation rejects by hash. There is no
+receipt, download chronology, fsync or hard-link publication protocol.
 
 Connection and blocking reads use a finite transport timeout. Size and SHA-256 are
 checked before publication; truncated, oversized or mismatched downloads are never

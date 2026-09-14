@@ -1,7 +1,7 @@
 # Implementation roadmap
 
 This is the concise status view of the
-[canonical greenfield implementation plan](plans/Manufacturing%20Process%20%26%20Quality%20Intelligence%20%E2%80%94%20Greenfield%20Specification%20and%20Implementation%20Plan.md).
+[project specification](spec.md).
 The plan owns scope and acceptance criteria; this roadmap owns current position.
 
 **Current position:** Milestones 0 and 1 are complete. The injection-molding source
@@ -50,7 +50,7 @@ Apply at a credible v0.1 (target week 6); later source audits and the semiconduc
 case study strengthen the story. Semiconductor work can be prioritized for an
 interview once prerequisites pass, without requiring productionization first.
 Pharma/advanced manufacturing are optional in the first three months. The
-canonical plan's section 79 owns the relative 12-week schedule. SoliDAIR is retired
+[specification](spec.md#delivery-priorities) owns the relative 12-week schedule. SoliDAIR is retired
 from the required core. No new source is admitted by this roadmap.
 
 ## Milestone drill-downs
@@ -59,7 +59,5 @@ from the required core. No new source is admitted by this roadmap.
 - [M1 — Injection-molding source contract and ingestion](milestones/m01-injection-molding-ingestion.md)
 - [M1 — Portfolio-sized data contract](milestones/m01-contract-simplification.md)
 
-The [planning and progression guide](agents/planning-and-progression.md) defines
-when to expand milestone plans, how to track subsystem progress, and what evidence
-is required to close a gate. These diagrams summarize readiness; linked milestone
-documents hold execution details and evidence.
+[AGENTS.md](../AGENTS.md) contains the compact planning/engineering guidance.
+These diagrams summarize readiness; milestone documents hold relevant evidence.

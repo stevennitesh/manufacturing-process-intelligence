@@ -89,13 +89,12 @@ def _with_table(bundle: ManufacturingBundle, name: str, table: pl.DataFrame) -> 
     return ManufacturingBundle(metadata=bundle.metadata, **tables)
 
 
-def test_handoff_preserves_reworded_limitations_and_different_producer_version(
+def test_handoff_preserves_limitations(
     tmp_path: Path,
 ) -> None:
     source, expectations = validated_fixture(tmp_path)
     changed = replace(
         source,
-        project_version="99.0.0",
         limitations=("Same source limitation, revised wording.",),
     )
 

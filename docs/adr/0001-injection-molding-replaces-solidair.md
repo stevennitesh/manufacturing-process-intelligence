@@ -45,5 +45,6 @@ status. Subsequent source admission and the accepted Dataset 2 weight-only MVP
 refinement are maintained in the source contract and canonical plan; use the
 implementation roadmap for completed work. SoliDAIR remains outside the core.
 
-- Canonical plan: `docs/plans/Manufacturing Process & Quality Intelligence — Greenfield Specification and Implementation Plan.md`
-- Historical evidence: `.archive/docs/plans/SoliDAIR Discovery Findings — Original Plan Review.md`
+- Current scope: [specification](../spec.md).
+- Pivot-time plans and findings: Git history at commit `60e3c25`, under `.archive/`.
+  That directory was subsequently removed; this decision record is historical.

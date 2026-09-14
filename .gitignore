@@ -53,7 +53,6 @@ data/warehouse/**
 
 # Generated models, reports, and experiment state
 artifacts/**
-!artifacts/.gitkeep
 /models/
 mlruns/
 mlartifacts/

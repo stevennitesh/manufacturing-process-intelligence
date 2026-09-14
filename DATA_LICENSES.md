@@ -35,10 +35,10 @@ Before adding a dataset adapter or download command:
 SoliDAIR was evaluated for the former MVP and was not admitted because the released
 production data did not satisfy the required process-to-physical-quality contract.
 Its source contract, discovery manifest, inspection utility, tests, and findings are
-preserved under `.archive/` as non-authoritative historical evidence. Local raw
+preserved in Git history at commit `60e3c25`, not in the current tree. Local raw
 SoliDAIR files, when present, live under `data/raw/_archive/solidair/`; they remain
 ignored and must not be used by active code, tests, or claims.
 
-The former source was published under CC BY-NC-ND 4.0. Archiving project metadata
+The former source was published under CC BY-NC-ND 4.0. Retaining project history
 does not broaden those terms, authorize commercial use, or authorize redistribution
 of adapted material.
