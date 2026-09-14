@@ -164,7 +164,7 @@ def _write_source(
 
 
 def _validate_fixture(archive_path: Path, identity: ArchiveIdentity, expectations: _Expectations):
-    return _validate_path(archive_path, identity, "manifest-hash", expectations)
+    return _validate_path(archive_path, identity, expectations)
 
 
 def _track_production_extracts(monkeypatch: pytest.MonkeyPatch) -> list[Path]:

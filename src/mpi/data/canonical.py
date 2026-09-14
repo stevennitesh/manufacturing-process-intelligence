@@ -57,7 +57,6 @@ class BundleMetadata:
     source_version: str
     archive_size: int
     archive_sha256: str
-    manifest_sha256: str
     source_contract_reference: str
     citations: tuple[str, ...]
     license_name: str

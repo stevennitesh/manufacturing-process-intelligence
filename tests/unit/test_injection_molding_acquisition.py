@@ -23,30 +23,15 @@ def _write_inputs(
     content: bytes,
     *,
     dataset: str = "injection_molding",
-    version: str = _VERSION,
     source_path: str = "dataset2.zip",
     download_url: str = _DOWNLOAD_URL,
     admitted: bool = True,
     expected_content: bytes | None = None,
-) -> tuple[Path, Path]:
-    config_path = root / "config.yaml"
+) -> Path:
     manifest_path = root / "manifest.json"
-    config_path.write_text(
-        "\n".join(
-            [
-                f"dataset: {dataset}",
-                "stage: mvp",
-                "enabled: false",
-                f"source_url: {_REPOSITORY}",
-                f"version: {version}",
-                "",
-            ]
-        ),
-        encoding="utf-8",
-    )
     identity_content = content if expected_content is None else expected_content
     manifest = {
-        "dataset": "injection_molding",
+        "dataset": dataset,
         "source": {
             "repository_url": _REPOSITORY,
             "source_version": _VERSION,
@@ -63,7 +48,7 @@ def _write_inputs(
         ],
     }
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
-    return config_path, manifest_path
+    return manifest_path
 
 
 def _bytes_transport(content: bytes) -> injection_molding.Transport:
@@ -93,10 +78,9 @@ def _acquire(
     transport: injection_molding.Transport | None = None,
     expected_content: bytes | None = None,
 ):
-    config_path, manifest_path = _write_inputs(tmp_path, content, expected_content=expected_content)
+    manifest_path = _write_inputs(tmp_path, content, expected_content=expected_content)
     return acquire_injection_molding(
         raw_root=tmp_path / "raw",
-        config_path=config_path,
         manifest_path=manifest_path,
         transport=transport or _bytes_transport(content),
     )
@@ -117,12 +101,10 @@ def test_matching_archive_is_reused_without_network(tmp_path: Path) -> None:
     content = b"offline reusable bytes"
     downloaded = _acquire(tmp_path, content)
     original_stat = downloaded.archive_path.stat()
-    config_path = tmp_path / "config.yaml"
     manifest_path = tmp_path / "manifest.json"
 
     reused = acquire_injection_molding(
         raw_root=tmp_path / "raw",
-        config_path=config_path,
         manifest_path=manifest_path,
         transport=_failing_transport(),
     )
@@ -131,14 +113,13 @@ def test_matching_archive_is_reused_without_network(tmp_path: Path) -> None:
     assert reused.archive_path.stat().st_mtime_ns == original_stat.st_mtime_ns
 
 
-def test_manifest_config_mismatch_fails_before_destination_effects(tmp_path: Path) -> None:
-    config_path, manifest_path = _write_inputs(tmp_path, b"bytes", dataset="other")
+def test_wrong_manifest_dataset_fails_before_destination_effects(tmp_path: Path) -> None:
+    manifest_path = _write_inputs(tmp_path, b"bytes", dataset="other")
     raw_root = tmp_path / "raw"
 
-    with pytest.raises(AcquisitionError, match="does not match configuration"):
+    with pytest.raises(AcquisitionError, match="manifest dataset must be injection_molding"):
         acquire_injection_molding(
             raw_root=raw_root,
-            config_path=config_path,
             manifest_path=manifest_path,
             transport=_failing_transport(),
         )
@@ -157,14 +138,13 @@ def test_manifest_config_mismatch_fails_before_destination_effects(tmp_path: Pat
 def test_invalid_manifest_path_or_url_fails_before_writes(
     tmp_path: Path, source_path: str, download_url: str
 ) -> None:
-    config_path, manifest_path = _write_inputs(
+    manifest_path = _write_inputs(
         tmp_path, b"bytes", source_path=source_path, download_url=download_url
     )
 
     with pytest.raises(AcquisitionError):
         acquire_injection_molding(
             raw_root=tmp_path / "raw",
-            config_path=config_path,
             manifest_path=manifest_path,
             transport=_failing_transport(),
         )
@@ -174,7 +154,7 @@ def test_invalid_manifest_path_or_url_fails_before_writes(
 
 def test_existing_mismatch_is_preserved_without_network(tmp_path: Path) -> None:
     content = b"expected"
-    config_path, manifest_path = _write_inputs(tmp_path, content)
+    manifest_path = _write_inputs(tmp_path, content)
     archive = tmp_path / "raw" / f"scatimdata-{_VERSION}" / "dataset2.zip"
     archive.parent.mkdir(parents=True)
     archive.write_bytes(b"different")
@@ -182,7 +162,6 @@ def test_existing_mismatch_is_preserved_without_network(tmp_path: Path) -> None:
     with pytest.raises(AcquisitionError, match="preserve or remove"):
         acquire_injection_molding(
             raw_root=tmp_path / "raw",
-            config_path=config_path,
             manifest_path=manifest_path,
             transport=_failing_transport(),
         )
@@ -202,12 +181,11 @@ def test_bad_download_does_not_save_archive(
     tmp_path: Path, transport_content: bytes, match: str
 ) -> None:
     expected = b"same-size-ok!"
-    config_path, manifest_path = _write_inputs(tmp_path, expected)
+    manifest_path = _write_inputs(tmp_path, expected)
 
     with pytest.raises(AcquisitionError, match=match):
         acquire_injection_molding(
             raw_root=tmp_path / "raw",
-            config_path=config_path,
             manifest_path=manifest_path,
             transport=_bytes_transport(transport_content),
         )
@@ -217,12 +195,11 @@ def test_bad_download_does_not_save_archive(
 
 
 def test_http_failure_does_not_publish_archive(tmp_path: Path) -> None:
-    config_path, manifest_path = _write_inputs(tmp_path, b"expected")
+    manifest_path = _write_inputs(tmp_path, b"expected")
 
     with pytest.raises(AcquisitionError, match="HTTP 503"):
         acquire_injection_molding(
             raw_root=tmp_path / "raw",
-            config_path=config_path,
             manifest_path=manifest_path,
             transport=_failing_transport("HTTP 503"),
         )
@@ -232,7 +209,7 @@ def test_http_failure_does_not_publish_archive(tmp_path: Path) -> None:
 
 def test_network_interruption_does_not_save_archive(tmp_path: Path) -> None:
     content = b"expected"
-    config_path, manifest_path = _write_inputs(tmp_path, content)
+    manifest_path = _write_inputs(tmp_path, content)
 
     class InterruptedStream(io.BytesIO):
         def read(self, size: int | None = -1) -> bytes:
@@ -247,11 +224,9 @@ def test_network_interruption_does_not_save_archive(tmp_path: Path) -> None:
     with pytest.raises(KeyboardInterrupt):
         acquire_injection_molding(
             raw_root=tmp_path / "raw",
-            config_path=config_path,
             manifest_path=manifest_path,
             transport=interrupting_transport,
         )
 
     version_dir = tmp_path / "raw" / f"scatimdata-{_VERSION}"
     assert not (version_dir / "dataset2.zip").exists()
-    assert not list(version_dir.glob("*.part"))

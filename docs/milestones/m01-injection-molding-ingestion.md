@@ -31,7 +31,7 @@ flowchart LR
   days and specification limits stay null. No source repair, feature eligibility
   or conformance labels are implied.
 - Six ordinary Polars tables and useful source metadata survive Parquet/JSON
-  round trips. One unversioned output directory contains six Parquet files and
+  round trips. One current output directory contains six Parquet files and
   metadata JSON; loading checks schema without repeating the raw audit. Research
   stays in dataset documentation. [README](../../README.md) owns preparation,
   loading and explicit regeneration instructions. Raw/prepared data stay ignored.
@@ -51,17 +51,15 @@ contract, not in aliases.
 
 ## Preparation completion evidence
 
-The latest cleanup removes unused validation-report objects, logging/seed scaffolding,
-defensive raw-array immutability and forwarding helpers. Construction constants
-and source-level checks are covered at their source or by transformation tests,
-rather than rechecked in canonicalization. Schema, counts, keys, relationships,
-native grid and exclusions retain runtime checks.
+The source manifest is the only acquisition/preparation identity owner; the
+adapter no longer needs a YAML dataset config or a hash of manifest prose.
+Prepared reuse compares dataset, candidate, source commit and archive hash.
+Scientific mappings, six-table layout and source checks are unchanged.
 
-All 52 tests, lint, formatting, typing and CLI smoke checks pass. Full-source
+All 49 tests, lint, formatting, typing and CLI smoke checks pass. Full-source
 comparison preserves 33,160 scalar cells and 1,697,792 values each for pressure,
-flow and elapsed time, with all 92 exclusions. See the
-[overbuilding report](../reports/m1-overbuilding-review.md) for earlier changes and
-causes. M1 remains complete and open to useful changes.
+flow and elapsed time, with all 92 exclusions. M1 remains complete and open to
+useful changes. Earlier cleanup reports and pivot records remain in Git history.
 
 The verifier is
 [scripts/verify_injection_molding_canonicalization.py](../../scripts/verify_injection_molding_canonicalization.py).

@@ -18,13 +18,11 @@ import numpy as np
 import numpy.typing as npt
 
 from mpi.datasets.injection_molding import (
-    DEFAULT_CONFIG_PATH,
     DEFAULT_MANIFEST_PATH,
     DEFAULT_RAW_ROOT,
     ArchiveIdentity,
-    ResolvedArchiveInputs,
     resolve_archive_destination,
-    resolve_archive_inputs,
+    resolve_archive_identity,
 )
 
 HDF_MEMBER = "dataset2/dynamic_data_versuch_large.h5"
@@ -149,7 +147,6 @@ class ValidatedInjectionMoldingSource:
     archive_path: Path
     archive_size: int
     archive_sha256: str
-    manifest_sha256: str
     scalars: SourceScalarTable
     signals: Mapping[str, SourceSignalMatrix]
     matched_cycle_ids: tuple[int, ...]
@@ -519,7 +516,6 @@ def _measure_stream(stream: BinaryIO) -> tuple[int, str]:
 def _validate_path(
     archive_path: Path,
     identity: ArchiveIdentity,
-    manifest_sha256: str,
     expectations: _Expectations,
 ) -> ValidatedInjectionMoldingSource:
     if archive_path.is_symlink() or not archive_path.is_file():
@@ -581,7 +577,6 @@ def _validate_path(
         archive_path=archive_path,
         archive_size=size,
         archive_sha256=sha256,
-        manifest_sha256=manifest_sha256,
         scalars=scalars,
         signals=signals,
         matched_cycle_ids=matched,
@@ -595,22 +590,19 @@ def _validate_path(
 def validate_injection_molding(
     *,
     raw_root: Path = DEFAULT_RAW_ROOT,
-    config_path: Path = DEFAULT_CONFIG_PATH,
     manifest_path: Path = DEFAULT_MANIFEST_PATH,
 ) -> ValidatedInjectionMoldingSource:
     """Resolve and validate a local pinned archive without network access."""
-    resolved = resolve_archive_inputs(config_path, manifest_path)
-    return validate_resolved_injection_molding(raw_root=raw_root, resolved=resolved)
+    identity = resolve_archive_identity(manifest_path)
+    return validate_resolved_injection_molding(raw_root=raw_root, identity=identity)
 
 
 def validate_resolved_injection_molding(
     *,
     raw_root: Path,
-    resolved: ResolvedArchiveInputs,
+    identity: ArchiveIdentity,
 ) -> ValidatedInjectionMoldingSource:
     """Validate a local archive using inputs resolved by the owning invocation."""
-    identity = resolved.identity
-    manifest_sha256 = resolved.manifest_sha256
     _, _, archive_path = resolve_archive_destination(raw_root, identity)
     resolved_archive = archive_path.resolve(strict=False)
-    return _validate_path(resolved_archive, identity, manifest_sha256, _Expectations())
+    return _validate_path(resolved_archive, identity, _Expectations())

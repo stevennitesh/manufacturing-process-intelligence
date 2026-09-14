@@ -131,7 +131,7 @@ def validated_fixture(
         matched=2,
         signal_only=1,
     )
-    source = _validate_path(archive_path, identity, "a" * 64, raw_expectations)
+    source = _validate_path(archive_path, identity, raw_expectations)
     canonical_expectations = _CanonicalExpectations(
         scalar_rows=2,
         signal_samples=513,

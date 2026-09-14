@@ -12,14 +12,11 @@ from pydantic import TypeAdapter, ValidationError
 
 from mpi.data.canonical import BundleMetadata, ManufacturingBundle
 from mpi.datasets.injection_molding import (
-    DEFAULT_CONFIG_PATH,
     DEFAULT_MANIFEST_PATH,
     DEFAULT_RAW_ROOT,
     resolve_archive_identity,
-    resolve_dataset_config,
 )
 from mpi.datasets.injection_molding_canonicalization import (
-    SOURCE_VERSION,
     CanonicalizationError,
     canonicalize_injection_molding,
     validate_bundle_schema,
@@ -55,10 +52,6 @@ class PreparationResult:
     @property
     def source_version(self) -> str:
         return self.bundle.metadata.source_version
-
-    @property
-    def source_manifest_sha256(self) -> str:
-        return self.bundle.metadata.manifest_sha256
 
 
 def load_bundle(path: Path) -> ManufacturingBundle:
@@ -100,35 +93,21 @@ def prepare(
     *,
     raw_root: Path = DEFAULT_RAW_ROOT,
     output: Path = DEFAULT_OUTPUT,
-    config_path: Path = DEFAULT_CONFIG_PATH,
     manifest_path: Path = DEFAULT_MANIFEST_PATH,
 ) -> PreparationResult:
-    """Prepare offline, or load an existing output from the configured source.
+    """Prepare offline, or load an existing output from the manifest-pinned source.
 
     Reuse does not promise freshness after code changes. To regenerate, remove the
     generated output explicitly or select a new directory.
     """
-    config = resolve_dataset_config(config_path)
-    if (
-        config.dataset != "injection_molding"
-        or config.stage != "mvp"
-        or not config.enabled
-        or config.version != SOURCE_VERSION
-    ):
-        raise PersistenceError(
-            "preparation.config",
-            config_path,
-            "enable the pinned injection_molding MVP source",
-        )
-    resolved = resolve_archive_identity(config, manifest_path)
+    identity = resolve_archive_identity(manifest_path)
     if output.exists():
         bundle = load_bundle(output)
         if (
-            bundle.metadata.dataset != config.dataset
-            or bundle.metadata.candidate != resolved.identity.candidate
-            or bundle.metadata.source_version != config.version
-            or bundle.metadata.archive_sha256 != resolved.identity.sha256
-            or bundle.metadata.manifest_sha256 != resolved.manifest_sha256
+            bundle.metadata.dataset != identity.dataset
+            or bundle.metadata.candidate != identity.candidate
+            or bundle.metadata.source_version != identity.source_version
+            or bundle.metadata.archive_sha256 != identity.sha256
         ):
             raise PersistenceError(
                 "preparation.source",
@@ -136,5 +115,5 @@ def prepare(
                 "different source; select a new output",
             )
         return PreparationResult(output.resolve(), "reused", bundle)
-    source = validate_resolved_injection_molding(raw_root=raw_root, resolved=resolved)
+    source = validate_resolved_injection_molding(raw_root=raw_root, identity=identity)
     return _write_bundle(canonicalize_injection_molding(source), output)

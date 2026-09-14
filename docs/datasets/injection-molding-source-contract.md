@@ -31,7 +31,8 @@ them from baseline predictors until cleared. Retained data is not an approved
 training matrix. Context-augmented models, cavity pressure and state/integral
 features are optional, separately identified experiments.
 
-The MVP policy is AUTO-PREDICT / MEASURE, evaluated by measurement rate versus
+When a simple uncertainty score supports selection, the MVP policy is
+AUTO-PREDICT / MEASURE, evaluated by measurement rate versus
 accepted prediction error and by empirical interval coverage under shift. No
 specification-based PASS/FAIL, quality-escape rate, longitudinal factory SPC or
 physical RCA claim is supported by this contract. SPC/anomaly monitoring belongs
@@ -293,7 +294,7 @@ name correspondences in each export; `werkzeugheizkreis_1` is a candidate for
 hot-runner temperature, not an explicitly documented crosswalk. That published
 modeling input is not the archive's 40 scalar
 columns or the canonicalizer's 31 retained process columns. Keep the published
-exclusion and feature count in metadata; do not claim paper replication from
+exclusion and feature count in this contract; do not claim paper replication from
 ingesting every source field. An exact paper-feature-to-export crosswalk remains
 unverified. This does not change the project's admission or remove source values.
 
@@ -591,7 +592,7 @@ uv run mpi data acquire injection_molding
 The default destination is
 `data/raw/injection_molding/scatimdata-7bd35941d75c97a3f276439377dc430ab47402be/dataset2.zip`.
 Use `--raw-root <directory>` to isolate the destination. The command validates
-configuration/manifest agreement before effects, reads at most the expected size
+the admitted manifest identity before effects, reads at most the expected size
 plus one byte into memory (the admitted archive is about 8.7 MB), verifies size
 and SHA-256, and saves with exclusive creation. It does not extract or validate
 the HDF5 content.
@@ -610,7 +611,6 @@ The typed acquisition result and acquisition CLI output mean byte-verified only.
 They do not establish archive structure, the 829-cycle schema/join contract, or
 preparation readiness. Production raw validation checks archive identity once before
 reading the pinned member.
-The dataset configuration is enabled for the verified preparation adapter.
 
 ## Prepare the admitted bundle
 
@@ -623,16 +623,15 @@ uv run mpi data prepare injection_molding --raw-root data/raw/injection_molding
 
 Preparation performs no download or source repair. It writes the six tables and
 metadata containing source identity, license, typed lineage, transformations,
-actual exclusions and limitations. The full 15-record
-[research dossier](injection-molding-research.json) is documentation, not a runtime
-dependency or copied artifact payload.
+actual exclusions and limitations. This contract owns the research evidence;
+there is no parallel structured research dossier.
 
 Loading checks table schema and metadata structure; it does not repeat the source
 audit or hash generated files. Preparation can reuse an existing output with the
-configured source identity. See [README](../../README.md) for setup;
+manifest-pinned source identity. See [README](../../README.md) for setup;
 its preparation section explains explicit regeneration and incomplete outputs.
-The default is `data/processed/injection_molding/dataset2`; there is no schema
-version or compatibility machinery.
+The default is `data/processed/injection_molding/dataset2`; only the current schema
+is supported. Historical versions are not needed for the current generated data.
 
 ## Next action
 

@@ -6,7 +6,6 @@ from typing import Annotated
 import typer
 
 from mpi import __version__
-from mpi.core.config import load_dataset_config
 from mpi.datasets.injection_molding import (
     DEFAULT_RAW_ROOT,
     AcquisitionError,
@@ -28,9 +27,7 @@ app = typer.Typer(
     help="Manufacturing Process & Quality Intelligence.",
     no_args_is_help=True,
 )
-config_app = typer.Typer(help="Validate and inspect project configuration.")
 data_app = typer.Typer(help="Acquire, validate and prepare manufacturing dataset sources.")
-app.add_typer(config_app, name="config")
 app.add_typer(data_app, name="data")
 
 
@@ -50,15 +47,6 @@ def main(
 ) -> None:
     """Initialize the command line application."""
     del version
-
-
-@config_app.command("validate")
-def validate_config(
-    path: Annotated[Path, typer.Argument(exists=True, dir_okay=False, readable=True)],
-) -> None:
-    """Validate a dataset configuration file."""
-    config = load_dataset_config(path)
-    typer.echo(f"valid dataset config: {config.dataset} ({config.stage})")
 
 
 @data_app.command("acquire")
@@ -155,7 +143,6 @@ def prepare_data(
     typer.echo(f"output: {result.output_path}")
     typer.echo(f"disposition: {result.disposition}")
     typer.echo(f"source version: {result.source_version}")
-    typer.echo(f"source manifest sha256: {result.source_manifest_sha256}")
     typer.echo("counts:")
     for table in ("units", "operations", "process_features", "signals", "quality", "context"):
         typer.echo(f"- {table}: {getattr(result.bundle, table).height}")

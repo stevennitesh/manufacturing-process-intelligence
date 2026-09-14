@@ -330,7 +330,6 @@ def _canonicalize_validated(
         source_version=source.source_version,
         archive_size=source.archive_size,
         archive_sha256=source.archive_sha256,
-        manifest_sha256=source.manifest_sha256,
         source_contract_reference=SOURCE_CONTRACT_REFERENCE,
         citations=(
             "Bogedale et al. (2023), Online Prediction of Molded Part Quality in the "

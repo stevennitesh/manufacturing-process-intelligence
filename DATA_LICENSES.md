@@ -29,16 +29,3 @@ Before adding a dataset adapter or download command:
   source contract, acquisition manifest, schemas, instructions, and synthetic fixtures
   may be version controlled. This project policy is intentionally stricter than the
   source license.
-
-## SoliDAIR — evaluated and retired
-
-SoliDAIR was evaluated for the former MVP and was not admitted because the released
-production data did not satisfy the required process-to-physical-quality contract.
-Its source contract, discovery manifest, inspection utility, tests, and findings are
-preserved in Git history at commit `60e3c25`, not in the current tree. Local raw
-SoliDAIR files, when present, live under `data/raw/_archive/solidair/`; they remain
-ignored and must not be used by active code, tests, or claims.
-
-The former source was published under CC BY-NC-ND 4.0. Retaining project history
-does not broaden those terms, authorize commercial use, or authorize redistribution
-of adapted material.

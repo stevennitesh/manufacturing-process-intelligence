@@ -14,16 +14,14 @@ import pytest
 from typer.testing import CliRunner
 
 from mpi.cli.app import app
-from mpi.core.config import DatasetConfig
 from mpi.data.canonical import ManufacturingBundle
 from mpi.datasets import injection_molding_canonicalization as canonicalization
 from mpi.datasets import injection_molding_persistence as persistence
 from mpi.datasets import injection_molding_validation as validation
 from mpi.datasets.injection_molding import (
-    DEFAULT_CONFIG_PATH,
     DEFAULT_MANIFEST_PATH,
-    ResolvedArchiveInputs,
-    resolve_archive_inputs,
+    ArchiveIdentity,
+    resolve_archive_identity,
 )
 from mpi.datasets.injection_molding_canonicalization import canonicalize_injection_molding
 from mpi.datasets.injection_molding_persistence import PersistenceError, load_bundle
@@ -119,28 +117,22 @@ def test_generated_raw_cli_runs_prepare_and_loads_bundle(
     version_dir = raw_root / f"scatimdata-{source.source_version}"
     version_dir.mkdir(parents=True)
     shutil.copy2(source.archive_path, version_dir / "dataset2.zip")
-    production = resolve_archive_inputs(DEFAULT_CONFIG_PATH, DEFAULT_MANIFEST_PATH)
-    config = production.config
-    production_identity = production.identity
+    production_identity = resolve_archive_identity(DEFAULT_MANIFEST_PATH)
     fixture_identity = replace(
         production_identity, size=source.archive_size, sha256=source.archive_sha256
     )
+    manifest = json.loads(DEFAULT_MANIFEST_PATH.read_text(encoding="utf-8"))
+    for entry in manifest["files"]:
+        if entry["admitted"]:
+            entry["bytes"] = fixture_identity.size
+            entry["sha256"] = fixture_identity.sha256
+    fixture_manifest = tmp_path / "manifest.json"
+    fixture_manifest.write_text(json.dumps(manifest), encoding="utf-8")
 
-    def fixture_config(path: Path) -> DatasetConfig:
-        del path
-        return config
-
-    def fixture_inputs(
-        resolved_config: DatasetConfig, manifest_path: Path
-    ) -> ResolvedArchiveInputs:
+    def fixture_inputs(manifest_path: Path) -> ArchiveIdentity:
         del manifest_path
-        return ResolvedArchiveInputs(
-            config=resolved_config,
-            identity=fixture_identity,
-            manifest_sha256="d" * 64,
-        )
+        return resolve_archive_identity(fixture_manifest)
 
-    monkeypatch.setattr(persistence, "resolve_dataset_config", fixture_config)
     monkeypatch.setattr(
         persistence,
         "resolve_archive_identity",
@@ -166,7 +158,7 @@ def test_generated_raw_cli_runs_prepare_and_loads_bundle(
     assert "disposition: published" in result.output
     assert "- units: 2" in result.output
     loaded = load_bundle(output)
-    expected = canonicalize_injection_molding(replace(source, manifest_sha256="d" * 64))
+    expected = canonicalize_injection_molding(source)
     for table in TABLES:
         assert getattr(loaded, table).equals(getattr(expected, table))
     assert loaded.metadata == expected.metadata
@@ -176,6 +168,9 @@ def test_generated_raw_cli_runs_prepare_and_loads_bundle(
         pytest.fail("reuse revalidated the raw archive")
 
     monkeypatch.setattr(persistence, "validate_resolved_injection_molding", forbidden_validation)
+    # Descriptive edits do not change the source bytes or invalidate prepared reuse.
+    manifest["source"]["release_note"] = "Clarified research note; unchanged source."
+    fixture_manifest.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     reused = persistence.prepare(raw_root=raw_root, output=output)
     assert reused.disposition == "reused"
     assert reused.bundle.metadata == loaded.metadata

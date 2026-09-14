@@ -26,17 +26,23 @@ Prefer a correct, understandable end-to-end result over infrastructure breadth.
 - Keep parsing and source semantics in dataset adapters. Reuse established guarantees
   within a pipeline; do not duplicate the source audit at every helper boundary.
   Prefer transformation tests over runtime assertions of values just constructed.
+  Size each adapter to its source; Dataset 2's fixed-format HDF parser is not a template.
 - Protect source identity, cycle joins, units/nulls, native sampling, target separation
   and leakage-safe evaluation. Keep unknowns explicit; do not invent chronology,
   specification limits or causal claims.
 - Add a layer, test or dependency for a concrete correct result, realistic failure
   or materially simpler ordinary workflow—not hypothetical production use.
-  Create future directories/configs only when they have a current consumer.
+  Create future directories/configs only when they have a current consumer. When
+  removing a layer, remove its unused producers, settings, tests and docs too.
 - Local single-user batch processing is sufficient. Preserve existing files on
   failure; no artifact registry, acquisition receipts, concurrent-writer protocol
   or compatibility machinery is required. Source hashes/lineage/limitations matter;
-  research history belongs in documentation, not mandatory runtime payloads.
+  source manifests own source identity, and dataset contracts own interpretation.
+  Hash source bytes, not descriptive prose, for prepared-data identity.
 - Keep work within the requested scope and preserve unrelated changes.
+- Keep one current implementation and schema. Routine edits do not require version
+  bumps or compatibility paths. Introduce historical versions only when retained
+  data or results justify preserving them; source and dependency pins remain intact.
 
 ## Verification and data
 

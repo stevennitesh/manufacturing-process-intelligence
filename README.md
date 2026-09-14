@@ -10,13 +10,14 @@ commands and an understandable demo, not a production-grade factory service.
 The MVP uses **scatimdata Dataset 2 only**: 829 labeled cycles, pressure/flow
 trajectories and weight in grams. Its three experimental production groups
 represent controlled process-condition changes, not verified calendar days.
-Leave-one-experiment-out evaluation, uncertainty and selective physical measurement
-are required. Geometry is retained as deferred evidence; AUTO-PREDICT / MEASURE
+Leave-one-experiment-out evaluation and uncertainty are required. Selective physical
+measurement follows only if a simple uncertainty score supports error ranking.
+Geometry is retained as deferred evidence; AUTO-PREDICT / MEASURE
 does not mean PASS/FAIL or product conformance.
 
 **Milestone 0: repository foundation** and **Milestone 1: injection-molding source
 contract and ingestion** are complete. Dataset 2 can be acquired, strictly
-validated, canonicalized, safely published as typed Parquet plus JSON provenance,
+validated, canonicalized, saved as Parquet plus JSON source metadata,
 and independently reloaded without the raw source.
 The repository intentionally contains no modeling or performance claims yet.
 
@@ -52,7 +53,6 @@ uv run pre-commit install
 
 ```powershell
 uv run mpi --help
-uv run mpi config validate configs/datasets/injection_molding.yaml
 uv run mpi data acquire injection_molding
 uv run mpi data validate injection_molding
 uv run mpi data prepare injection_molding --raw-root data/raw/injection_molding
@@ -73,15 +73,16 @@ limitations. It does not canonicalize, resample, impute, or prepare data.
 The preparation command is offline. For a new output it validates the pinned raw
 source, canonicalizes it, and writes six Parquet tables plus `metadata.json`.
 Metadata retains source identity, license, field lineage, transformations,
-exclusions and limitations; the research dossier lives in dataset documentation.
-The default output is `data/processed/injection_molding/dataset2`.
+exclusions and limitations; the source contract owns research evidence.
+The source manifest is the sole source identity; edits to its descriptive notes do
+not invalidate prepared data. The default output is `data/processed/injection_molding/dataset2`.
 
-An existing output is loaded after schema and configured-source checks, without
+An existing output is loaded after schema and manifest-pinned source checks, without
 reprocessing raw data or writing files. Reuse is not a code-freshness check: after
 changing transformations, explicitly remove the generated output or choose a new
 `--output` directory. Existing files are never overwritten. An interrupted write
 may leave an incomplete directory; inspect/remove it or choose another output.
-There are no artifact manifests, schema versions or compatibility readers.
+Only the current schema is supported; there are no artifact manifests or compatibility readers.
 Both raw and prepared data remain outside Git.
 
 Training, evaluation, dashboard, and API commands will be added only in their
@@ -118,4 +119,6 @@ quality-intelligence milestones are complete.
 See the [roadmap](docs/implementation-roadmap.md) for the next action and the
 [M1 summary](docs/milestones/m01-injection-molding-ingestion.md) for completion
 evidence. The bounded M1 simplification is complete; M2 audit planning is next.
-The current unversioned data contract has no legacy readers or migration paths.
+The current data contract has no legacy readers or migration paths. Version labels
+are not bumped for routine edits; historical versions become useful when there are
+data or results worth retaining across changes.

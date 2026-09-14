@@ -17,8 +17,9 @@ The first question is: **Does high-resolution telemetry improve part-weight
 prediction beyond scalar measurements, especially under changed conditions?**
 A negative result is valid. Do not promise improvement or measurement savings.
 
-Required progression: predict → evaluate generalization → quantify uncertainty →
-selectively measure; then source-supported monitoring/diagnostics and transfer.
+Required progression: predict → evaluate generalization → quantify uncertainty;
+selective measurement follows only if a simple score supports error ranking.
+Later work adds source-supported monitoring/diagnostics and transfer.
 No MVP SPC, physical RCA, PASS/FAIL, quality escapes or fabricated factory chronology.
 No distributed systems, feature store, agentic AI, autonomous control, predictive
 maintenance or computer-vision scope. Deep learning requires a later justified
@@ -57,7 +58,7 @@ SoliDAIR is outside the core; its abandoned work is recoverable from Git history
 
 Python runtime and dependencies are declared in `pyproject.toml`, `.python-version`
 and `uv.lock`. Use Polars and Parquet; NumPy for numeric work. Add scientific
-libraries when a current experiment needs them. Pydantic/Typer support config/CLI;
+libraries when a current experiment needs them. Pydantic/Typer support metadata/CLI;
 Streamlit and Plotly are the planned dashboard stack. No React or database service
 is required. Notebooks may investigate; reusable computation belongs in `src/mpi`
 and reproduction must work outside Jupyter.
@@ -80,20 +81,21 @@ simple local records suffice.
 
 | Milestone | Deliverable and distinguishing outcome |
 | --- | --- |
-| M0 | Runnable package/CLI, locked environment, configuration, tests and CI |
+| M0 | Runnable package/CLI, locked environment, tests and CI |
 | M1 | Reproducible acquisition, validated source, canonicalization and Parquet/JSON reload preserving the Dataset 2 facts above |
 | M2 | Reproducible audit: counts/groups, weight distribution, missingness, scalar distributions/correlations, trajectory shapes, interventions, variation and leakage risks |
-| M3 | Prediction cutoff, explicit process-feature allowlist and exact leakage-safe fit/tuning/calibration/policy/test memberships |
+| M3 | Prediction cutoff, explicit process-feature allowlist and leakage-safe fit/tune, calibration and outer-test memberships |
 | M4 | Scalar Mean, Ridge and PLS baselines; MAE, RMSE and R²; no tuning campaign |
 | M5 | Matched scalar, engineered-trajectory and compressed-trajectory comparisons |
 | M6 | LightGBM on the same representations/splits, with bounded inner tuning |
-| M7 | Conformal baseline, per-cycle uncertainty score and ID-versus-shift evaluation |
-| M8 | Selective measurement risk-coverage experiment with baseline rankings |
+| M7 | Conformal baseline, one simple uncertainty-score experiment and ID-versus-shift evaluation |
+| M8 | Conditional selective measurement experiment, or documented negative ranking result |
 | M9 | Bounded predictive explanation, not physical root-cause claims |
-| M10 | Five-page offline dashboard and reproducible résumé-ready release |
+| M10 | Three-tab offline dashboard and reproducible résumé-ready release |
 
-M2 keeps geometry and unresolved source details in audit appendices, not new
-modeling targets. Separate experimental context from predictors. Exploratory
+M2 produces a focused reproducible audit, not an EDA framework. Keep geometry and
+unresolved source details in brief audit notes, not new modeling targets.
+Separate experimental context from predictors. Exploratory
 target access does not permit choosing outer folds based on favorable outcomes.
 M3's protocol precedes model comparisons.
 
@@ -101,19 +103,19 @@ M3's protocol precedes model comparisons.
 
 Primary: all three leave-one-experiment-out folds, holding out 15, 20 and 23 in
 turn. Keep each cycle and all samples together; never split signal rows.
-Inside each outer fold only two development experiments remain. M3 must specify
-a feasible disjoint inner tuning/calibration protocol, minimum partition sizes
-and any within-experiment blocking/gaps; it cannot assume three inner groups.
-Save exact unit IDs for fitting, inner validation, calibration, optional policy
-validation and outer test. Never calibrate or tune on the outer experiment.
+Inside each outer fold only 526–606 development cycles from two experiments
+remain. Split development into fit/tune and held-out conformal calibration;
+use inner resampling within fit/tune only when tuning is needed. Save exact unit
+memberships and seeds. Never tune, fit transformations or calibrate on outer-test
+cycles; calibration also stays out of representation/model selection.
 
-Fit imputation, scaling, selection, PCA/PLS and component counts only in appropriate
-training partitions. PLS is supervised: calibration/test targets must not enter it.
-Keep an independently reserved ID evaluation subset from the development groups
-out of fitting, tuning, calibration and policy selection. Evaluate the same fitted
-pipeline on that subset and the outer experiment for paired shift comparisons.
-Separately report the secondary cycle-level random/grouped/blocked ID benchmark
-and its dependence limitations; training error is not ID evaluation.
+Fit imputation, scaling, selection, PCA/PLS and component counts inside the
+appropriate training folds. PLS is supervised. Run a separate secondary
+cycle-level within-distribution (ID) benchmark with a documented grouping/blocking
+choice and its dependence limitations. Do not reserve another ID subset inside
+every outer fold. ID-versus-shift comparisons use different fitted pipelines and
+are descriptive, not a paired estimate isolating shift. Training error is not
+ID evaluation.
 
 Headline: equal-weight mean of the three outer-fold MAEs in grams. Also report
 per-fold MAE/RMSE/R² and counts, plus pooled out-of-fold MAE labeled sample-weighted.
@@ -152,41 +154,51 @@ Choose/tune inside development data, not by selecting the best outer-test result
 
 Implement split-conformal absolute-residual intervals using held-out calibration
 and the finite-sample quantile. Report nominal/empirical coverage, mean/median
-width in grams and counts by held-out experiment, reserved ID subset and useful
-target/process strata. Exchangeability may fail under shift: no coverage guarantee.
-Report MAE_shift minus MAE_ID and interval_coverage_shift minus interval_coverage_ID.
+width in grams and counts by held-out experiment and in the separate ID benchmark.
+Use additional strata only when counts support meaningful interpretation.
+Exchangeability may fail under shift: no coverage guarantee.
+Report ID and shift metrics separately; label any differences as descriptive
+comparisons between protocols, not paired same-model shift effects.
 
-The baseline has constant width within each fitted fold and cannot rank units or
-automatically widen on unfamiliar inputs. M7 also evaluates a per-cycle score
-(for example train-only residual-scale modeling with normalized conformal
-intervals) against that baseline. Test whether it identifies higher-error cycles;
-do not assume widening, conditional coverage or robustness to arbitrary factories.
-Inferred day/startup labels are not ground-truth strata.
+The baseline has constant width within each fitted fold and cannot rank cycles.
+Attempt one simple per-cycle uncertainty score. Before outer-test evaluation,
+assess error ranking using validation predictions inside the fit/tune data, not
+in-sample residuals or final conformal calibration/test labels. Continue to M8 only
+if that development evidence supports useful ranking; otherwise report the negative
+result and finish without a more complex uncertainty subsystem. Define the ranking
+criterion before the check. Final held-out results may still show no benefit.
+Do not claim automatic widening, conditional coverage or arbitrary-factory
+robustness. Inferred day/startup labels are not ground-truth strata.
 
-M8 ranks without test labels and compares with auto-predict-all and seeded random
-ranking. Define deterministic ties and realized accepted counts. Report
+When supported, M8 ranks without test labels and compares with auto-predict-all
+and seeded random ranking. Define deterministic ties and realized accepted counts. Report
 auto-predict coverage 100%, 90%, 75%, 50%; measurement rate = 1 minus coverage;
 selective MAE = mean absolute error among accepted predictions. Zero accepted
 units means undefined risk, not zero. Distinguish this coverage from interval
 coverage. A test coverage sweep is descriptive; an operational threshold must
-be fixed using development/policy-validation data before the outer test.
+be fixed from fit/tune validation predictions before final calibration and outer
+testing. An additional policy-validation dataset is not a required partition.
 Use AUTO-PREDICT / MEASURE, never PASS/HOLD or quality-escape claims here.
 
 ### Explanation, dashboard and release
 
-M9 uses global permutation importance, grouped SHAP and illustrative predictions/
-trajectory interpretation; favor a compact grouped view over a method catalog.
+M9 requires permutation importance. Add grouped SHAP or illustrative trajectory
+interpretation only if it answers a question permutation importance cannot.
 Attribution identifies predictive associations, not causal root causes.
-M10 pages: dataset/experiment explorer; predictive quality/model/representation
-comparisons; held-out generalization versus ID; intervals/coverage/width; selective
-measurement risk-coverage. No fabricated timeline or implied deployed station.
+M10 has three tabs: Data & process (experiments, weight, trajectories);
+Prediction & generalization (models, representations, held-out and ID results,
+attribution); Uncertainty & decision (intervals, coverage, and selective measurement
+only when supported, otherwise the negative ranking finding).
+No fabricated timeline or implied deployed station.
 
 v0.1 is complete when the data invariants, cutoff/allowlist/splits, Mean/Ridge/PLS/
-LightGBM and A/B/C results, per-experiment metrics/deltas, uncertainty and selective
-measurement comparisons, bounded explanation, dashboard, package/CLI, locked
-environment and CI are reproducible. Document limitations and negative results.
+LightGBM and A/B/C results, per-experiment metrics, uncertainty and either supported
+selective measurement comparisons or the negative ranking finding, bounded
+explanation, dashboard, package/CLI, locked environment and CI are reproducible.
+Document limitations and negative results.
 Keep figures focused: process-to-quality architecture, prediction versus measured
-weight, representation/experiment comparisons and risk-coverage.
+weight, representation/experiment comparisons and uncertainty; include risk-coverage
+when the ranking experiment supports it.
 Completion does not require positive trajectory benefit, nominal shifted coverage
 or measurement savings. Tag v0.1.0 when ready and use actual results on the résumé.
 

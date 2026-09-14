@@ -14,9 +14,6 @@ from pathlib import Path, PurePosixPath
 from typing import BinaryIO, Literal, cast
 from urllib.parse import quote, urlparse
 
-from mpi.core.config import DatasetConfig, parse_dataset_config
-
-DEFAULT_CONFIG_PATH = Path("configs/datasets/injection_molding.yaml")
 DEFAULT_MANIFEST_PATH = Path("data/manifests/injection-molding-source.json")
 DEFAULT_RAW_ROOT = Path("data/raw/injection_molding")
 _SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
@@ -55,15 +52,6 @@ class AcquisitionResult:
     disposition: Literal["downloaded", "reused"]
 
 
-@dataclass(frozen=True)
-class ResolvedArchiveInputs:
-    """Configuration and pinned source identity resolved for one invocation."""
-
-    config: DatasetConfig
-    identity: ArchiveIdentity
-    manifest_sha256: str
-
-
 Transport = Callable[[str, float], AbstractContextManager[BinaryIO]]
 
 
@@ -83,19 +71,8 @@ def _require_string(mapping: dict[str, object], field: str) -> str:
     return value
 
 
-def resolve_dataset_config(config_path: Path) -> DatasetConfig:
-    """Load one dataset configuration."""
-    try:
-        config_bytes = config_path.read_bytes()
-        return parse_dataset_config(config_bytes)
-    except (OSError, ValueError) as error:
-        raise AcquisitionError(f"could not read acquisition configuration: {error}") from error
-
-
-def resolve_archive_identity(
-    config: DatasetConfig,
-    manifest_path: Path,
-) -> ResolvedArchiveInputs:
+def resolve_archive_identity(manifest_path: Path) -> ArchiveIdentity:
+    """Read the admitted archive identity from its sole source manifest."""
     try:
         manifest_bytes = manifest_path.read_bytes()
         raw: object = json.loads(manifest_bytes)
@@ -109,14 +86,8 @@ def resolve_archive_identity(
     version = _require_string(source, "source_version")
     if not _COMMIT_PATTERN.fullmatch(version):
         raise AcquisitionError("manifest source_version must be a lowercase 40-character commit")
-    if dataset != config.dataset:
-        raise AcquisitionError(
-            f"manifest dataset {dataset!r} does not match configuration {config.dataset!r}"
-        )
-    if config.source_url is None or repository_url != config.source_url.rstrip("/"):
-        raise AcquisitionError("manifest repository does not match dataset configuration")
-    if version != config.version:
-        raise AcquisitionError("manifest source version does not match dataset configuration")
+    if dataset != "injection_molding":
+        raise AcquisitionError("manifest dataset must be injection_molding")
 
     files_value = manifest.get("files")
     if not isinstance(files_value, list):
@@ -147,11 +118,9 @@ def resolve_archive_identity(
     parsed_repository = urlparse(repository_url)
     repository_parts = PurePosixPath(parsed_repository.path).parts
     if parsed_repository.scheme != "https" or parsed_repository.netloc != "github.com":
-        raise AcquisitionError("configured source repository must use HTTPS on github.com")
+        raise AcquisitionError("source repository must use HTTPS on github.com")
     if len(repository_parts) != 3:
-        raise AcquisitionError(
-            "configured source repository must identify one owner and repository"
-        )
+        raise AcquisitionError("source repository must identify one owner and repository")
     owner, repository = repository_parts[1:]
     expected_url = (
         f"https://raw.githubusercontent.com/{quote(owner, safe='')}/"
@@ -160,7 +129,7 @@ def resolve_archive_identity(
     if download_url != expected_url:
         raise AcquisitionError("manifest download URL does not match the pinned source identity")
 
-    identity = ArchiveIdentity(
+    return ArchiveIdentity(
         dataset=dataset,
         candidate=candidate,
         repository_url=repository_url,
@@ -170,17 +139,6 @@ def resolve_archive_identity(
         size=size,
         sha256=sha256,
     )
-    return ResolvedArchiveInputs(
-        config=config,
-        identity=identity,
-        manifest_sha256=hashlib.sha256(manifest_bytes).hexdigest(),
-    )
-
-
-def resolve_archive_inputs(config_path: Path, manifest_path: Path) -> ResolvedArchiveInputs:
-    """Resolve configured source inputs once for an owned pipeline invocation."""
-    config = resolve_dataset_config(config_path)
-    return resolve_archive_identity(config, manifest_path)
 
 
 def resolve_archive_destination(
@@ -225,7 +183,7 @@ def _assert_identity(path: Path, identity: ArchiveIdentity) -> tuple[int, str]:
 
 @contextmanager
 def _https_transport(url: str, timeout: float) -> Generator[BinaryIO, None, None]:
-    request = urllib.request.Request(url, headers={"User-Agent": "mpi-acquisition/0.0.1"})
+    request = urllib.request.Request(url, headers={"User-Agent": "mpi-acquisition"})
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             yield cast(BinaryIO, response)
@@ -281,7 +239,6 @@ def _download(
 def acquire_injection_molding(
     *,
     raw_root: Path = DEFAULT_RAW_ROOT,
-    config_path: Path = DEFAULT_CONFIG_PATH,
     manifest_path: Path = DEFAULT_MANIFEST_PATH,
     transport: Transport = _https_transport,
     timeout: float = 30.0,
@@ -291,8 +248,7 @@ def acquire_injection_molding(
     The returned archive is byte-verified only. Downstream consumers must verify
     its identity again at their own read boundary.
     """
-    resolved = resolve_archive_inputs(config_path, manifest_path)
-    identity = resolved.identity
+    identity = resolve_archive_identity(manifest_path)
     root, version_dir, archive_path = resolve_archive_destination(raw_root, identity)
 
     _prepare_version_directory(root, version_dir)

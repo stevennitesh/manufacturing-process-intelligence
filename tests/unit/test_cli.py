@@ -21,13 +21,6 @@ def test_version() -> None:
     assert result.stdout.strip() == __version__
 
 
-def test_validate_dataset_config() -> None:
-    result = runner.invoke(app, ["config", "validate", "configs/datasets/injection_molding.yaml"])
-
-    assert result.exit_code == 0
-    assert "valid dataset config: injection_molding (mvp)" in result.stdout
-
-
 @pytest.mark.parametrize("disposition", ["downloaded", "reused"])
 def test_acquire_injection_molding_cli_handoff(
     monkeypatch: pytest.MonkeyPatch, disposition: Literal["downloaded", "reused"]
@@ -99,14 +92,14 @@ def test_prepare_cli_missing_archive_is_local_only(tmp_path: Path) -> None:
     assert not output.exists()
 
 
-def test_prepare_cli_reports_structured_publication_failure_without_success_summary(
+def test_prepare_cli_reports_write_failure_without_success_summary(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     output = tmp_path / "output"
 
     def fail_prepare(*, raw_root: Path, output: Path):  # type: ignore[no-untyped-def]
         del raw_root
-        raise PersistenceError("publication.publish", output, "permission denied")
+        raise PersistenceError("artifact.write", output, "permission denied")
 
     monkeypatch.setattr("mpi.cli.app.prepare_injection_molding", fail_prepare)
     result = runner.invoke(
@@ -123,6 +116,5 @@ def test_prepare_cli_reports_structured_publication_failure_without_success_summ
     )
 
     assert result.exit_code == 1
-    assert "check=publication.publish" in result.output
+    assert "check=artifact.write" in result.output
     assert "disposition:" not in result.output
-    assert "artifact manifest sha256:" not in result.output
