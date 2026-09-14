@@ -1,130 +1,72 @@
 # Engineering contract
 
-Use this guidance to make engineering decisions within the requested change.
-Repository-specific requirements and accepted domain decisions supply the local
-meaning. Apply a conditional practice only when its condition is present.
+Use this guide for design, implementation and review. The canonical specification
+owns project scope: a personal manufacturing-data-science portfolio, not a
+production service.
 
-## Understand the behavior
+## Choose the smallest useful outcome
 
-Trace enough of the owning code and affected callers to establish the changed
-behavior and its consequences. Investigate further when uncertainty, shared
-impact, or failure risk warrants it. Distinguish intended behavior from an
-implementation accident. Preserve accepted contracts and unrelated work; resolve
-consequential ambiguity from the user or the source that owns the decision.
+Build the current caller's end-to-end path. Prefer existing Python, Polars and
+repository facilities over new layers or dependencies. Add an abstraction only
+for meaningful current variation, not hypothetical future datasets. A small
+dataset-specific module is acceptable; do not build a generic ML framework.
 
-Work in the smallest useful slice that completes the requested outcome. When a
-named uncertainty warrants an early probe, build a thin real path to learn from,
-then complete the outcome. The probe is evidence, not completion.
+Protect scientific validity: source identity, key-based alignment, units/nulls,
+native sampling, target separation and leakage-safe evaluation. Keep unknowns
+explicit. These are essential even in a personal project.
 
-## Choose a design callers can use
+Default to local, single-user batch execution. Keep basic input/path safety,
+bounded downloads and no unintended overwrite. Do not add service reliability,
+concurrent-writer protocols, platform certification, cryptographic authenticity
+or deployment machinery without an actual authorized need. Leave working
+safeguards alone when removing them would create more work than it saves.
 
-Evaluate interface changes from real caller usage, including relevant errors,
-ordering, and state transitions. Keep behavior in its current owner unless moving
-it solves a demonstrated design problem.
+## Keep contracts usable
 
-Subtract or reuse before adding machinery. Prefer language, platform, and
-repository capabilities. Add abstractions for meaningful policy or variation;
-keep together decisions that must change together. Separate independent policies
-when sharing an owner creates demonstrated coupling; small duplication is
-preferable to coupling different domain meanings. If deleting a layer removes
-complexity, collapse it. If complexity spreads to callers, the layer earns its place.
-Keep a value's source, governing policy, and possible mutations easy to locate
-without tracing unnecessary layers or hidden state.
+Validate external inputs and loaded artifacts where they enter the program.
+Within one owned pipeline, reuse established guarantees instead of repeating the
+same full checks at every helper. Validate changed semantics at their owner.
+Keep schema compatibility separate from package versions, documentation wording,
+code formatting and historical execution evidence.
 
-Model valid states and domain distinctions in data. Use the type system and
-existing schemas to prevent meaningful mistakes without adding precision no
-caller needs. Keep one source for derived state. Avoid casts or assertions that
-conceal a missing validity check. When an authoritative schema defines a boundary,
-use existing tooling to derive or check its types rather than maintaining a parallel
-definition. Preserve domain distinctions where the boundary representation differs.
+Preserve recorded provenance and research context; only machine-relevant
+invariants belong in runtime rejection rules. Existing artifacts are evidence,
+not an obligation to support every old implementation forever. When changing a
+format, state explicitly whether it remains readable or needs regeneration;
+never overwrite existing user data as an implicit migration.
 
-Validate untrusted input where it enters a trusted representation. Rely on an
-invariant only while its guarantees hold; mutation, persisted data, or concurrent
-writes can invalidate it. Put any necessary recheck at the boundary that owns
-that change rather than scattering defensive checks through ordinary code.
+## Verify proportionately
 
-Keep calculations separate from effects where that makes behavior clearer and
-easier to test. Hide framework and storage details when callers do not need them;
-do not add adapters solely to make a small design look layered.
+For code changes, run the configured CI checks and the nearest tests that can
+distinguish a wrong result. Keep one real integration path through affected stages.
+Reuse passing evidence for unchanged code/inputs; do not repeat full-source proof
+for a prose-only edit or an unrelated helper change. Data transformation changes
+need an independent reference comparison, not only self-consistent round trips.
 
-## Complete the change
+Test failures likely in the supported workflow: malformed input, wrong joins,
+lost nulls, incompatible artifacts and interrupted writes. No test-count target,
+exhaustive adversarial matrix or separate platform gate is implied. Linux CI and
+the user's local environment provide routine coverage; add a platform-specific
+probe only when the changed mechanism needs it. Documentation-only changes need
+content/link checks, not the full code suite.
 
-Fix the cause across affected callers within scope. When a change repeatedly needs
-special cases, duplicated policy, or escape hatches, reconsider the underlying
-representation or ownership before adding another workaround. Revise the affected
-design within scope when that resolves a demonstrated problem; isolated exceptions
-do not justify a broad rewrite.
+Report missing evidence honestly. Do not invent runtime/performance gains; measure
+them only when a relevant claim requires it. Full training stays outside CI.
 
-Preserve meaningful failure behavior; a fallback must not turn an error or
-incomplete result into apparent success. Make partial outcomes explicit when
-callers need to handle them.
+## Work and review efficiently
 
-Migrate owned callers and remove displaced code, configuration, and tests
-together when compatibility permits. Use staged migration when real consumers
-or deployment ordering require coexistence. Keep the reason and removal
-condition for a temporary compatibility path clear. When data outlives deployment
-or consumers upgrade independently, account for old and new readers and writers,
-existing-data conversion, and rollback limitations.
+Investigate only enough to settle the named decision. Keep changes within the
+authorized outcome and preserve unrelated work. A focused review should prioritize
+wrong scientific conclusions, lost information, broken ordinary workflows and
+clear maintenance costs. Ask whether the requirement itself is useful before
+demanding another layer to satisfy it.
 
-Update documentation when behavior, operations, or a non-obvious decision
-changes. Prefer an existing type, constraint, or check to repeated prose when
-it can enforce a recurring rule within the task's scope.
+New review requirements need a concrete supported scenario and consequence.
+Potential enterprise use is not sufficient. Keep optional hardening nonblocking.
+Do not create mandatory ADRs, reports, tickets or delegation from this guide.
+Explicitly invoked skills still govern their routing and custody.
 
-## Match proof to the claim
-
-Run required checks and the nearest useful check that can fail for the changed
-behavior. Add or change tests when they protect a meaningful contract. Assert
-observable behavior rather than implementation wording or private structure.
-
-For a fix, distinguish the reported defect. When a plausible wrong rule also
-passes the ordinary case, choose an input or state where the outcomes differ.
-Derive expected results independently of the implementation under test.
-
-For numerical and data transformations, preserve material units, identity, time
-and availability semantics, missing-value meaning, and precision. Validate
-consequential method assumptions with an independent reference, analytic case,
-or invariant; internally consistent calculations can still answer the wrong question.
-
-For a changed integration, prove that the ordinary caller reaches the new
-behavior. Pass actual produced output through the affected handoff and check
-the meaning it could lose. A reconstructed object or a passing isolated helper
-does not prove that connection. Check failure or partial-success paths when
-their behavior is part of the changed contract.
-
-Preserve the mechanism relevant to the claim. A substitute may prove application
-policy while leaving persistence, concurrency, transport, or rendering behavior
-unproved.
-
-Reuse evidence while the relevant code, inputs, dependencies, and environment
-remain valid. Broaden verification for shared impact, repository policy, or an
-unresolved risk. If execution is unavailable, report the strongest available
-evidence and the unproved claim. Completion follows the requested outcome,
-not merely a successful command or an exhausted budget.
-
-Continue through implementation, verification, and necessary corrections within
-the authorized scope. An intermediate finding or passing check is not a stopping
-point unless the requested outcome or an explicit gate makes it one.
-
-## Handle effects where they occur
-
-For retryable effects, establish identity and a recovery strategy so reruns do
-not duplicate work. On partial or uncertain success, inspect actual state before
-retrying. Give acquired resources an owner and cleanup behavior, including
-failure or cancellation paths when applicable.
-
-For concurrent mutation, eliminate unnecessary shared state first. When sharing
-is required, enforce ownership or serialization through the actual mechanism;
-separate files or worktrees do not isolate shared databases, ports, or services.
-
-When work can accumulate or share scarce resources, define appropriate limits
-and cancellation behavior so a slow dependency or caller cannot cause unbounded
-growth or exhaust unrelated work.
-
-For consequential performance or resource claims, compare equivalent work
-against a baseline under relevant conditions. For external mutations, establish
-the target and authority and read back the result. Review findings and delegated
-results against the actual candidate and artifacts.
-
-These conditions do not start additional workflows. Use TDD, delegation, formal
-review, and operational procedures when the user or applicable instructions
-call for them. Report the outcome, decisive evidence, and material limits.
+For writes, validate exact targets, preserve pre-existing state on failure, and
+clean only invocation-owned temporary files. Stop when the authorized outcome and
+its proportionate checks pass; defer optional improvements rather than extending
+the work indefinitely.

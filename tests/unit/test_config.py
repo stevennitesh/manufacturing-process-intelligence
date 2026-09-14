@@ -11,7 +11,7 @@ def test_load_dataset_config() -> None:
 
     assert config.dataset == "injection_molding"
     assert config.stage == "mvp"
-    assert config.enabled is False
+    assert config.enabled is True
 
 
 def test_reject_unknown_dataset_config_field(tmp_path: Path) -> None:

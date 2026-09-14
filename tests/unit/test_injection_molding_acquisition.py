@@ -199,64 +199,6 @@ def test_existing_mismatch_is_preserved_without_network(tmp_path: Path) -> None:
     assert archive.read_bytes() == b"different"
 
 
-def test_resolved_link_escape_is_rejected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    content = b"expected"
-    config_path, manifest_path = _write_inputs(tmp_path, content)
-    raw_root = tmp_path / "raw"
-    outside = tmp_path / "outside"
-    original_resolve = Path.resolve
-
-    def resolve_link_target(path: Path, strict: bool = False) -> Path:
-        if path.name == "dataset2.zip":
-            return outside / path.name
-        return original_resolve(path, strict=strict)
-
-    monkeypatch.setattr(Path, "resolve", resolve_link_target)
-
-    with pytest.raises(AcquisitionError, match="escapes raw root"):
-        acquire_injection_molding(
-            raw_root=raw_root,
-            config_path=config_path,
-            manifest_path=manifest_path,
-            transport=_bytes_transport(content),
-        )
-
-    assert not (outside / "dataset2.zip").exists()
-
-
-def test_resolved_receipt_escape_is_rejected_without_outside_writes(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    content = b"expected"
-    config_path, manifest_path = _write_inputs(tmp_path, content)
-    raw_root = tmp_path / "raw"
-    version_dir = raw_root / f"scatimdata-{_VERSION}"
-    version_dir.mkdir(parents=True)
-    archive = version_dir / "dataset2.zip"
-    archive.write_bytes(content)
-    outside = tmp_path / "outside"
-    original_resolve = Path.resolve
-
-    def resolve_receipt_link(path: Path, strict: bool = False) -> Path:
-        if path.name == "receipts":
-            return outside
-        return original_resolve(path, strict=strict)
-
-    monkeypatch.setattr(Path, "resolve", resolve_receipt_link)
-
-    with pytest.raises(AcquisitionError, match="archive was left untouched"):
-        acquire_injection_molding(
-            raw_root=raw_root,
-            config_path=config_path,
-            manifest_path=manifest_path,
-            transport=_failing_transport(),
-        )
-
-    assert archive.read_bytes() == content
-    assert not outside.exists()
-    assert not (version_dir / ".acquisition.lock").exists()
-
-
 @pytest.mark.parametrize(
     ("transport_content", "match"),
     [
@@ -325,41 +267,7 @@ def test_interruption_removes_only_owned_partial(tmp_path: Path) -> None:
     assert not list(version_dir.glob("*.part"))
 
 
-def test_late_eof_after_deadline_never_publishes_archive(tmp_path: Path) -> None:
-    content = b"expected"
-    config_path, manifest_path = _write_inputs(tmp_path, content)
-    elapsed = 0.0
-
-    class SlowFinalRead(io.BytesIO):
-        def read(self, size: int | None = -1) -> bytes:
-            nonlocal elapsed
-            chunk = super().read(size)
-            if not chunk:
-                elapsed = 2.0
-            return chunk
-
-    @contextmanager
-    def slow_transport(url: str, timeout: float) -> Generator[BinaryIO, None, None]:
-        del url, timeout
-        yield SlowFinalRead(content)
-
-    with pytest.raises(AcquisitionError, match="overall deadline"):
-        acquire_injection_molding(
-            raw_root=tmp_path / "raw",
-            config_path=config_path,
-            manifest_path=manifest_path,
-            transport=slow_transport,
-            deadline=1.0,
-            clock=lambda: elapsed,
-        )
-
-    version_dir = tmp_path / "raw" / f"scatimdata-{_VERSION}"
-    assert not (version_dir / "dataset2.zip").exists()
-    assert not list(version_dir.glob("*.part"))
-    assert not (version_dir / ".acquisition.lock").exists()
-
-
-def test_existing_lock_fails_without_clearing_owner(tmp_path: Path) -> None:
+def test_existing_legacy_lock_is_unrelated_and_preserved(tmp_path: Path) -> None:
     content = b"expected"
     config_path, manifest_path = _write_inputs(tmp_path, content)
     version_dir = tmp_path / "raw" / f"scatimdata-{_VERSION}"
@@ -367,13 +275,13 @@ def test_existing_lock_fails_without_clearing_owner(tmp_path: Path) -> None:
     lock = version_dir / ".acquisition.lock"
     lock.write_text("other-owner", encoding="utf-8")
 
-    with pytest.raises(AcquisitionError, match="stale ownership is not cleared"):
-        acquire_injection_molding(
-            raw_root=tmp_path / "raw",
-            config_path=config_path,
-            manifest_path=manifest_path,
-            transport=_bytes_transport(content),
-        )
+    result = acquire_injection_molding(
+        raw_root=tmp_path / "raw",
+        config_path=config_path,
+        manifest_path=manifest_path,
+        transport=_bytes_transport(content),
+    )
 
+    assert result.disposition == "downloaded"
     assert lock.read_text(encoding="utf-8") == "other-owner"
-    assert not (version_dir / "dataset2.zip").exists()
+    assert (version_dir / "dataset2.zip").read_bytes() == content

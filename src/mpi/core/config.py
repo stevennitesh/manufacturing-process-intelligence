@@ -18,8 +18,12 @@ class DatasetConfig(BaseModel):
     version: str = Field(min_length=1)
 
 
+def parse_dataset_config(content: bytes) -> DatasetConfig:
+    """Validate one already-read YAML dataset configuration."""
+    raw: object = yaml.safe_load(content)
+    return DatasetConfig.model_validate(raw)
+
+
 def load_dataset_config(path: Path) -> DatasetConfig:
     """Load and validate a YAML dataset configuration."""
-    with path.open(encoding="utf-8") as stream:
-        raw: object = yaml.safe_load(stream)
-    return DatasetConfig.model_validate(raw)
+    return parse_dataset_config(path.read_bytes())

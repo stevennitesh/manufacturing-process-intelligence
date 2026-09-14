@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import re
 import tempfile
 import zipfile
@@ -25,13 +24,12 @@ from mpi.datasets.injection_molding import (
     DEFAULT_CONFIG_PATH,
     DEFAULT_MANIFEST_PATH,
     DEFAULT_RAW_ROOT,
-    AcquisitionResult,
     ArchiveIdentity,
-    load_archive_identity,
+    ResolvedArchiveInputs,
     resolve_archive_destination,
+    resolve_archive_inputs,
 )
 
-VALIDATOR_VERSION = "1"
 HDF_MEMBER = "dataset2/dynamic_data_versuch_large.h5"
 HDF_MEMBER_SIZE = 91_270_248
 SCALAR_COLUMNS = (
@@ -154,6 +152,15 @@ class SourceSignalMatrix:
 
 
 @dataclass(frozen=True)
+class ValidatedReceiptInfo:
+    """Identity-validated receipt facts carried through preparation."""
+
+    path: Path
+    downloaded_at_utc: str | None
+    chronology_utc: str
+
+
+@dataclass(frozen=True)
 class ValidatedInjectionMoldingSource:
     """Usable source-native handoff after all pinned checks pass."""
 
@@ -164,9 +171,9 @@ class ValidatedInjectionMoldingSource:
     archive_size: int
     archive_sha256: str
     manifest_sha256: str
-    validator_version: str
     project_version: str
     receipt_path: Path | None
+    receipt_downloaded_at_utc: str | None
     scalars: SourceScalarTable
     signals: Mapping[str, SourceSignalMatrix]
     matched_cycle_ids: tuple[int, ...]
@@ -233,31 +240,11 @@ def _decode_strings(dataset: h5py.Dataset) -> tuple[str, ...]:
         ) from error
 
 
-def _check_hard_links(hdf: h5py.File) -> None:
-    unsupported: list[tuple[str, str]] = []
-
-    def visit(name: str) -> None:
-        link = hdf.get(name, getlink=True)
-        if not isinstance(link, h5py.HardLink):
-            unsupported.append((name, type(link).__name__))
-
-    hdf.visit_links(visit)
-    if unsupported:
-        _fail("hdf.external_links", "unsupported HDF5 links", "hard links only", unsupported)
-
-
 def _require_dataset(group: h5py.Group, name: str, check_id: str) -> h5py.Dataset:
     item = group[name]
     if not isinstance(item, h5py.Dataset):
         _fail(
             check_id, f"{group.name}/{name} must be an HDF5 dataset", "Dataset", type(item).__name__
-        )
-    if item.external is not None or item.is_virtual:
-        _fail(
-            "hdf.external_storage",
-            f"{item.name} uses unsupported external or virtual storage",
-            "internal storage",
-            {"external": item.external, "virtual": item.is_virtual},
         )
     return item
 
@@ -478,7 +465,6 @@ def _read_hdf(
 ) -> tuple[SourceScalarTable, Mapping[str, SourceSignalMatrix], tuple[str, ...]]:
     try:
         with h5py.File(path, "r") as hdf:
-            _check_hard_links(hdf)
             expected_groups = {"scalars", "Einspritzdruck", "Einspritzstrom", *OPTIONAL_GROUPS}
             if set(hdf.keys()) != expected_groups or not all(
                 isinstance(hdf[name], h5py.Group) for name in hdf
@@ -570,13 +556,13 @@ def _measure_stream(stream: BinaryIO) -> tuple[int, str]:
     return size, digest.hexdigest()
 
 
-def _validated_receipt_path(
+def _validated_receipt(
     receipt_path: Path | None,
     *,
     archive_path: Path,
     identity: ArchiveIdentity,
     manifest_sha256: str,
-) -> Path | None:
+) -> ValidatedReceiptInfo | None:
     if receipt_path is None or receipt_path.is_symlink() or not receipt_path.is_file():
         return None
     try:
@@ -605,14 +591,51 @@ def _validated_receipt_path(
     }
     if any(receipt.get(field) != value for field, value in expected.items()):
         return None
-    return resolved_receipt
+    downloaded = receipt.get("downloaded_at_utc")
+    verified = receipt.get("verified_at_utc")
+    if isinstance(downloaded, str) and downloaded:
+        return ValidatedReceiptInfo(resolved_receipt, downloaded, downloaded)
+    if isinstance(verified, str) and verified:
+        return ValidatedReceiptInfo(resolved_receipt, None, verified)
+    return None
+
+
+def _discover_validated_receipt(
+    archive_path: Path,
+    *,
+    identity: ArchiveIdentity,
+    manifest_sha256: str,
+) -> ValidatedReceiptInfo | None:
+    """Select a valid acquisition receipt, preferring true download chronology."""
+    receipts_dir = archive_path.parent / "receipts"
+    if receipts_dir.is_symlink() or not receipts_dir.is_dir():
+        return None
+    candidates: list[ValidatedReceiptInfo] = []
+    try:
+        receipt_paths = tuple(receipts_dir.glob("*.json"))
+    except OSError:
+        return None
+    for receipt_path in receipt_paths:
+        validated = _validated_receipt(
+            receipt_path,
+            archive_path=archive_path,
+            identity=identity,
+            manifest_sha256=manifest_sha256,
+        )
+        if validated is None:
+            continue
+        candidates.append(validated)
+    if not candidates:
+        return None
+    preferred = [item for item in candidates if item.downloaded_at_utc is not None] or candidates
+    return max(preferred, key=lambda item: (item.chronology_utc, str(item.path)))
 
 
 def _validate_path(
     archive_path: Path,
     identity: ArchiveIdentity,
     manifest_sha256: str,
-    receipt_path: Path | None,
+    receipt: ValidatedReceiptInfo | None,
     expectations: _Expectations,
 ) -> ValidatedInjectionMoldingSource:
     if archive_path.is_symlink() or not archive_path.is_file():
@@ -625,7 +648,6 @@ def _validate_path(
     temporary_path: Path | None = None
     try:
         with archive_path.open("rb") as archive_stream:
-            before_stat = os.fstat(archive_stream.fileno())
             size, sha256 = _measure_stream(archive_stream)
             if (size, sha256) != (identity.size, identity.sha256):
                 _fail(
@@ -636,13 +658,6 @@ def _validate_path(
                 )
             temporary_path = _copy_member(archive_stream, expectations)
             scalars, signals, optional_groups = _read_hdf(temporary_path, expectations)
-            after_size, after_sha256 = _measure_stream(archive_stream)
-            after_stat = os.fstat(archive_stream.fileno())
-            if (after_size, after_sha256) != (size, sha256) or (
-                before_stat.st_size,
-                before_stat.st_mtime_ns,
-            ) != (after_stat.st_size, after_stat.st_mtime_ns):
-                _fail("archive.stability", "archive changed while it was being validated")
     except RawValidationError:
         raise
     except OSError as error:
@@ -686,9 +701,7 @@ def _validate_path(
             f"{HDF_MEMBER} ({expectations.member_size} bytes)",
             "present, CRC verified",
         ),
-        ValidationCheck(
-            "hdf.representation", "numeric fixed-format frames without external links", "passed"
-        ),
+        ValidationCheck("hdf.representation", "numeric fixed-format frames", "passed"),
         ValidationCheck(
             "scalars.schema",
             f"{expectations.scalar_rows} rows / {len(expectations.scalar_columns)} fields",
@@ -713,11 +726,6 @@ def _validate_path(
         ValidationCheck(
             "scalars.experiments", str(expectations.experiment_blocks), "passed in source order"
         ),
-        ValidationCheck(
-            "archive.stability",
-            "unchanged during validation",
-            "passed by post-read identity recheck",
-        ),
     )
     return ValidatedInjectionMoldingSource(
         dataset=identity.dataset,
@@ -727,14 +735,9 @@ def _validate_path(
         archive_size=size,
         archive_sha256=sha256,
         manifest_sha256=manifest_sha256,
-        validator_version=VALIDATOR_VERSION,
         project_version=__version__,
-        receipt_path=_validated_receipt_path(
-            receipt_path,
-            archive_path=archive_path,
-            identity=identity,
-            manifest_sha256=manifest_sha256,
-        ),
+        receipt_path=receipt.path if receipt else None,
+        receipt_downloaded_at_utc=receipt.downloaded_at_utc if receipt else None,
         scalars=scalars,
         signals=signals,
         matched_cycle_ids=matched,
@@ -746,68 +749,6 @@ def _validate_path(
     )
 
 
-def _reconcile_acquisition(
-    result: AcquisitionResult, identity: ArchiveIdentity, expected_path: Path
-) -> None:
-    expected = (
-        identity.dataset,
-        identity.candidate,
-        identity.source_version,
-        identity.size,
-        identity.sha256,
-        expected_path,
-    )
-    observed = (
-        result.dataset,
-        result.candidate,
-        result.source_version,
-        result.size,
-        result.sha256,
-        result.archive_path.resolve(strict=False),
-    )
-    if observed != expected:
-        _fail("handoff.identity", "acquisition result is stale or inconsistent", expected, observed)
-
-
-def _validate_acquired(
-    acquisition: AcquisitionResult,
-    *,
-    identity: ArchiveIdentity,
-    expected_path: Path,
-    manifest_sha256: str,
-    expectations: _Expectations,
-) -> ValidatedInjectionMoldingSource:
-    """Internal handoff path, parameterized only for generated-fixture verification."""
-    expected_path = expected_path.resolve(strict=False)
-    _reconcile_acquisition(acquisition, identity, expected_path)
-    return _validate_path(
-        expected_path,
-        identity,
-        manifest_sha256,
-        acquisition.receipt_path,
-        expectations,
-    )
-
-
-def validate_acquired_injection_molding(
-    acquisition: AcquisitionResult,
-    *,
-    raw_root: Path = DEFAULT_RAW_ROOT,
-    config_path: Path = DEFAULT_CONFIG_PATH,
-    manifest_path: Path = DEFAULT_MANIFEST_PATH,
-) -> ValidatedInjectionMoldingSource:
-    """Validate the exact archive represented by a genuine acquisition handoff."""
-    _, identity, manifest_sha256 = load_archive_identity(config_path, manifest_path)
-    _, _, expected_path = resolve_archive_destination(raw_root, identity)
-    return _validate_acquired(
-        acquisition,
-        identity=identity,
-        expected_path=expected_path,
-        manifest_sha256=manifest_sha256,
-        expectations=_Expectations(),
-    )
-
-
 def validate_injection_molding(
     *,
     raw_root: Path = DEFAULT_RAW_ROOT,
@@ -815,7 +756,23 @@ def validate_injection_molding(
     manifest_path: Path = DEFAULT_MANIFEST_PATH,
 ) -> ValidatedInjectionMoldingSource:
     """Resolve and validate a local pinned archive without network access."""
-    _, identity, manifest_sha256 = load_archive_identity(config_path, manifest_path)
+    resolved = resolve_archive_inputs(config_path, manifest_path)
+    return validate_resolved_injection_molding(raw_root=raw_root, resolved=resolved)
+
+
+def validate_resolved_injection_molding(
+    *,
+    raw_root: Path,
+    resolved: ResolvedArchiveInputs,
+) -> ValidatedInjectionMoldingSource:
+    """Validate a local archive using inputs resolved by the owning invocation."""
+    identity = resolved.identity
+    manifest_sha256 = resolved.manifest_sha256
     _, _, archive_path = resolve_archive_destination(raw_root, identity)
     resolved_archive = archive_path.resolve(strict=False)
-    return _validate_path(resolved_archive, identity, manifest_sha256, None, _Expectations())
+    receipt = _discover_validated_receipt(
+        resolved_archive,
+        identity=identity,
+        manifest_sha256=manifest_sha256,
+    )
+    return _validate_path(resolved_archive, identity, manifest_sha256, receipt, _Expectations())

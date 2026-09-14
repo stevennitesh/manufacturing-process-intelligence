@@ -13,6 +13,12 @@ from mpi.datasets.injection_molding import (
     AcquisitionError,
     acquire_injection_molding,
 )
+from mpi.datasets.injection_molding_canonicalization import CanonicalizationError
+from mpi.datasets.injection_molding_persistence import (
+    DEFAULT_OUTPUT,
+    PersistenceError,
+)
+from mpi.datasets.injection_molding_persistence import prepare as prepare_injection_molding
 from mpi.datasets.injection_molding_validation import (
     RawValidationError,
     validate_injection_molding,
@@ -24,7 +30,7 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 config_app = typer.Typer(help="Validate and inspect project configuration.")
-data_app = typer.Typer(help="Acquire and validate manufacturing dataset sources.")
+data_app = typer.Typer(help="Acquire, validate and prepare manufacturing dataset sources.")
 app.add_typer(config_app, name="config")
 app.add_typer(data_app, name="data")
 
@@ -115,7 +121,6 @@ def validate_data(
     typer.echo(f"candidate: {result.candidate}")
     typer.echo(f"source version: {result.source_version}")
     typer.echo(f"archive: {result.archive_path}")
-    typer.echo(f"validator version: {result.validator_version}")
     typer.echo(f"checks passed: {len(result.checks)}")
     typer.echo(
         "membership: "
@@ -126,4 +131,43 @@ def validate_data(
     typer.echo(f"receipt: {result.receipt_path if result.receipt_path else 'absent'}")
     typer.echo("limitations:")
     for limitation in result.limitations:
+        typer.echo(f"- {limitation}")
+
+
+@data_app.command("prepare")
+def prepare_data(
+    dataset: Annotated[str, typer.Argument(help="Dataset identifier.")],
+    raw_root: Annotated[
+        Path,
+        typer.Option(help="Root directory containing immutable raw source evidence."),
+    ] = DEFAULT_RAW_ROOT,
+    output: Annotated[
+        Path,
+        typer.Option(help="Complete destination directory for the prepared bundle."),
+    ] = DEFAULT_OUTPUT,
+) -> None:
+    """Prepare and safely publish a verified canonical bundle without network access."""
+    if dataset != "injection_molding":
+        typer.echo(f"Error: unsupported preparation dataset: {dataset}", err=True)
+        raise typer.Exit(code=1)
+    try:
+        result = prepare_injection_molding(raw_root=raw_root, output=output)
+    except (AcquisitionError, RawValidationError, CanonicalizationError, PersistenceError) as error:
+        typer.echo(f"Error: {error}", err=True)
+        if isinstance(error, RawValidationError) and error.check_id == "archive.present":
+            typer.echo(
+                "Acquire the pinned source with `mpi data acquire injection_molding`.",
+                err=True,
+            )
+        raise typer.Exit(code=1) from error
+    typer.echo(f"output: {result.output_path}")
+    typer.echo(f"disposition: {result.disposition}")
+    typer.echo(f"source version: {result.source_version}")
+    typer.echo(f"source manifest sha256: {result.source_manifest_sha256}")
+    typer.echo(f"artifact manifest sha256: {result.manifest_sha256}")
+    typer.echo("counts:")
+    for table in ("units", "operations", "process_features", "signals", "quality", "context"):
+        typer.echo(f"- {table}: {getattr(result.bundle, table).height}")
+    typer.echo("limitations:")
+    for limitation in result.bundle.metadata.limitations:
         typer.echo(f"- {limitation}")

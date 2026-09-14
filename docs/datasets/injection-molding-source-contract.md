@@ -593,33 +593,50 @@ The default destination is
 Use `--raw-root <directory>` to isolate the destination. The command validates
 configuration/manifest agreement before effects, streams to an invocation-owned
 partial file, checks the manifest size and SHA-256, publishes without overwriting,
-and writes an immutable local receipt beneath the source-version directory. A
-matching existing archive is rehashed and reused without a network request.
+and writes an immutable local receipt beneath the source-version directory. This
+is a local single-writer workflow; it does not create or clear acquisition locks.
+A matching existing archive is rehashed and reused without a network request.
 
 If existing bytes differ, the command exits nonzero and leaves them untouched;
 investigate and preserve or remove those bytes manually before retrying. An HTTP,
-timeout, truncation, excess-size, checksum, ownership, or receipt failure also exits
+timeout, truncation, excess-size, checksum, destination, or receipt failure also exits
 nonzero. Only partial files owned by the failing invocation are removed. A verified
 archive retained after receipt failure is safely recovered by rerunning the command,
 which reuses the bytes and writes a new receipt.
 
-Connection and individual blocking reads use a finite transport timeout. The overall
-deadline is checked before and after each read, after transport closure, and before
-archive publication. The standard-library HTTPS reader cannot be cancelled in the
-middle of a blocking read before its finite transport timeout returns, but a read or
-EOF that returns after the overall deadline is rejected and never published.
+Connection and blocking reads use a finite transport timeout. Size and SHA-256 are
+checked before publication; truncated, oversized or mismatched downloads are never
+published.
 
 The typed acquisition result and acquisition CLI output mean byte-verified only.
 They do not establish archive structure, the 829-cycle schema/join contract, or
-preparation readiness. Production raw validation rechecks archive identity when it
-consumes this handoff.
-The dataset configuration remains disabled for preparation.
+preparation readiness. Production raw validation checks archive identity once before
+reading the pinned member.
+The dataset configuration is enabled for the verified preparation adapter.
+
+## Prepare the admitted bundle
+
+From the repository root, prepare and independently reload the pinned source with:
+
+```powershell
+$env:UV_CACHE_DIR = Join-Path (Get-Location) '.uv-cache'
+uv run mpi data prepare injection_molding --raw-root data/raw/injection_molding
+```
+
+Preparation performs no download or source repair. It preserves the six canonical
+tables, typed field lineage and the complete packaged research dossier in the
+current metadata record. Reload verifies the required file hashes and scientific
+whole-bundle invariants before publication. An exact existing destination
+is reused unchanged; other existing destinations fail with guidance to choose a
+new output. The default is `data/processed/injection_molding/dataset2`.
+The artifact has no schema version or compatibility machinery.
+The small artifact manifest records only required payload file
+hashes; it is integrity evidence, not publisher authentication.
 
 ## Next action
 
-Plan and implement persistence from the completed
-[Dataset 2 canonicalization handoff](../milestones/m01-injection-molding-ingestion.md#completed-phase--canonicalization)
-when authorized. Keep `configs/datasets/injection_molding.yaml` disabled until
-adapter preparation can consume the admitted source. The protected in-memory
-`ManufacturingBundle` mapping is implemented and verified; canonical Parquet, the
-preparation CLI, M2 audit, and M3 split design remain deferred.
+Use the [roadmap](../implementation-roadmap.md) for current work and the
+[M1 summary](../milestones/m01-injection-molding-ingestion.md#preparation-completion-evidence)
+for the completed preparation handoff. The portfolio-scale simplification changes
+engineering obligations, not the source evidence recorded here. A later M2
+audit must not repair discrepancies or begin M3 feature/split decisions.

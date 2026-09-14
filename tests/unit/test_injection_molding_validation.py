@@ -3,13 +3,9 @@
 from __future__ import annotations
 
 import hashlib
-import io
 import json
 import tempfile
 import zipfile
-from collections.abc import Generator
-from contextlib import contextmanager
-from dataclasses import replace
 from pathlib import Path
 from typing import Protocol, cast
 
@@ -18,15 +14,11 @@ import numpy as np
 import pytest
 
 from mpi.datasets import injection_molding_validation
-from mpi.datasets.injection_molding import (
-    ArchiveIdentity,
-    acquire_injection_molding,
-)
+from mpi.datasets.injection_molding import ArchiveIdentity
 from mpi.datasets.injection_molding_validation import (
     HDF_MEMBER,
     RawValidationError,
     _Expectations,
-    _validate_acquired,
     _validate_path,
 )
 
@@ -87,14 +79,12 @@ def _write_source(
     fractional_cycle: bool = False,
     missing_member: bool = False,
     duplicate_member: bool = False,
-    external_link: bool = False,
     malformed_signal_block: bool = False,
     unexpected_signal_column: bool = False,
     missing_weight: bool = False,
     duplicate_decoded_cycle: bool = False,
     nullable_context: bool = False,
     malformed_axis_group: bool = False,
-    external_numeric_storage: bool = False,
 ) -> tuple[Path, ArchiveIdentity, _Expectations]:
     hdf_path = root / "source.h5"
     with h5py.File(hdf_path, "w") as hdf:
@@ -126,16 +116,6 @@ def _write_source(
             pressure = cast(h5py.Group, hdf["Einspritzdruck"])
             del pressure["axis0"]
             pressure.create_group("axis0")
-        if external_numeric_storage:
-            pressure = cast(h5py.Group, hdf["Einspritzdruck"])
-            shape = cast(tuple[int, ...], cast(h5py.Dataset, pressure["block0_values"]).shape)
-            del pressure["block0_values"]
-            pressure.create_dataset(
-                "block0_values",
-                shape=shape,
-                dtype=np.float64,
-                external=[("unavailable-payload.bin", 0, int(np.prod(shape)) * 8)],
-            )
         for name in (
             "Werkzeuginnendruck",
             "Einspritzdruck_states",
@@ -143,9 +123,6 @@ def _write_source(
             "Werkzeuginnendruck_states",
         ):
             hdf.create_group(name)
-        if external_link:
-            hdf["external"] = h5py.ExternalLink("other.h5", "/payload")
-
     archive_path = root / "dataset2.zip"
     member_size = hdf_path.stat().st_size
     with zipfile.ZipFile(archive_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
@@ -238,109 +215,6 @@ def test_allowed_nullable_context_is_preserved_without_imputation(tmp_path: Path
 
     assert np.isnan(result.scalars.values["context"][0])
     assert result.scalars.values["context"][1] == 5.0
-
-
-def test_acquisition_result_reaches_validation_and_is_reconciled(tmp_path: Path) -> None:
-    archive_path, identity, expectations = _write_source(tmp_path)
-    content = archive_path.read_bytes()
-    config_path = tmp_path / "config.yaml"
-    manifest_path = tmp_path / "manifest.json"
-    config_path.write_text(
-        "\n".join(
-            (
-                "dataset: injection_molding",
-                "stage: mvp",
-                "enabled: false",
-                "source_url: https://github.com/sc4t1m/scatimdata",
-                f"version: {identity.source_version}",
-                "",
-            )
-        ),
-        encoding="utf-8",
-    )
-    download_url = (
-        "https://raw.githubusercontent.com/sc4t1m/scatimdata/"
-        f"{identity.source_version}/dataset2.zip"
-    )
-    manifest_path.write_text(
-        json.dumps(
-            {
-                "dataset": "injection_molding",
-                "source": {
-                    "repository_url": identity.repository_url,
-                    "source_version": identity.source_version,
-                },
-                "files": [
-                    {
-                        "candidate": "dataset2",
-                        "source_path": "dataset2.zip",
-                        "immutable_download_url": download_url,
-                        "bytes": len(content),
-                        "sha256": hashlib.sha256(content).hexdigest(),
-                        "admitted": True,
-                    }
-                ],
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    @contextmanager
-    def transport(url: str, timeout: float) -> Generator[io.BytesIO, None, None]:
-        assert url == download_url
-        assert timeout > 0
-        yield io.BytesIO(content)
-
-    raw_root = tmp_path / "raw"
-    acquisition = acquire_injection_molding(
-        raw_root=raw_root,
-        config_path=config_path,
-        manifest_path=manifest_path,
-        transport=transport,
-    )
-    acquired_identity = replace(identity, download_url=download_url)
-    manifest_sha256 = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
-
-    result = _validate_acquired(
-        acquisition,
-        identity=acquired_identity,
-        expected_path=acquisition.archive_path,
-        manifest_sha256=manifest_sha256,
-        expectations=expectations,
-    )
-
-    assert result.receipt_path == acquisition.receipt_path
-    unrelated_receipt = acquisition.receipt_path.parent / "acquisition-unrelated.json"
-    unrelated_receipt.write_text("{}", encoding="utf-8")
-    unrelated_result = _validate_path(
-        acquisition.archive_path,
-        acquired_identity,
-        manifest_sha256,
-        unrelated_receipt,
-        expectations,
-    )
-    assert unrelated_result.receipt_path is None
-    stale = replace(acquisition, sha256="0" * 64)
-    with pytest.raises(RawValidationError, match=r"check=handoff\.identity"):
-        _validate_acquired(
-            stale,
-            identity=acquired_identity,
-            expected_path=acquisition.archive_path,
-            manifest_sha256=manifest_sha256,
-            expectations=expectations,
-        )
-    receipt_bytes = acquisition.receipt_path.read_bytes()
-    acquisition.archive_path.write_bytes(content + b"changed-after-acquisition")
-    with pytest.raises(RawValidationError, match=r"check=archive\.identity"):
-        _validate_acquired(
-            acquisition,
-            identity=acquired_identity,
-            expected_path=acquisition.archive_path,
-            manifest_sha256=manifest_sha256,
-            expectations=expectations,
-        )
-    assert acquisition.receipt_path.read_bytes() == receipt_bytes
-    assert acquisition.archive_path.read_bytes().endswith(b"changed-after-acquisition")
 
 
 def test_local_validation_does_not_discover_unrelated_receipt(
@@ -501,23 +375,10 @@ def test_rejects_experiment_order_change(tmp_path: Path) -> None:
         _validate_fixture(archive_path, identity, expectations)
 
 
-def test_rejects_external_links(tmp_path: Path) -> None:
-    archive_path, identity, expectations = _write_source(tmp_path, external_link=True)
-    with pytest.raises(RawValidationError, match=r"check=hdf\.external_links"):
-        _validate_fixture(archive_path, identity, expectations)
-
-
 def test_rejects_group_where_fixed_frame_requires_dataset(tmp_path: Path) -> None:
     archive_path, identity, expectations = _write_source(tmp_path, malformed_axis_group=True)
 
     with pytest.raises(RawValidationError, match=r"check=signals\.Einspritzdruck\.representation"):
-        _validate_fixture(archive_path, identity, expectations)
-
-
-def test_rejects_external_numeric_storage_before_payload_access(tmp_path: Path) -> None:
-    archive_path, identity, expectations = _write_source(tmp_path, external_numeric_storage=True)
-
-    with pytest.raises(RawValidationError, match=r"check=hdf\.external_storage"):
         _validate_fixture(archive_path, identity, expectations)
 
 
@@ -535,21 +396,3 @@ def test_owned_extract_is_cleaned_on_handled_interruption(
         _validate_fixture(archive_path, identity, expectations)
     assert len(extracts) == 1
     assert all(not path.exists() for path in extracts)
-
-
-def test_archive_mutation_during_validation_reaches_stability_check(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    archive_path, identity, expectations = _write_source(tmp_path)
-    original_reader = injection_molding_validation._read_hdf
-    original_bytes = archive_path.read_bytes()
-
-    def mutating_reader(path: Path, expectations: _Expectations):
-        result = original_reader(path, expectations)
-        archive_path.write_bytes(original_bytes + b"changed-during-validation")
-        return result
-
-    monkeypatch.setattr(injection_molding_validation, "_read_hdf", mutating_reader)
-    with pytest.raises(RawValidationError, match=r"check=archive\.stability"):
-        _validate_fixture(archive_path, identity, expectations)
-    assert archive_path.read_bytes().endswith(b"changed-during-validation")

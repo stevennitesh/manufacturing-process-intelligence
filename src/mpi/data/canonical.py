@@ -7,15 +7,6 @@ from typing import Literal
 
 import polars as pl
 
-EvidenceState = Literal[
-    "documented_fact",
-    "observed_fact",
-    "inference",
-    "discrepancy",
-    "project_policy",
-    "unresolved",
-]
-
 
 @dataclass(frozen=True)
 class FieldLineage:
@@ -58,53 +49,8 @@ class ExcludedUnit:
 
 
 @dataclass(frozen=True)
-class EvidenceQuantity:
-    """One named numeric quantity with its own declared unit."""
-
-    name: str
-    value: float
-    unit: str
-
-
-@dataclass(frozen=True)
-class EvidenceRun:
-    """A contiguous observed or published run bound to an experiment and field."""
-
-    experiment_id: int
-    field: str
-    count: int
-    value: float
-    unit: str | None
-    value_source: Literal["released_raw", "paper"]
-
-
-@dataclass(frozen=True)
-class EvidenceAssociation:
-    """An explicitly non-authoritative proposed identity association."""
-
-    source_experiment_id: int
-    proposed_paper_day: int
-    basis: str
-
-
-@dataclass(frozen=True)
-class EvidenceRecord:
-    """Structured semantic evidence with explicit epistemic state and scope."""
-
-    subject: str
-    state: EvidenceState
-    dataset_scope: str
-    source_reference: str
-    source_section: str
-    details: tuple[tuple[str, str], ...] = ()
-    quantities: tuple[EvidenceQuantity, ...] = ()
-    runs: tuple[EvidenceRun, ...] = ()
-    associations: tuple[EvidenceAssociation, ...] = ()
-
-
-@dataclass(frozen=True)
 class BundleMetadata:
-    """Immutable provenance, lineage, evidence and policy bound to a bundle."""
+    """The sole provenance, lineage, research-context and policy record."""
 
     dataset: str
     candidate: str
@@ -112,12 +58,16 @@ class BundleMetadata:
     archive_size: int
     archive_sha256: str
     manifest_sha256: str
-    validator_version: str
-    adapter_version: str
-    schema_version: str
-    mapping_version: str
     project_version: str
     verified_receipt_path: str | None
+    source_repository_url: str | None
+    prepared_at_utc: str | None
+    acquisition_time_utc: str | None
+    acquisition_time_source: str | None
+    acquisition_time_unavailable_reason: str | None
+    git_commit: str | None
+    git_dirty: bool | None
+    git_unavailable_reason: str | None
     source_contract_reference: str
     citations: tuple[str, ...]
     license_name: str
@@ -125,9 +75,8 @@ class BundleMetadata:
     scalar_lineage: tuple[FieldLineage, ...]
     signal_lineage: tuple[SignalLineage, ...]
     transformations: tuple[str, ...]
-    table_counts: tuple[tuple[str, int], ...]
     exclusions: tuple[ExcludedUnit, ...]
-    evidence: tuple[EvidenceRecord, ...]
+    research_context: tuple[dict[str, object], ...]
     validation_checks: tuple[tuple[str, str, str], ...]
     limitations: tuple[str, ...]
     retained_optional_source_groups: tuple[str, ...]

@@ -1,88 +1,63 @@
 # Planning and progression
 
-Read this guide when planning, implementing, resuming, or reporting milestone
-work. It defines the planning method; the linked project documents supply the
-current scope and state.
+Use this guide for milestone planning, implementation and status. Keep the
+project's personal-portfolio scale active; the specification owns scientific
+scope and the [engineering contract](engineering-contract.md) owns coding rigor.
 
-## Document ownership
+## One owner per decision
 
-| Owner | What belongs there |
+| Owner | Content |
 | --- | --- |
-| Specification routed by [domain guidance](domain.md) | Project scope, milestone sequence, technical requirements, and acceptance criteria. |
-| [Implementation roadmap](../implementation-roadmap.md) | Current cross-milestone position, status vocabulary, concise master diagram, and links to milestone plans. |
-| Active document under `docs/milestones/` | Overall milestone plan, subsystem diagram, dependencies, detailed steps for approaching work, blockers, next action, and completion evidence. |
-| `docs/adr/` | Accepted architectural decisions and their rationale, when a decision warrants a durable record. |
-| GitHub Issues, when used | Individual work items and dependencies, governed by [tracker guidance](issue-tracker.md); link to the milestone plan rather than copying it. |
+| Specification routed by [domain guidance](domain.md) | Scientific scope, release priorities and project scale. |
+| [Roadmap](../implementation-roadmap.md) | Current position and links, not a duplicate work log. |
+| Active milestone document | Outcome, current contract, next action and concise completion evidence. |
+| Dataset source contract | Source facts, unresolved semantics and citations. |
+| ADR, only when useful | A consequential tradeoff not adequately captured at its existing owner. |
+| GitHub issue, only when used | Delivery coordination linked to the local plan. |
 
-Treat a specification as intended behavior and implementation evidence as observed
-behavior. If they disagree, record the discrepancy and resolve it within the
-authorized scope. Do not silently weaken a gate or treat a diagram as proof.
-Record accepted scope changes in the owning plan and reconcile affected milestone
-documents and decisions.
+README owns usage and a short scope introduction; link to the roadmap for detailed
+status. Completed investigations belong in clearly historical records, not standing
+instructions. Archive superseded detail under repository-root `.archive/` and
+repair links; keep still-needed scientific contracts at their active owners.
 
-## Plan at two levels
+## Plan enough to execute
 
-1. **Establish the milestone outline.** Read its specification sections and
-   prerequisite evidence. Create or extend its milestone document with objective,
-   scope and exclusions, subsystem responsibilities, dependencies, expected
-   interfaces/artifacts, material unknowns, execution order, and an observable
-   acceptance gate. Keep a brief subsystem diagram near the top.
-2. **Detail the next subsystem when needed.** Before implementing it, inspect the
-   actual code, inputs, and completed prerequisites. Add a bounded set of steps,
-   relevant contracts, failure behavior, and verification criteria to the milestone
-   document. Resolve assumptions that could change dependent work with a focused
-   discovery step or experiment, then revise that work's plan from the evidence.
-3. **Keep later detail deferred.** Outline dependencies now, but detail later
-   subsystems and milestones as they approach. Split out a subsystem document only
-   when complexity makes the milestone document hard to use; link it from the
-   milestone plan and give each detail one owner.
+Plan the milestone outcome and dependencies first. Detail only the approaching
+work whose decisions are not already settled. One coherent slice can span adjacent
+subsystems; subsystem labels do not require separate plans, agents, approvals,
+tickets or reports. A conversation is enough for a small unambiguous change.
 
-Planning should be sufficient to execute and verify the next authorized work.
-Routine fixes or small changes within an existing plan do not require a new plan,
-issue, ADR, or approval cycle. A request to plan ends with the reviewable plan;
+A useful saved plan states the outcome, boundaries, changed behavior, a few
+distinguishing acceptance scenarios and material unknowns. Link existing contracts
+rather than copying them. Do not impose word quotas or expand a plan to enumerate
+every edge case. Split a document only when the detail has a different reader or
+loading time.
+
+Before adding a dependency, hardening requirement or extra gate, identify the
+current caller or scientific/demo benefit it serves. Prefer leaving a capability
+out when no current need exists. Do not reopen settled choices without evidence.
+A request to plan authorizes local planning/context work, not implementation;
 an implementation request continues through the authorized outcome.
 
-## Execute and resume from evidence
+## Execute and close
 
-1. Read the user's requested scope, the roadmap, and the relevant milestone plan.
-   Check the actual checkout and cited evidence before relying on recorded status.
-2. Select work whose prerequisites are satisfied. Follow the milestone's dependency
-   order; completing one subsystem permits dependent work within the existing
-   authorization without asking again. A request for one subsystem does not
-   authorize the rest of the milestone or later milestones.
-3. Implement and verify the selected work according to the
-   [engineering contract](engineering-contract.md). Test the consuming handoff
-   where subsystem outputs feed the next stage. Resolve failures and update
-   affected plans when discoveries change assumptions.
-4. Record progress with the implementation change. Keep a concise next action and
-   any blocker in the milestone document so another session can resume without
-   reconstructing the conversation. Do not duplicate the work log in `AGENTS.md`.
-5. Continue while safe work remains within the authorized outcome. When a required
-   dependency or scope decision prevents further progress, record the specific
-   missing evidence or decision and report it. Do not invent source semantics,
-   silently substitute scope, or mark unfinished work complete.
+Read the roadmap and active milestone, then inspect only the relevant contract and
+code. Historical logs need not be loaded unless a decision depends on them.
+Respect explicit skill custody; otherwise no delegation workflow is implied.
 
-## Track progress and close gates
+Implement dependent work within the existing authorization. Ask only for a missing
+consequential decision or new authority. Preserve scientific constraints, source
+limitations and unrelated edits. Verification follows the engineering contract,
+not a growing list of historical check commands.
 
-Use the status key in the roadmap. A planned document is not implementation
-progress. Mark a subsystem in progress when execution begins, and complete only
-when its promised artifact exists and relevant verification passes. If a completed
-subsystem's evidence becomes invalid after a change, revise its status and record
-what needs re-verification.
+A milestone closes when its promised ordinary workflow and scoped gate pass.
+Keep a compact record of the output, decisive checks/input identity, limitations
+and next action. Do not copy every attempt or repair round into active context.
+Planning alone does not advance status. A maintenance simplification does not
+erase a completed milestone or inherit every former implementation requirement;
+record its own pending acceptance and retain unaffected evidence.
 
-Keep the milestone's diagram, checklist, and evidence consistent. Update the
-roadmap whenever cross-milestone status or its summary changes; it need not repeat
-every subsystem step. If another maintained summary repeats the changed status,
-reconcile it or replace the duplicate with a link to its owner.
-
-Completion evidence should identify the output or code reference, relevant
-commands/checks and results, material input/configuration identity where applicable,
-and remaining limitations. Use existing test results and artifacts when sufficient;
-do not create a separate report merely to restate them. Keep generated or restricted
-artifacts outside Git and record safe references or hashes as appropriate.
-
-Close a milestone only after its end-to-end acceptance gate and required repository
-checks pass. Record gate evidence and the next milestone's prerequisite handoff,
-then update the roadmap. Passing unit tests, committing code, closing an issue, or
-finishing a discovery experiment alone does not establish milestone completion.
-Continue into the next milestone only when it is within the user's authorization.
+Update the milestone when its evidence changes; update the roadmap only when the
+current position changes. Use references elsewhere instead of synchronizing several
+detailed summaries. Stop after the authorized outcome; do not start the next
+milestone or optional hardening without scope.

@@ -2,38 +2,24 @@
 # pyright: reportUnknownMemberType=false
 from __future__ import annotations
 
-import hashlib
-import zipfile
-from collections.abc import Mapping
 from dataclasses import replace
 from pathlib import Path
 from types import MappingProxyType
 from typing import cast
 
-import h5py
 import numpy as np
 import polars as pl
 import pytest
 
-from mpi import __version__
 from mpi.data.canonical import ManufacturingBundle
-from mpi.datasets.injection_molding import ArchiveIdentity
 from mpi.datasets.injection_molding_canonicalization import (
-    SOURCE_VERSION,
     CanonicalizationError,
-    _CanonicalExpectations,
-    _canonicalize_validated,
+    _validate_bundle,
 )
 from mpi.datasets.injection_molding_validation import (
-    HDF_MEMBER,
     SCALAR_COLUMNS,
-    SCALAR_DTYPES,
-    SourceSignalMatrix,
-    ValidatedInjectionMoldingSource,
-    _Expectations,
-    _expected_time_grid,
-    _validate_path,
 )
+from tests.unit.injection_molding_helpers import canonicalize_fixture, validated_fixture
 
 EXPECTED_CONTEXT = {
     "Versuch": "experiment_id",
@@ -89,147 +75,42 @@ EXPECTED_MAPPING = {
 }
 
 
-def _write_mixed_frame(
-    hdf: h5py.File,
-    name: str,
-    columns: tuple[str, ...],
-    values: dict[str, np.ndarray],
-) -> None:
-    group = hdf.create_group(name)
-    group.create_dataset("axis0", data=np.asarray(columns, dtype="S64"))
-    group.create_dataset("axis1", data=np.arange(len(next(iter(values.values())))))
-    blocks: list[tuple[str, list[str]]] = []
-    for dtype in ("float64", "int64", "int32"):
-        members = [column for column in columns if str(values[column].dtype) == dtype]
-        if members:
-            blocks.append((dtype, members))
-    group.attrs["nblocks"] = len(blocks)
-    for index, (_, members) in enumerate(blocks):
-        group.create_dataset(f"block{index}_items", data=np.asarray(members, dtype="S64"))
-        group.create_dataset(
-            f"block{index}_values", data=np.column_stack([values[item] for item in members])
+def _with_table(bundle: ManufacturingBundle, name: str, table: pl.DataFrame) -> ManufacturingBundle:
+    tables = {
+        candidate: table if candidate == name else getattr(bundle, candidate)
+        for candidate in (
+            "units",
+            "operations",
+            "process_features",
+            "signals",
+            "quality",
+            "context",
         )
-
-
-def _write_signal_frame(
-    hdf: h5py.File,
-    group_name: str,
-    prefix: str,
-    cycles: tuple[int, ...],
-    multiplier: float,
-    times: np.ndarray,
-) -> None:
-    columns = ("time", *(f"{prefix}_{cycle}" for cycle in cycles))
-    values = {
-        "time": times,
-        **{
-            f"{prefix}_{cycle}": cycle * multiplier + np.arange(len(times), dtype=np.float64)
-            for cycle in cycles
-        },
     }
-    _write_mixed_frame(hdf, group_name, columns, values)
+    return ManufacturingBundle(metadata=bundle.metadata, **tables)
 
 
-def _validated_fixture(
+def test_handoff_preserves_reworded_limitations_and_different_producer_version(
     tmp_path: Path,
-) -> tuple[ValidatedInjectionMoldingSource, _CanonicalExpectations]:
-    cycles = (100, 101)
-    values: dict[str, np.ndarray] = {}
-    for index, (name, dtype) in enumerate(SCALAR_DTYPES):
-        values[name] = np.asarray([index + 0.25, index + 1.25], dtype=dtype)
-    values["Versuch"] = np.asarray([20, 23], dtype=np.int64)
-    values["cycle_counter"] = np.asarray(cycles, dtype=np.int32)
-    values["mittlerer Feuchtegehalt"] = np.asarray([0.086, np.nan])
-    values["Twkz"] = np.asarray([np.nan, 80.0])
-    values["Charge"] = np.asarray([np.nan, 1.0])
-    values["weight"] = np.asarray([58.125, 58.25])
-    values["GE-GE002*"] = np.asarray([101_500, 101_600], dtype=np.int32)
-    values["GERADEHEIT-L*"] = np.asarray([25, 26], dtype=np.int32)
-    values["PT-PT002L*"] = np.asarray([4.5, np.nan])
-    hdf_path = tmp_path / "source.h5"
-    times = _expected_time_grid(513)
-    with h5py.File(hdf_path, "w") as hdf:
-        _write_mixed_frame(hdf, "scalars", SCALAR_COLUMNS, values)
-        _write_signal_frame(
-            hdf, "Einspritzdruck", "einspritzdruck_ist", (102, 100, 101), 100.0, times
-        )
-        _write_signal_frame(
-            hdf, "Einspritzstrom", "einspritzstrom_ist", (101, 102, 100), 1_000.0, times
-        )
-        for name in (
-            "Werkzeuginnendruck",
-            "Einspritzdruck_states",
-            "Einspritzstrom_states",
-            "Werkzeuginnendruck_states",
-        ):
-            hdf.create_group(name)
-    archive_path = tmp_path / "dataset2.zip"
-    with zipfile.ZipFile(archive_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        archive.write(hdf_path, HDF_MEMBER)
-    archive_bytes = archive_path.read_bytes()
-    identity = ArchiveIdentity(
-        dataset="injection_molding",
-        candidate="dataset2",
-        repository_url="https://github.com/sc4t1m/scatimdata",
-        source_version=SOURCE_VERSION,
-        source_path="dataset2.zip",
-        download_url="https://example.invalid/dataset2.zip",
-        size=len(archive_bytes),
-        sha256=hashlib.sha256(archive_bytes).hexdigest(),
-    )
-    raw_expectations = _Expectations(
-        scalar_rows=2,
-        signal_cycles=3,
-        signal_rows=513,
-        member_size=hdf_path.stat().st_size,
-        missingness=(("Charge", 1), ("Twkz", 1), ("mittlerer Feuchtegehalt", 1), ("PT-PT002L*", 1)),
-        experiment_blocks=((20, 1, 100, 100), (23, 1, 101, 101)),
-        matched=2,
-        signal_only=1,
-    )
-    source = _validate_path(archive_path, identity, "a" * 64, None, raw_expectations)
-    source = replace(source, project_version=__version__)
-    canonical_expectations = _CanonicalExpectations(
-        scalar_rows=2,
-        signal_cycles=3,
-        signal_samples=513,
-        signal_only=1,
-        quality_nulls=1,
-        experiment_blocks=((20, 1), (23, 1)),
-        scalar_missingness=(
-            ("Charge", 1),
-            ("Twkz", 1),
-            ("mittlerer Feuchtegehalt", 1),
-            ("PT-PT002L*", 1),
-        ),
-        context_nulls=(
-            ("source_charge_code", 1),
-            ("mold_temperature", 1),
-            ("mean_moisture_content", 1),
-        ),
-    )
-    return source, canonical_expectations
-
-
-def _canonicalize_fixture(
-    source: ValidatedInjectionMoldingSource,
-    expectations: _CanonicalExpectations,
-    *,
-    mapping: Mapping[str, tuple[str, str]] = EXPECTED_MAPPING,
-) -> ManufacturingBundle:
-    return _canonicalize_validated(
+) -> None:
+    source, expectations = validated_fixture(tmp_path)
+    changed = replace(
         source,
-        expectations=expectations,
-        mapping=mapping,
-        production=False,
+        project_version="99.0.0",
+        limitations=("Same source limitation, revised wording.",),
     )
+
+    bundle = canonicalize_fixture(changed, expectations)
+
+    assert bundle.metadata.project_version == "99.0.0"
+    assert bundle.metadata.limitations == ("Same source limitation, revised wording.",)
 
 
 def test_real_validator_handoff_maps_keys_values_nulls_lineage_and_evidence(tmp_path: Path) -> None:
-    source, expectations = _validated_fixture(tmp_path)
+    source, expectations = validated_fixture(tmp_path)
     scalar_snapshots = {name: value.copy() for name, value in source.scalars.values.items()}
 
-    bundle = _canonicalize_fixture(source, expectations)
+    bundle = canonicalize_fixture(source, expectations)
 
     assert bundle.units["cycle_counter"].to_list() == [100, 101]
     assert bundle.units["source_row_index"].to_list() == [0, 1]
@@ -266,29 +147,40 @@ def test_real_validator_handoff_maps_keys_values_nulls_lineage_and_evidence(tmp_
         (item.source_name, (item.canonical_section, item.canonical_name))
         for item in bundle.metadata.scalar_lineage
     ] == [(name, EXPECTED_MAPPING[name]) for name in SCALAR_COLUMNS]
-    evidence_states = {item.subject: item.state for item in bundle.metadata.evidence}
+    evidence_states = {
+        str(item["subject"]): item["state"] for item in bundle.metadata.research_context
+    }
     assert evidence_states["material"] == "documented_fact"
     assert evidence_states["experiment_to_paper_day"] == "inference"
     assert evidence_states["experiment_15_moisture"] == "discrepancy"
     assert evidence_states["mvp_target"] == "project_policy"
-    evidence = {item.subject: item for item in bundle.metadata.evidence}
-    assert evidence["optical_measurement_equipment"].quantities[0].value == 8.0
-    assert evidence["optical_measurement_equipment"].quantities[0].unit == "um"
-    assert evidence["weight_measurement_equipment"].quantities[0].value == 2.0
-    assert evidence["weight_measurement_equipment"].quantities[0].unit == "mg"
-    assert evidence["hot_runner_export_crosswalk"].state == "inference"
-    assert dict(evidence["hot_runner_export_crosswalk"].details)["confirmed"] == "false"
-    assert "hot_runner_crosswalk" not in dict(evidence["paper_scalar_feature_set"].details)
+    evidence = {str(item["subject"]): item for item in bundle.metadata.research_context}
+    optical = cast(list[dict[str, object]], evidence["optical_measurement_equipment"]["quantities"])
+    weight = cast(list[dict[str, object]], evidence["weight_measurement_equipment"]["quantities"])
+    assert optical[0]["value"] == 8.0
+    assert optical[0]["unit"] == "um"
+    assert weight[0]["value"] == 2.0
+    assert weight[0]["unit"] == "mg"
+    assert evidence["hot_runner_export_crosswalk"]["state"] == "inference"
+    assert (
+        dict(cast(list[list[str]], evidence["hot_runner_export_crosswalk"]["details"]))["confirmed"]
+        == "false"
+    )
+    assert "hot_runner_crosswalk" not in dict(
+        cast(list[list[str]], evidence["paper_scalar_feature_set"]["details"])
+    )
     assert [
-        (item.source_experiment_id, item.proposed_paper_day)
-        for item in evidence["experiment_to_paper_day"].associations
+        (item["source_experiment_id"], item["proposed_paper_day"])
+        for item in cast(
+            list[dict[str, object]], evidence["experiment_to_paper_day"]["associations"]
+        )
     ] == [(20, 2), (23, 3), (15, 1)]
-    discrepancy_runs = evidence["experiment_15_moisture"].runs
-    assert {(item.experiment_id, item.value_source) for item in discrepancy_runs} == {
+    discrepancy_runs = cast(list[dict[str, object]], evidence["experiment_15_moisture"]["runs"])
+    assert {(item["experiment_id"], item["value_source"]) for item in discrepancy_runs} == {
         (15, "released_raw"),
         (15, "paper"),
     }
-    assert [(item.count, item.value, item.unit) for item in discrepancy_runs] == [
+    assert [(item["count"], item["value"], item["unit"]) for item in discrepancy_runs] == [
         (89, 0.050, None),
         (89, 0.066, "%"),
         (98, 0.100, None),
@@ -296,8 +188,8 @@ def test_real_validator_handoff_maps_keys_values_nulls_lineage_and_evidence(tmp_
         (116, 0.150, None),
         (116, 0.150, "%"),
     ]
-    assert all(item.source_section for item in bundle.metadata.evidence)
-    assert all("#" in item.source_reference for item in bundle.metadata.evidence)
+    assert all(item["source_section"] for item in bundle.metadata.research_context)
+    assert all("#" in str(item["source_reference"]) for item in bundle.metadata.research_context)
     assert bundle.metadata.exclusions[0].cycle_counter == 102
     assert bundle.metadata.exclusions[0].reason == "no_released_scalar_quality_row"
     for name, snapshot in scalar_snapshots.items():
@@ -305,9 +197,9 @@ def test_real_validator_handoff_maps_keys_values_nulls_lineage_and_evidence(tmp_
 
 
 def test_bundle_tables_are_copy_on_access_and_mapping_is_deterministic(tmp_path: Path) -> None:
-    source, expectations = _validated_fixture(tmp_path)
-    first = _canonicalize_fixture(source, expectations)
-    second = _canonicalize_fixture(source, expectations)
+    source, expectations = validated_fixture(tmp_path)
+    first = canonicalize_fixture(source, expectations)
+    second = canonicalize_fixture(source, expectations)
 
     external = first.units
     external[0, "product_family"] = "changed"
@@ -317,12 +209,17 @@ def test_bundle_tables_are_copy_on_access_and_mapping_is_deterministic(tmp_path:
     for table_name in ("units", "operations", "process_features", "signals", "quality", "context"):
         assert getattr(first, table_name).equals(getattr(second, table_name))
     assert first.metadata == second.metadata
+    assert len(EXPECTED_MAPPING) == len(SCALAR_COLUMNS) == 40
+    assert [
+        (item.source_name, (item.canonical_section, item.canonical_name))
+        for item in first.metadata.scalar_lineage
+    ] == [(name, EXPECTED_MAPPING[name]) for name in SCALAR_COLUMNS]
 
 
 def test_bundle_owns_values_even_if_a_caller_constructs_mutable_handoff_arrays(
     tmp_path: Path,
 ) -> None:
-    source, expectations = _validated_fixture(tmp_path)
+    source, expectations = validated_fixture(tmp_path)
     scalar_values = dict(source.scalars.values)
     mutable_weight = scalar_values["weight"].copy()
     scalar_values["weight"] = mutable_weight
@@ -339,7 +236,7 @@ def test_bundle_owns_values_even_if_a_caller_constructs_mutable_handoff_arrays(
         ),
     )
 
-    bundle = _canonicalize_fixture(mutable_source, expectations)
+    bundle = canonicalize_fixture(mutable_source, expectations)
     original_weight = bundle.quality.filter(pl.col("characteristic") == "weight")["measured_value"][
         0
     ]
@@ -354,150 +251,68 @@ def test_bundle_owns_values_even_if_a_caller_constructs_mutable_handoff_arrays(
     assert bundle.signals["injection_pressure"][0] == original_pressure
 
 
-def test_rejects_equal_but_corrupted_signal_time_axes(tmp_path: Path) -> None:
-    source, expectations = _validated_fixture(tmp_path)
-    corrupted_signals = {
-        group: replace(signal, time_seconds=np.zeros_like(signal.time_seconds))
-        for group, signal in source.signals.items()
-    }
-    corrupted = replace(source, signals=MappingProxyType(corrupted_signals))
-
-    with pytest.raises(CanonicalizationError, match=r"check=handoff\.time"):
-        _canonicalize_fixture(corrupted, expectations)
-
-
-def test_rejects_relocated_quality_null_even_when_aggregate_count_matches(tmp_path: Path) -> None:
-    source, expectations = _validated_fixture(tmp_path)
-    values = dict(source.scalars.values)
-    weight = values["weight"].copy()
-    geometry = values["PT-PT002L*"].copy()
-    weight[0] = np.nan
-    geometry[1] = 5.0
-    values["weight"] = weight
-    values["PT-PT002L*"] = geometry
-    corrupted = replace(source, scalars=replace(source.scalars, values=MappingProxyType(values)))
-
-    with pytest.raises(CanonicalizationError, match=r"check=handoff\.missingness"):
-        _canonicalize_fixture(corrupted, expectations)
-
-
-def test_rejects_nonfinite_process_scalar(tmp_path: Path) -> None:
-    source, expectations = _validated_fixture(tmp_path)
-    values = dict(source.scalars.values)
-    cycle_time = values["cycle_time"].copy()
-    cycle_time[0] = np.inf
-    values["cycle_time"] = cycle_time
-    corrupted = replace(source, scalars=replace(source.scalars, values=MappingProxyType(values)))
-
-    with pytest.raises(CanonicalizationError, match=r"check=handoff\.scalars"):
-        _canonicalize_fixture(corrupted, expectations)
-
-
-def test_rejects_interleaved_experiment_rows_with_unchanged_group_counts(tmp_path: Path) -> None:
-    source, expectations = _validated_fixture(tmp_path)
-    values = {name: np.concatenate((value, value)) for name, value in source.scalars.values.items()}
-    values["cycle_counter"] = np.asarray([100, 101, 103, 104], dtype=np.int32)
-    values["Versuch"] = np.asarray([20, 23, 20, 23], dtype=np.int64)
-    corrupted = replace(
-        source,
-        scalars=replace(
-            source.scalars,
-            values=MappingProxyType(values),
-            cycle_ids=(100, 101, 103, 104),
-        ),
-        matched_cycle_ids=(100, 101, 103, 104),
-    )
-    expanded_expectations = replace(
-        expectations,
-        scalar_rows=4,
-        experiment_blocks=((20, 2), (23, 2)),
-        scalar_missingness=(
-            ("Charge", 2),
-            ("Twkz", 2),
-            ("mittlerer Feuchtegehalt", 2),
-            ("PT-PT002L*", 2),
-        ),
-    )
-
-    with pytest.raises(CanonicalizationError, match=r"check=handoff\.experiments"):
-        _canonicalize_fixture(corrupted, expanded_expectations)
-
-
-@pytest.mark.parametrize(
-    ("change", "check_id"),
-    [
-        ("identity", "handoff.identity"),
-        ("missing_membership", "handoff.membership"),
-        ("duplicate_membership", "handoff.membership"),
-        ("bad_signal_map", "handoff.signals"),
-        ("missing_signal_reference", "handoff.membership"),
-    ],
-)
-def test_inconsistent_validated_handoffs_reject_the_whole_result(
-    tmp_path: Path, change: str, check_id: str
-) -> None:
-    source, expectations = _validated_fixture(tmp_path)
-    if change == "identity":
-        changed = replace(source, candidate="dataset1")
-    elif change == "missing_membership":
-        changed = replace(source, matched_cycle_ids=(100,))
-    elif change == "duplicate_membership":
-        changed = replace(source, signal_only_cycle_ids=(102, 102))
-    else:
-        pressure = source.signals["Einspritzdruck"]
-        if change == "bad_signal_map":
-            bad_pressure = replace(
-                pressure, cycle_to_column=MappingProxyType({102: 0, 100: 1, 101: 1})
-            )
-            changed = replace(
-                source,
-                signals=MappingProxyType({**source.signals, "Einspritzdruck": bad_pressure}),
-            )
-        else:
-            changed_signals: dict[str, SourceSignalMatrix] = {}
-            for group, signal in source.signals.items():
-                prefix = "einspritzdruck_ist" if group == "Einspritzdruck" else "einspritzstrom_ist"
-                changed_signals[group] = replace(
-                    signal,
-                    cycle_ids=(102, 100, 999),
-                    cycle_to_column=MappingProxyType({102: 0, 100: 1, 999: 2}),
-                    source_columns=tuple(f"{prefix}_{cycle}" for cycle in (102, 100, 999)),
-                )
-            changed = replace(
-                source,
-                signals=MappingProxyType(changed_signals),
-            )
-    with pytest.raises(CanonicalizationError, match=rf"check={check_id}"):
-        _canonicalize_fixture(changed, expectations)
-
-
 @pytest.mark.parametrize(
     ("mutation", "check_id"),
     [
-        ("missing", "mapping.coverage"),
-        ("extra", "mapping.coverage"),
-        ("duplicate", "mapping.destinations"),
-        ("reserved", "mapping.reserved"),
-        ("target_owner", "mapping.partition"),
-        ("renamed", "mapping.names"),
+        ("duplicate_key", "bundle.keys"),
+        ("misaligned_reference", "bundle.references"),
+        ("changed_time_grid", "bundle.signals"),
+        ("wrong_weight_unit", "bundle.quality"),
+        ("fabricated_day", "bundle.context"),
+        ("changed_exclusion", "bundle.exclusions"),
     ],
 )
-def test_mapping_contract_rejects_incomplete_colliding_or_semantic_changes(
+def test_scientific_bundle_discriminators_remain_owned_by_canonical_validation(
     tmp_path: Path, mutation: str, check_id: str
 ) -> None:
-    source, expectations = _validated_fixture(tmp_path)
-    mapping = dict(EXPECTED_MAPPING)
-    if mutation == "missing":
-        del mapping["cycle_time"]
-    elif mutation == "extra":
-        mapping["unexpected"] = ("process_features", "unexpected")
-    elif mutation == "duplicate":
-        mapping["cycle_time"] = mapping["Max. Spritzdruck"]
-    elif mutation == "reserved":
-        mapping["cycle_time"] = ("process_features", "unit_id")
-    elif mutation == "target_owner":
-        mapping["weight"] = ("process_features", "part_weight")
+    source, expectations = validated_fixture(tmp_path)
+    bundle = canonicalize_fixture(source, expectations)
+    if mutation == "duplicate_key":
+        table = bundle.units.with_columns(
+            pl.when(pl.col("source_row_index") == 1)
+            .then(pl.lit("injection_molding/dataset2/100"))
+            .otherwise(pl.col("unit_id"))
+            .alias("unit_id")
+        )
+        changed = _with_table(bundle, "units", table)
+    elif mutation == "misaligned_reference":
+        table = bundle.process_features.with_columns(
+            pl.col("operation_id").reverse().alias("operation_id")
+        )
+        changed = _with_table(bundle, "process_features", table)
+    elif mutation == "changed_time_grid":
+        table = bundle.signals.with_columns(
+            pl.when(pl.col("sample_index") == 1)
+            .then(pl.col("elapsed_time_seconds") + 0.001)
+            .otherwise(pl.col("elapsed_time_seconds"))
+            .alias("elapsed_time_seconds")
+        )
+        changed = _with_table(bundle, "signals", table)
+    elif mutation == "wrong_weight_unit":
+        table = bundle.quality.with_columns(
+            pl.when(pl.col("characteristic") == "weight")
+            .then(pl.lit(None, dtype=pl.String))
+            .otherwise(pl.col("measurement_unit"))
+            .alias("measurement_unit")
+        )
+        changed = _with_table(bundle, "quality", table)
+    elif mutation == "fabricated_day":
+        table = bundle.context.with_columns(pl.lit(1, dtype=pl.Int64).alias("production_day"))
+        changed = _with_table(bundle, "context", table)
     else:
-        mapping["cycle_time"] = ("process_features", "cycle_time_seconds")
+        metadata = replace(
+            bundle.metadata,
+            exclusions=(replace(bundle.metadata.exclusions[0], reason="unknown"),),
+        )
+        changed = ManufacturingBundle(
+            units=bundle.units,
+            operations=bundle.operations,
+            process_features=bundle.process_features,
+            signals=bundle.signals,
+            quality=bundle.quality,
+            context=bundle.context,
+            metadata=metadata,
+        )
+
     with pytest.raises(CanonicalizationError, match=rf"check={check_id}"):
-        _canonicalize_fixture(source, expectations, mapping=mapping)
+        _validate_bundle(changed, expectations)

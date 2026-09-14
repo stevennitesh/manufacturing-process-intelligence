@@ -1,8 +1,10 @@
 # Issue tracker: GitHub
 
-Issues and specifications live in GitHub Issues for
+When explicitly using the tracker, issues live in GitHub Issues for
 https://github.com/stevennitesh/manufacturing-process-intelligence.
-Use this guide for tracker-backed work.
+Specifications and milestone plans remain in the repository, as routed by
+[planning and progression](planning-and-progression.md). Use this guide only for
+tracker-backed work; it does not require publishing a local plan as an issue.
 
 ## Configuration
 

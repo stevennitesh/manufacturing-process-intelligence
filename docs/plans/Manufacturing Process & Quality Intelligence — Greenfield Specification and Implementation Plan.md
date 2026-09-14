@@ -12,6 +12,30 @@ source gates. Section 11 owns release order; numbered sections are stable topic
 references, not a requirement to implement productionization before semiconductor
 transfer. Planning revisions do not advance implementation status.
 
+## Project scale and engineering boundary
+
+This is a personal résumé/portfolio project, not a production-grade factory
+service. Optimize for credible scientific results, an understandable codebase,
+reproducible local execution and a convincing demo. Keep source integrity,
+honest units/uncertainty, leakage prevention, provenance and useful tests.
+
+The supported baseline is a single user running local batch commands. No service
+uptime, multi-user concurrency, hostile artifact authentication, deployment fleet,
+or cross-platform certification is promised. Preserve basic input/path safety and
+no-overwrite behavior. Existing safeguards may remain when removing them costs more
+than maintaining them, but they do not create requirements for every later phase.
+
+Architecture diagrams and technology lists below are a menu for approached work,
+not a scaffold or dependency checklist. Add a library, abstraction, service, ADR
+or extra gate only for a concrete current consumer or a named scientific/demo
+benefit. The engineering and planning guides own the proportional workflow.
+
+This boundary supersedes earlier production-grade M1 implementation requirements
+and blanket future infrastructure obligations. It does not relax dataset meaning,
+statistical validity, required MVP comparisons or supported safety rules. The
+[M1 data contract](../milestones/m01-contract-simplification.md) owns the bounded
+implementation changes; updating this specification does not implement them.
+
 ## 1. Project charter
 
 ### Project objective
@@ -416,7 +440,7 @@ This source-contract stage should remain a permanent project feature.
 | **v0.1 MVP** | Predictive quality under process shift; uncertainty and selective measurement | scatimdata Dataset 2, weight only |
 | **v0.2** | Process / assembly monitoring and diagnostics | PyScrew or CiP-DMD after audit; cross-process-chain decision gate |
 | **v0.3** | Semiconductor transfer | Bosch Plasma after source admission |
-| **v0.4** | Productionization / MLOps | Admitted sources |
+| **v0.4 optional** | Selected engineering demonstration, not production operations | Admitted sources |
 | **v0.5 optional** | Regulated manufacturing transfer | Pharma after initial job-search priorities |
 | **v0.6 optional** | Advanced manufacturing transfer | + NIST AMMT |
 
@@ -483,7 +507,7 @@ Canonical processed-data format.
 
 ### DuckDB
 
-Use for:
+Optional when Polars does not adequately serve a concrete query. Possible uses:
 
 - analytical queries;
 - batch diagnostics;
@@ -1261,7 +1285,7 @@ pytest
 small integration smoke test
 ```
 
-Main branch additionally:
+If a container demonstration is selected and maintained, main branch additionally:
 
 ```text
 Docker build (starting in v0.4, after the image exists)
@@ -1277,7 +1301,7 @@ Do not start with MLflow on day one.
 
 Use local structured experiment artifacts during the MVP.
 
-Starting v0.4, add:
+For an explicitly selected v0.4 tracking demonstration, consider:
 
 **MLflow**
 
@@ -1866,11 +1890,14 @@ This is a strong resume checkpoint.
 
 ---
 
-# 58. v0.4 — Productionization
+# 58. v0.4 — Optional engineering demonstration
 
 After the priority semiconductor case study, improve software maturity. Basic
 reproducibility remains mandatory earlier; MLflow, API and containers do not gate
 v0.1 or v0.3. Topic section numbering is retained for stable references.
+Sections 59–63 are optional demonstration choices, not a requirement to build all
+of them. Select a bounded capability for a target role; no production operations,
+availability guarantees or platform infrastructure are implied.
 
 ---
 
@@ -1987,15 +2014,15 @@ performance degradation.
 
 # 64. v0.4 release gate
 
-Complete when:
+Complete the explicitly selected engineering demonstration when:
 
-- reproducible model lineage exists;
-- batch inference works;
-- API works;
-- Docker works;
-- drift reporting exists;
-- CI includes container build;
-- README contains deployment architecture.
+- reproducible model/data lineage and a working local invocation exist;
+- the selected capability (batch inference, API, container, tracking or drift
+  report) has an ordinary-path test and a documented purpose;
+- README shows how to reproduce the demonstration and its limits.
+
+Unselected capabilities are not gates. Add container CI only if a container is
+actually maintained. Do not claim production readiness from this demonstration.
 
 Tag:
 
@@ -2003,7 +2030,7 @@ Tag:
 v0.4.0
 ```
 
-This is the production-polish release, not a prerequisite for applications.
+This is an optional portfolio release, not a prerequisite for applications.
 
 ---
 
@@ -2305,7 +2332,7 @@ protocol must precede M4 fitting even though week 5 emphasizes final evaluation.
 | 7 | PyScrew versus CiP-DMD source audit, cross-process-chain decision and selected adapter |
 | 8 | Source-supported SPC/MSPC, anomaly and process/assembly diagnostics; v0.2 gate |
 | 9–10 | Focused Bosch Plasma source audit and semiconductor case study; v0.3 gate |
-| 11 | Productionization essentials; v0.4 only when its full gate passes |
+| 11 | Demo/interview polish; optional selected v0.4 capability if useful |
 | 12 | Resume/demo/interview polish; pharma only if ahead and useful |
 
 An imminent semiconductor interview may pull the focused Bosch study forward
@@ -2552,7 +2579,8 @@ remove it.
 
 # 86. Documentation
 
-Required:
+Keep README, data licensing and the admitted source contract current. Create
+additional documents only when there is content with a distinct consumer:
 
 ```text
 README.md
@@ -2587,7 +2615,8 @@ ADR-005 Why the audited process/assembly source was selected
 ADR-006 Why predictive maintenance remains separate
 ```
 
-These demonstrate engineering judgment.
+These are examples, not a required ADR inventory. Capture a decision only when
+its tradeoff cannot be adequately explained at the existing owner.
 
 ---
 
@@ -2722,6 +2751,10 @@ That is a strong mid-level applied-DS answer.
 
 The project succeeds if it demonstrates:
 
+Judge these capabilities at their owning release, not as a checklist required
+before shipping v0.1. API, Docker and tracking infrastructure below are optional
+role-specific demonstrations; local reproducibility and tests are the baseline.
+
 ### Manufacturing knowledge
 
 - SPC;
@@ -2809,7 +2842,9 @@ v0.4
 }
 \]
 
-is the optimal core.
+is a possible progression, not a mandatory completion sequence. A credible v0.1
+is already résumé-ready; prioritize semiconductor transfer when relevant and
+stop adding infrastructure when it no longer improves the interview story.
 
 That gives:
 

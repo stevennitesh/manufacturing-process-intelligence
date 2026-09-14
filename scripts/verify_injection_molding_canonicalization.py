@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -10,6 +11,7 @@ import numpy as np
 import polars as pl
 
 from mpi.datasets.injection_molding_canonicalization import canonicalize_injection_molding
+from mpi.datasets.injection_molding_persistence import load_bundle
 from mpi.datasets.injection_molding_validation import SCALAR_COLUMNS, validate_injection_molding
 
 EXPECTED_CONTEXT = {
@@ -64,6 +66,7 @@ EXPECTED_PROCESS = {
     "integral_idx_0_einspritzstrom_ist_state_8": ("integral_idx_0_actual_injection_flow_state_8"),
 }
 EXPECTED_QUALITY = ("weight", "GE-GE002*", "GERADEHEIT-L*", "PT-PT002L*")
+EXPECTED_RESEARCH_SHA256 = "eb441ab7b98b7dc3ce0005986501fd50bdcce1a58fad59cedb0524733c8b6e1a"
 EXPECTED_MAPPING = {
     **{name: ("context", destination) for name, destination in EXPECTED_CONTEXT.items()},
     "cycle_counter": ("units", "cycle_counter"),
@@ -82,9 +85,47 @@ def _assert_equal_with_nulls(canonical: pl.Series, source: np.ndarray) -> None:
         np.testing.assert_array_equal(observed, source)
 
 
-def verify(raw_root: Path) -> dict[str, object]:
+def verify(raw_root: Path, artifact: Path | None = None) -> dict[str, object]:
     source = validate_injection_molding(raw_root=raw_root)
-    bundle = canonicalize_injection_molding(source)
+    canonical = canonicalize_injection_molding(source)
+    if artifact is None:
+        bundle = canonical
+    else:
+        bundle = load_bundle(artifact)
+        for name in (
+            "units",
+            "operations",
+            "process_features",
+            "signals",
+            "quality",
+            "context",
+        ):
+            assert getattr(bundle, name).equals(getattr(canonical, name))
+        observed_metadata = bundle.metadata
+        expected_metadata = canonical.metadata
+        assert (
+            observed_metadata.dataset,
+            observed_metadata.candidate,
+            observed_metadata.source_version,
+            observed_metadata.archive_size,
+            observed_metadata.archive_sha256,
+            observed_metadata.manifest_sha256,
+            observed_metadata.scalar_lineage,
+            observed_metadata.signal_lineage,
+            observed_metadata.exclusions,
+            observed_metadata.research_context,
+        ) == (
+            expected_metadata.dataset,
+            expected_metadata.candidate,
+            expected_metadata.source_version,
+            expected_metadata.archive_size,
+            expected_metadata.archive_sha256,
+            expected_metadata.manifest_sha256,
+            expected_metadata.scalar_lineage,
+            expected_metadata.signal_lineage,
+            expected_metadata.exclusions,
+            expected_metadata.research_context,
+        )
     units = bundle.units
     operations = bundle.operations
     process = bundle.process_features
@@ -130,14 +171,18 @@ def verify(raw_root: Path) -> dict[str, object]:
     }
     assert tuple(lineage) == SCALAR_COLUMNS
     assert lineage == EXPECTED_MAPPING
-    assert bundle.metadata.table_counts == (
-        ("units", 829),
-        ("operations", 829),
-        ("process_features", 829),
-        ("signals", 1_697_792),
-        ("quality", 3_316),
-        ("context", 829),
-    )
+    table_counts = {
+        name: getattr(bundle, name).height
+        for name in ("units", "operations", "process_features", "signals", "quality", "context")
+    }
+    assert table_counts == {
+        "units": 829,
+        "operations": 829,
+        "process_features": 829,
+        "signals": 1_697_792,
+        "quality": 3_316,
+        "context": 829,
+    }
     assert quality["measured_value"].null_count() == 303
     assert (
         quality.filter(pl.col("characteristic") == "PT-PT002L*")["measured_value"].null_count()
@@ -161,6 +206,10 @@ def verify(raw_root: Path) -> dict[str, object]:
     }
     admitted_ids = set(unit_ids)
     assert not admitted_ids.intersection(item.unit_id for item in bundle.metadata.exclusions)
+    research_bytes = json.dumps(
+        bundle.metadata.research_context, sort_keys=True, separators=(",", ":")
+    ).encode()
+    assert hashlib.sha256(research_bytes).hexdigest() == EXPECTED_RESEARCH_SHA256
 
     return {
         "status": "passed",
@@ -170,7 +219,7 @@ def verify(raw_root: Path) -> dict[str, object]:
             "archive_sha256": source.archive_sha256,
             "manifest_sha256": source.manifest_sha256,
         },
-        "tables": dict(bundle.metadata.table_counts),
+        "tables": table_counts,
         "scalar_fields_compared": len(SCALAR_COLUMNS),
         "scalar_cells_compared": 829 * len(SCALAR_COLUMNS),
         "trajectory_channels_compared_by_cycle_key": ["injection_pressure", "injection_flow"],
@@ -178,6 +227,9 @@ def verify(raw_root: Path) -> dict[str, object]:
         "trajectory_time_values_compared": 829 * 2048,
         "quality_nulls": quality["measured_value"].null_count(),
         "exclusions": len(bundle.metadata.exclusions),
+        "research_records": len(bundle.metadata.research_context),
+        "research_sha256": EXPECTED_RESEARCH_SHA256,
+        "durable_artifact_compared": str(artifact.resolve()) if artifact else None,
     }
 
 
@@ -189,8 +241,14 @@ def main() -> None:
         type=Path,
         default=Path("data/raw/injection_molding"),
     )
+    parser.add_argument(
+        "artifact",
+        nargs="?",
+        type=Path,
+        help="Optional prepared artifact to load and compare exactly.",
+    )
     arguments = parser.parse_args()
-    print(json.dumps(verify(arguments.raw_root), indent=2, sort_keys=True))
+    print(json.dumps(verify(arguments.raw_root, arguments.artifact), indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":

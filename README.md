@@ -4,6 +4,9 @@ A greenfield manufacturing data-science project starting with a focused question
 does high-resolution machine telemetry improve part-weight prediction beyond
 scalar measurements, and does it generalize under controlled process changes?
 
+This is a personal résumé/portfolio project: rigorous analysis, reproducible local
+commands and an understandable demo, not a production-grade factory service.
+
 The MVP uses **scatimdata Dataset 2 only**: 829 labeled cycles, pressure/flow
 trajectories and weight in grams. Its three experimental production groups
 represent controlled process-condition changes, not verified calendar days.
@@ -11,11 +14,10 @@ Leave-one-experiment-out evaluation, uncertainty and selective physical measurem
 are required. Geometry is retained as deferred evidence; AUTO-PREDICT / MEASURE
 does not mean PASS/FAIL or product conformance.
 
-**Milestone 0: repository foundation** is complete. **Milestone 1: injection-molding
-source contract and ingestion** is in progress: the source contract is accepted
-with limitations, reproducible acquisition and raw validation are complete, and
-protected in-memory Dataset 2 canonicalization is complete. Persistence and the
-final preparation command remain outstanding.
+**Milestone 0: repository foundation** and **Milestone 1: injection-molding source
+contract and ingestion** are complete. Dataset 2 can be acquired, strictly
+validated, canonicalized, safely published as typed Parquet plus JSON provenance,
+and independently reloaded without the raw source.
 The repository intentionally contains no modeling or performance claims yet.
 
 See the [implementation roadmap](docs/implementation-roadmap.md) for the current
@@ -53,6 +55,7 @@ uv run mpi --help
 uv run mpi config validate configs/datasets/injection_molding.yaml
 uv run mpi data acquire injection_molding
 uv run mpi data validate injection_molding
+uv run mpi data prepare injection_molding --raw-root data/raw/injection_molding
 ```
 
 The acquisition command downloads only the manifest-admitted Dataset 2 archive to
@@ -60,13 +63,25 @@ The acquisition command downloads only the manifest-admitted Dataset 2 archive t
 local receipt. Use `--raw-root <directory>` for an isolated destination. A matching
 archive is verified and reused without network access. A mismatched archive is
 preserved and reported; move or remove it manually only after investigating its
-identity. Acquisition does not extract, parse, validate, or prepare the dataset,
-and the dataset configuration remains disabled for preparation.
+identity. Acquisition does not extract, parse, validate, or prepare the dataset.
 
 The validation command is local-only. It rechecks the acquired bytes before safely
 reading the single pinned HDF5 member, validates the complete scalar, pressure, and
 flow source contract, and reports labeled and signal-only membership plus accepted
 limitations. It does not canonicalize, resample, impute, or prepare data.
+
+The preparation command is also offline. It resolves configuration and source
+identity once, validates the pinned local bytes, canonicalizes all six tables, and
+first checks an existing destination for exact tables and source identity.
+A compatible bundle is returned with its original provenance and no writes. Fresh
+output is written to an invocation-owned staging directory, verified through one
+serialized loader round trip, and published by the local single-writer workflow
+without overwriting an existing destination.
+Corrupt, partial, incompatible, or different destinations fail without repair. The
+default output is `data/processed/injection_molding/dataset2`; `--output` can name
+another directory. There is one current, unversioned artifact layout containing six Parquet files, sole-owner `metadata.json`,
+and a small file/hash `manifest.json`. Extra analyst notes do not affect loading.
+Both raw and prepared data remain outside Git.
 
 Training, evaluation, dashboard, and API commands will be added only in their
 owning milestones.
@@ -89,7 +104,7 @@ predict -> test generalization -> quantify uncertainty -> selectively measure
 
 After the MVP: audit PyScrew versus CiP-DMD and the cross-process-chain candidate
 for process/assembly intelligence (v0.2), prioritize Bosch Plasma semiconductor
-transfer (v0.3), then production polish (v0.4). Pharma (v0.5) and advanced
+transfer (v0.3), then an optional role-specific engineering demo (v0.4). Pharma (v0.5) and advanced
 manufacturing (v0.6) are optional later extensions. These are planned capabilities,
 not implemented results; SPC and physical RCA are not Dataset 2 MVP requirements.
 
@@ -99,13 +114,7 @@ quality-intelligence milestones are complete.
 
 ## Status
 
-Milestone 0 provides the `mpi` package and CLI shell, configuration validation,
-structured logging, deterministic seed utility, tests, static checks, pre-commit
-hooks, and GitHub Actions workflow. M1 has frozen and verified the
-high-resolution injection-molding source contract and now provides verified,
-idempotent acquisition of its pinned Dataset 2 archive. Raw validation now produces
-a typed source-native handoff with exact schema, grid, join, missingness, and
-experiment checks. The dataset-specific canonicalizer maps that handoff to
-protected Polars tables with exhaustive English lineage, explicit exclusions and
-structured source-fact/inference/discrepancy/project-policy metadata. Persistence
-and preparation remain unimplemented, and dataset enablement stays false.
+See the [roadmap](docs/implementation-roadmap.md) for the next action and the
+[M1 summary](docs/milestones/m01-injection-molding-ingestion.md) for completion
+evidence. The bounded M1 simplification is complete; M2 audit planning is next.
+The current unversioned data contract has no legacy readers or migration paths.

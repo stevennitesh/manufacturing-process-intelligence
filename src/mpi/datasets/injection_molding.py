@@ -7,7 +7,6 @@ import json
 import os
 import re
 import tempfile
-import time
 import urllib.error
 import urllib.request
 import uuid
@@ -20,7 +19,7 @@ from typing import BinaryIO, Literal, cast
 from urllib.parse import quote, urlparse
 
 from mpi import __version__
-from mpi.core.config import DatasetConfig, load_dataset_config
+from mpi.core.config import DatasetConfig, parse_dataset_config
 
 DEFAULT_CONFIG_PATH = Path("configs/datasets/injection_molding.yaml")
 DEFAULT_MANIFEST_PATH = Path("data/manifests/injection-molding-source.json")
@@ -62,6 +61,15 @@ class AcquisitionResult:
     disposition: Literal["downloaded", "reused"]
 
 
+@dataclass(frozen=True)
+class ResolvedArchiveInputs:
+    """Configuration and pinned source identity resolved for one invocation."""
+
+    config: DatasetConfig
+    identity: ArchiveIdentity
+    manifest_sha256: str
+
+
 Transport = Callable[[str, float], AbstractContextManager[BinaryIO]]
 
 
@@ -81,11 +89,20 @@ def _require_string(mapping: dict[str, object], field: str) -> str:
     return value
 
 
-def _load_identity(
-    config_path: Path, manifest_path: Path
-) -> tuple[DatasetConfig, ArchiveIdentity, str]:
+def resolve_dataset_config(config_path: Path) -> DatasetConfig:
+    """Load one dataset configuration."""
     try:
-        config = load_dataset_config(config_path)
+        config_bytes = config_path.read_bytes()
+        return parse_dataset_config(config_bytes)
+    except (OSError, ValueError) as error:
+        raise AcquisitionError(f"could not read acquisition configuration: {error}") from error
+
+
+def resolve_archive_identity(
+    config: DatasetConfig,
+    manifest_path: Path,
+) -> ResolvedArchiveInputs:
+    try:
         manifest_bytes = manifest_path.read_bytes()
         raw: object = json.loads(manifest_bytes)
     except (OSError, ValueError) as error:
@@ -165,14 +182,17 @@ def _load_identity(
         size=size,
         sha256=sha256,
     )
-    return config, identity, hashlib.sha256(manifest_bytes).hexdigest()
+    return ResolvedArchiveInputs(
+        config=config,
+        identity=identity,
+        manifest_sha256=hashlib.sha256(manifest_bytes).hexdigest(),
+    )
 
 
-def load_archive_identity(
-    config_path: Path, manifest_path: Path
-) -> tuple[DatasetConfig, ArchiveIdentity, str]:
-    """Load and reconcile the configured admitted archive identity."""
-    return _load_identity(config_path, manifest_path)
+def resolve_archive_inputs(config_path: Path, manifest_path: Path) -> ResolvedArchiveInputs:
+    """Resolve configured source inputs once for an owned pipeline invocation."""
+    config = resolve_dataset_config(config_path)
+    return resolve_archive_identity(config, manifest_path)
 
 
 def _destination(raw_root: Path, identity: ArchiveIdentity) -> tuple[Path, Path, Path]:
@@ -230,8 +250,7 @@ def _https_transport(url: str, timeout: float) -> Generator[BinaryIO, None, None
         raise AcquisitionError(f"HTTPS acquisition failed for {url}: {error}") from error
 
 
-@contextmanager
-def _destination_lock(root: Path, version_dir: Path) -> Generator[None, None, None]:
+def _prepare_version_directory(root: Path, version_dir: Path) -> None:
     try:
         version_dir.mkdir(parents=True, exist_ok=True)
         resolved_version_dir = version_dir.resolve(strict=True)
@@ -242,30 +261,6 @@ def _destination_lock(root: Path, version_dir: Path) -> Generator[None, None, No
         raise AcquisitionError(
             f"source version destination escapes raw root: {version_dir}"
         ) from error
-    lock_path = version_dir / ".acquisition.lock"
-    token = uuid.uuid4().hex
-    try:
-        descriptor = os.open(lock_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    except FileExistsError as error:
-        raise AcquisitionError(
-            f"another acquisition owns {lock_path}; stale ownership is not cleared automatically"
-        ) from error
-    except OSError as error:
-        raise AcquisitionError(
-            f"could not claim acquisition destination {lock_path}: {error}"
-        ) from error
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
-            stream.write(token)
-            stream.flush()
-            os.fsync(stream.fileno())
-        yield
-    finally:
-        try:
-            if lock_path.read_text(encoding="utf-8") == token:
-                lock_path.unlink()
-        except OSError:
-            pass
 
 
 def _prepare_receipts_directory(root: Path, version_dir: Path) -> Path:
@@ -293,24 +288,16 @@ def _prepare_receipts_directory(root: Path, version_dir: Path) -> Path:
     return receipts_dir
 
 
-def _check_deadline(started: float, deadline: float, clock: Callable[[], float]) -> None:
-    if clock() - started > deadline:
-        raise AcquisitionError(f"download exceeded the {deadline:g}-second overall deadline")
-
-
 def _download(
     identity: ArchiveIdentity,
     archive_path: Path,
     *,
     transport: Transport,
     timeout: float,
-    deadline: float,
-    clock: Callable[[], float],
 ) -> tuple[int, str]:
-    if timeout <= 0 or deadline <= 0:
-        raise AcquisitionError("network timeout and deadline must be positive")
+    if timeout <= 0:
+        raise AcquisitionError("network timeout must be positive")
     temporary_path: Path | None = None
-    started = clock()
     try:
         with tempfile.NamedTemporaryFile(
             mode="wb",
@@ -322,11 +309,9 @@ def _download(
             temporary_path = Path(output.name)
             digest = hashlib.sha256()
             size = 0
-            with transport(identity.download_url, min(timeout, deadline)) as response:
+            with transport(identity.download_url, timeout) as response:
                 while True:
-                    _check_deadline(started, deadline, clock)
                     chunk = response.read(min(_CHUNK_SIZE, identity.size + 1 - size))
-                    _check_deadline(started, deadline, clock)
                     if not chunk:
                         break
                     size += len(chunk)
@@ -336,7 +321,6 @@ def _download(
                         )
                     digest.update(chunk)
                     output.write(chunk)
-            _check_deadline(started, deadline, clock)
             output.flush()
             os.fsync(output.fileno())
         sha256 = digest.hexdigest()
@@ -348,7 +332,6 @@ def _download(
             raise AcquisitionError(
                 f"download checksum mismatch: expected {identity.sha256}, observed {sha256}"
             )
-        _check_deadline(started, deadline, clock)
         try:
             os.link(temporary_path, archive_path)
         except FileExistsError as error:
@@ -405,71 +388,61 @@ def acquire_injection_molding(
     manifest_path: Path = DEFAULT_MANIFEST_PATH,
     transport: Transport = _https_transport,
     timeout: float = 30.0,
-    deadline: float = 300.0,
-    clock: Callable[[], float] = time.monotonic,
 ) -> AcquisitionResult:
     """Acquire or reuse the manifest-pinned Dataset 2 archive.
 
     The returned archive is byte-verified only. Downstream consumers must verify
     its identity again at their own read boundary.
     """
-    _, identity, manifest_sha256 = _load_identity(config_path, manifest_path)
+    resolved = resolve_archive_inputs(config_path, manifest_path)
+    identity = resolved.identity
+    manifest_sha256 = resolved.manifest_sha256
     root, version_dir, archive_path = _destination(raw_root, identity)
 
-    with _destination_lock(root, version_dir):
-        try:
-            _prepare_receipts_directory(root, version_dir)
-        except AcquisitionError as error:
-            if archive_path.exists():
-                raise AcquisitionError(
-                    f"archive was left untouched at {archive_path}; "
-                    f"receipt setup failed before archive verification: {error}"
-                ) from error
-            raise
-        downloaded_at: str | None = None
-        if archive_path.is_symlink():
-            raise AcquisitionError(
-                f"archive destination must not be a symbolic link: {archive_path}"
-            )
+    _prepare_version_directory(root, version_dir)
+    try:
+        _prepare_receipts_directory(root, version_dir)
+    except AcquisitionError as error:
         if archive_path.exists():
-            if not archive_path.is_file():
-                raise AcquisitionError(f"archive destination is not a regular file: {archive_path}")
-            size, sha256 = _assert_identity(archive_path, identity)
-            disposition: Literal["downloaded", "reused"] = "reused"
-        else:
-            size, sha256 = _download(
-                identity,
-                archive_path,
-                transport=transport,
-                timeout=timeout,
-                deadline=deadline,
-                clock=clock,
-            )
-            disposition = "downloaded"
-            downloaded_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+            raise AcquisitionError(
+                f"archive was left untouched at {archive_path}; "
+                f"receipt setup failed before archive verification: {error}"
+            ) from error
+        raise
+    downloaded_at: str | None = None
+    if archive_path.is_symlink():
+        raise AcquisitionError(f"archive destination must not be a symbolic link: {archive_path}")
+    if archive_path.exists():
+        if not archive_path.is_file():
+            raise AcquisitionError(f"archive destination is not a regular file: {archive_path}")
+        size, sha256 = _assert_identity(archive_path, identity)
+        disposition: Literal["downloaded", "reused"] = "reused"
+    else:
+        size, sha256 = _download(identity, archive_path, transport=transport, timeout=timeout)
+        disposition = "downloaded"
+        downloaded_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
-        verified_at = datetime.now(UTC)
-        receipt_values: dict[str, object] = {
-            "archive_path": str(archive_path.resolve()),
-            "manifest_sha256": manifest_sha256,
-            "expected_size": identity.size,
-            "expected_sha256": identity.sha256,
-            "observed_size": size,
-            "observed_sha256": sha256,
-            "verified_at_utc": verified_at.isoformat().replace("+00:00", "Z"),
-            "disposition": disposition,
-            "project_version": __version__,
-        }
-        if downloaded_at is not None:
-            receipt_values["downloaded_at_utc"] = downloaded_at
-        try:
-            receipt_path = _write_receipt(root, version_dir, identity, receipt_values)
-        except AcquisitionError as error:
-            message = (
-                f"verified archive retained at {archive_path}, "
-                f"but receipt persistence failed: {error}"
-            )
-            raise AcquisitionError(message) from error
+    verified_at = datetime.now(UTC)
+    receipt_values: dict[str, object] = {
+        "archive_path": str(archive_path.resolve()),
+        "manifest_sha256": manifest_sha256,
+        "expected_size": identity.size,
+        "expected_sha256": identity.sha256,
+        "observed_size": size,
+        "observed_sha256": sha256,
+        "verified_at_utc": verified_at.isoformat().replace("+00:00", "Z"),
+        "disposition": disposition,
+        "project_version": __version__,
+    }
+    if downloaded_at is not None:
+        receipt_values["downloaded_at_utc"] = downloaded_at
+    try:
+        receipt_path = _write_receipt(root, version_dir, identity, receipt_values)
+    except AcquisitionError as error:
+        message = (
+            f"verified archive retained at {archive_path}, but receipt persistence failed: {error}"
+        )
+        raise AcquisitionError(message) from error
 
     return AcquisitionResult(
         dataset=identity.dataset,

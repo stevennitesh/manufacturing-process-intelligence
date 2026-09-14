@@ -1,0 +1,191 @@
+[
+  {
+    "subject": "material",
+    "state": "documented_fact",
+    "dataset_scope": "injection_molding/dataset2",
+    "source_reference": "docs/datasets/injection-molding-source-contract.md#paper-supported-material-and-measurement-context",
+    "source_section": "Paper sections 2.1 and 2.2.3",
+    "details": [["manufacturer", "BASF"], ["grade", "Ultramid B3EG6"], ["polymer", "PA6-GF30"], ["scope", "dataset constant, not per-row genealogy"]],
+    "quantities": [],
+    "runs": [],
+    "associations": []
+  },
+  {
+    "subject": "machine",
+    "state": "documented_fact",
+    "dataset_scope": "injection_molding/dataset2",
+    "source_reference": "docs/datasets/injection-molding-source-contract.md#source-declared-manufacturing-meaning",
+    "source_section": "Paper section 2.1",
+    "details": [["model", "Arburg Allrounder 520E 1500-800"], ["scope", "shared experimental equipment, not machine_id"]],
+    "quantities": [],
+    "runs": [],
+    "associations": []
+  },
+  {
+    "subject": "optical_measurement_equipment",
+    "state": "documented_fact",
+    "dataset_scope": "injection_molding/dataset2",
+    "source_reference": "docs/datasets/injection-molding-source-contract.md#paper-supported-material-and-measurement-context",
+    "source_section": "Paper section 2.1",
+    "details": [["model", "Keyence IM-7020"], ["quality_limit", "false"]],
+    "quantities": [{"name": "maximum_measurement_deviation", "value": 8.0, "unit": "um"}],
+    "runs": [],
+    "associations": []
+  },
+  {
+    "subject": "weight_measurement_equipment",
+    "state": "documented_fact",
+    "dataset_scope": "injection_molding/dataset2",
+    "source_reference": "docs/datasets/injection-molding-source-contract.md#paper-supported-material-and-measurement-context",
+    "source_section": "Paper section 2.1",
+    "details": [["model", "Sartorius Entris BCE323i-1S"], ["quality_limit", "false"]],
+    "quantities": [{"name": "maximum_linearity_deviation", "value": 2.0, "unit": "mg"}],
+    "runs": [],
+    "associations": []
+  },
+  {
+    "subject": "experiment_context",
+    "state": "observed_fact",
+    "dataset_scope": "injection_molding/dataset2",
+    "source_reference": "docs/datasets/injection-molding-source-contract.md#chronology-experiments-and-availability",
+    "source_section": "Released HDF5 scalar table",
+    "details": [["source_order", "20,23,15"], ["row_counts", "223,303,303"], ["canonical_day_labels", "all null"]],
+    "quantities": [],
+    "runs": [],
+    "associations": []
+  },
+  {
+    "subject": "experiment_20_context",
+    "state": "observed_fact",
+    "dataset_scope": "injection_molding/dataset2/experiment/20",
+    "source_reference": "docs/datasets/injection-molding-source-contract.md#intervention-alignment-evidence--inferred-not-a-day-assignment",
+    "source_section": "Released HDF5 scalar table grouped in source order",
+    "details": [["mold_temperature", "all null"], ["source_charge_code", "all null"]],
+    "quantities": [],
+    "runs": [
+      {"experiment_id": 20, "field": "mean_moisture_content", "count": 76, "value": 0.086, "unit": null, "value_source": "released_raw"},
+      {"experiment_id": 20, "field": "mean_moisture_content", "count": 86, "value": 0.18, "unit": null, "value_source": "released_raw"},
+      {"experiment_id": 20, "field": "mean_moisture_content", "count": 61, "value": 0.046, "unit": null, "value_source": "released_raw"}
+    ],
+    "associations": []
+  },
+  {
+    "subject": "experiment_23_context",
+    "state": "observed_fact",
+    "dataset_scope": "injection_molding/dataset2/experiment/23",
+    "source_reference": "docs/datasets/injection-molding-source-contract.md#intervention-alignment-evidence--inferred-not-a-day-assignment",
+    "source_section": "Released HDF5 scalar table grouped in source order",
+    "details": [["mean_moisture_content", "all null"]],
+    "quantities": [],
+    "runs": [
+      {"experiment_id": 23, "field": "mold_temperature", "count": 99, "value": 80.0, "unit": null, "value_source": "released_raw"},
+      {"experiment_id": 23, "field": "mold_temperature", "count": 103, "value": 90.0, "unit": null, "value_source": "released_raw"},
+      {"experiment_id": 23, "field": "mold_temperature", "count": 101, "value": 70.0, "unit": null, "value_source": "released_raw"},
+      {"experiment_id": 23, "field": "source_charge_code", "count": 152, "value": 1.0, "unit": null, "value_source": "released_raw"},
+      {"experiment_id": 23, "field": "source_charge_code", "count": 151, "value": 2.0, "unit": null, "value_source": "released_raw"}
+    ],
+    "associations": []
+  },
+  {
+    "subject": "experiment_to_paper_day",
+    "state": "inference",
+    "dataset_scope": "injection_molding/dataset2",
+    "source_reference": "docs/datasets/injection-molding-source-contract.md#intervention-alignment-evidence--inferred-not-a-day-assignment",
+    "source_section": "Project comparison of released runs with paper Table 2",
+    "details": [["authority", "run-length comparison only; not canonical labels"]],
+    "quantities": [],
+    "runs": [],
+    "associations": [
+      {"source_experiment_id": 20, "proposed_paper_day": 2, "basis": "matching intervention run lengths"},
+      {"source_experiment_id": 23, "proposed_paper_day": 3, "basis": "matching intervention run lengths"},
+      {"source_experiment_id": 15, "proposed_paper_day": 1, "basis": "matching intervention run lengths"}
+    ]
+  },
+  {
+    "subject": "experiment_15_moisture",
+    "state": "discrepancy",
+    "dataset_scope": "injection_molding/dataset2/experiment/15",
+    "source_reference": "docs/datasets/injection-molding-source-contract.md#intervention-alignment-evidence--inferred-not-a-day-assignment",
+    "source_section": "Released HDF5 scalar table versus paper Table 2",
+    "details": [["canonical_action", "preserve raw values; no backfill"]],
+    "quantities": [],
+    "runs": [
+      {"experiment_id": 15, "field": "mean_moisture_content", "count": 89, "value": 0.05, "unit": null, "value_source": "released_raw"},
+      {"experiment_id": 15, "field": "mean_moisture_content", "count": 89, "value": 0.066, "unit": "%", "value_source": "paper"},
+      {"experiment_id": 15, "field": "mean_moisture_content", "count": 98, "value": 0.1, "unit": null, "value_source": "released_raw"},
+      {"experiment_id": 15, "field": "mean_moisture_content", "count": 98, "value": 0.097, "unit": "%", "value_source": "paper"},
+      {"experiment_id": 15, "field": "mean_moisture_content", "count": 116, "value": 0.15, "unit": null, "value_source": "released_raw"},
+      {"experiment_id": 15, "field": "mean_moisture_content", "count": 116, "value": 0.15, "unit": "%", "value_source": "paper"}
+    ],
+    "associations": []
+  },
+  {
+    "subject": "paper_scalar_feature_set",
+    "state": "documented_fact",
+    "dataset_scope": "injection_molding/dataset2",
+    "source_reference": "docs/datasets/injection-molding-source-contract.md#published-feature-set-versus-retained-source-columns",
+    "source_section": "Paper sections 2.2.1, 2.2.3 and 3.2",
+    "details": [["count", "12"], ["moisture_used", "false"], ["direct_export_correspondences", "11"], ["conceptual_features", "maximum injection pressure; switchover injection pressure; melt cushion; injection time; hot-runner temperature; barrel heating zones 2-8"]],
+    "quantities": [],
+    "runs": [],
+    "associations": []
+  },
+  {
+    "subject": "hot_runner_export_crosswalk",
+    "state": "inference",
+    "dataset_scope": "injection_molding/dataset2",
+    "source_reference": "docs/datasets/injection-molding-source-contract.md#published-feature-set-versus-retained-source-columns",
+    "source_section": "Project name comparison; no publisher crosswalk located",
+    "details": [["source_field", "werkzeugheizkreis_1"], ["proposed_concept", "hot-runner temperature"], ["confirmed", "false"]],
+    "quantities": [],
+    "runs": [],
+    "associations": []
+  },
+  {
+    "subject": "geometry_scale",
+    "state": "inference",
+    "dataset_scope": "injection_molding/dataset2",
+    "source_reference": "docs/datasets/injection-molding-source-contract.md#target-agreement-and-disagreement",
+    "source_section": "Project full-population comparison with published summary",
+    "details": [["canonical_action", "native values and null units"]],
+    "quantities": [
+      {"name": "GE-GE002*_scaled_mean", "value": 101.559141, "unit": "native_value x 0.001"},
+      {"name": "GE-GE002*_scaled_population_variance", "value": 0.00680747, "unit": "(native_value x 0.001)^2"}
+    ],
+    "runs": [],
+    "associations": []
+  },
+  {
+    "subject": "mvp_target",
+    "state": "project_policy",
+    "dataset_scope": "injection_molding/dataset2",
+    "source_reference": "docs/datasets/injection-molding-source-contract.md#accepted-mvp-use-and-claim-boundary",
+    "source_section": "Project accepted MVP policy",
+    "details": [["target", "weight"], ["unit", "g"], ["geometry", "retained but deferred"], ["modeling_boundary", "process-derived predictors only; allowlist deferred to M3"]],
+    "quantities": [],
+    "runs": [],
+    "associations": []
+  },
+  {
+    "subject": "published_release_completeness",
+    "state": "unresolved",
+    "dataset_scope": "injection_molding/dataset2",
+    "source_reference": "docs/datasets/injection-molding-source-contract.md#accepted-mvp-use-and-claim-boundary",
+    "source_section": "Published repository and bounded follow-up search",
+    "details": [["known", "pinned published release"], ["not_claimed", "complete original laboratory database"]],
+    "quantities": [],
+    "runs": [],
+    "associations": []
+  },
+  {
+    "subject": "production_days_and_spec_limits",
+    "state": "unresolved",
+    "dataset_scope": "injection_molding/dataset2",
+    "source_reference": "docs/datasets/injection-molding-source-contract.md#canonical-bundle-handoff",
+    "source_section": "Canonical source-gap contract",
+    "details": [["production_day", "null"], ["lower_spec", "null"], ["upper_spec", "null"]],
+    "quantities": [],
+    "runs": [],
+    "associations": []
+  }
+]
