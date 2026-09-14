@@ -183,7 +183,9 @@ def resolve_archive_inputs(config_path: Path, manifest_path: Path) -> ResolvedAr
     return resolve_archive_identity(config, manifest_path)
 
 
-def _destination(raw_root: Path, identity: ArchiveIdentity) -> tuple[Path, Path, Path]:
+def resolve_archive_destination(
+    raw_root: Path, identity: ArchiveIdentity
+) -> tuple[Path, Path, Path]:
     try:
         root = raw_root.absolute().resolve(strict=False)
         version_dir = root / f"scatimdata-{identity.source_version}"
@@ -195,13 +197,6 @@ def _destination(raw_root: Path, identity: ArchiveIdentity) -> tuple[Path, Path,
     if archive_path.is_symlink():
         raise AcquisitionError(f"archive destination must not be a symbolic link: {archive_path}")
     return root, version_dir, archive_path
-
-
-def resolve_archive_destination(
-    raw_root: Path, identity: ArchiveIdentity
-) -> tuple[Path, Path, Path]:
-    """Resolve the admitted archive path beneath a raw-data root."""
-    return _destination(raw_root, identity)
 
 
 def _measure(path: Path) -> tuple[int, str]:
@@ -298,7 +293,7 @@ def acquire_injection_molding(
     """
     resolved = resolve_archive_inputs(config_path, manifest_path)
     identity = resolved.identity
-    root, version_dir, archive_path = _destination(raw_root, identity)
+    root, version_dir, archive_path = resolve_archive_destination(raw_root, identity)
 
     _prepare_version_directory(root, version_dir)
     if archive_path.is_symlink():

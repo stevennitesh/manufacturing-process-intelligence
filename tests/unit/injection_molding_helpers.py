@@ -23,8 +23,8 @@ from mpi.datasets.injection_molding_validation import (
     SCALAR_DTYPES,
     ValidatedInjectionMoldingSource,
     _Expectations,
-    _expected_time_grid,
     _validate_path,
+    expected_injection_molding_time_grid,
 )
 
 
@@ -86,7 +86,7 @@ def validated_fixture(
     values["GERADEHEIT-L*"] = np.asarray([25, 26], dtype=np.int32)
     values["PT-PT002L*"] = np.asarray([4.5, np.nan])
     hdf_path = tmp_path / "source.h5"
-    times = _expected_time_grid(513)
+    times = expected_injection_molding_time_grid(513)
     with h5py.File(hdf_path, "w") as hdf:
         _write_mixed_frame(hdf, "scalars", SCALAR_COLUMNS, values)
         _write_signal_frame(
@@ -136,13 +136,6 @@ def validated_fixture(
         scalar_rows=2,
         signal_samples=513,
         signal_only=1,
-        quality_nulls=1,
-        experiment_blocks=((20, 1), (23, 1)),
-        context_nulls=(
-            ("source_charge_code", 1),
-            ("mold_temperature", 1),
-            ("mean_moisture_content", 1),
-        ),
     )
     return source, canonical_expectations
 

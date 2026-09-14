@@ -80,7 +80,7 @@ simple local records suffice.
 
 | Milestone | Deliverable and distinguishing outcome |
 | --- | --- |
-| M0 | Runnable package/CLI, locked environment, configuration, logging, tests and CI |
+| M0 | Runnable package/CLI, locked environment, configuration, tests and CI |
 | M1 | Reproducible acquisition, validated source, canonicalization and Parquet/JSON reload preserving the Dataset 2 facts above |
 | M2 | Reproducible audit: counts/groups, weight distribution, missingness, scalar distributions/correlations, trajectory shapes, interventions, variation and leakage risks |
 | M3 | Prediction cutoff, explicit process-feature allowlist and exact leakage-safe fit/tuning/calibration/policy/test memberships |

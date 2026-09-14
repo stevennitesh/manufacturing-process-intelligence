@@ -117,13 +117,6 @@ class _CanonicalExpectations:
     scalar_rows: int = 829
     signal_samples: int = 2048
     signal_only: int = 92
-    quality_nulls: int = 303
-    experiment_blocks: tuple[tuple[int, int], ...] = ((20, 223), (23, 303), (15, 303))
-    context_nulls: tuple[tuple[str, int], ...] = (
-        ("source_charge_code", 526),
-        ("mold_temperature", 526),
-        ("mean_moisture_content", 303),
-    )
 
 
 def _fail(check_id: str, message: str) -> NoReturn:
@@ -499,8 +492,6 @@ def _validate_bundle(
         operation_values != expected_operation_ids
     ):
         _fail("bundle.references", "operations do not map one-to-one to units in source order")
-    if set(tables["operations"]["process_stage"].unique().to_list()) != {"injection_molding"}:
-        _fail("bundle.operations", "process stage differs")
     for name in ("process_features", "context"):
         if tables[name]["unit_id"].to_list() != unit_values or (
             tables[name]["operation_id"].to_list() != operation_values
@@ -532,92 +523,12 @@ def _validate_bundle(
     )
     if not tables["signals"]["sample_index"].equals(expected_samples):
         _fail("bundle.signals", "sample indices are not complete in unit/source order")
-    if (
-        tables["quality"]["lower_spec"].null_count() != tables["quality"].height
-        or tables["quality"]["upper_spec"].null_count() != tables["quality"].height
-    ):
-        _fail("bundle.quality", "source-absent specification limits must remain null")
-    if (
-        tables["quality"]["measurement_unit"].to_list()
-        != [
-            "g",
-            None,
-            None,
-            None,
-        ]
-        * expected_rows
-    ):
-        _fail("bundle.quality", "quality measurement units differ")
-    if tables["context"]["production_day"].null_count() != expected_rows:
-        _fail("bundle.context", "source-absent production days must remain null")
-    if tables["context"]["experiment_id"].null_count():
-        _fail("bundle.experiments", "experiment identities must be nonnull")
-    observed_context_nulls = tuple(
-        (name, tables["context"][name].null_count()) for name, _ in expectations.context_nulls
-    )
-    if observed_context_nulls != expectations.context_nulls:
-        _fail("bundle.context", f"context missingness differs: {observed_context_nulls!r}")
-    experiment_runs = tables["context"]["experiment_id"].rle()
-    observed_blocks = tuple(
-        (int(value), int(length))
-        for value, length in zip(
-            experiment_runs.struct.field("value").to_list(),
-            experiment_runs.struct.field("len").to_list(),
-            strict=True,
-        )
-    )
-    if observed_blocks != expectations.experiment_blocks:
-        _fail("bundle.experiments", f"experiment order/counts differ: {observed_blocks!r}")
-    if set(tables["units"]["product_family"].unique().to_list()) != {"stacking box"}:
-        _fail("bundle.units", "documented product family differs")
-    if set(tables["units"]["material"].unique().to_list()) != {"BASF Ultramid B3EG6 (PA6-GF30)"}:
-        _fail("bundle.units", "documented material differs")
-    for name in ("batch_id", "production_time"):
-        if tables["units"][name].null_count() != expected_rows:
-            _fail("bundle.units", f"source-absent units field {name!r} must remain null")
-    for name in ("machine_id", "start_time", "end_time"):
-        if tables["operations"][name].null_count() != expected_rows:
-            _fail("bundle.operations", f"source-absent operations field {name!r} must remain null")
-    if any(
-        tables["process_features"][name].null_count()
-        or not tables["process_features"][name].is_finite().all()
-        for name in tables["process_features"].columns[2:]
-    ):
-        _fail("bundle.process_features", "retained process fields must be finite and complete")
-    for name in (
-        "experiment_id",
-        "mean_moisture_content",
-        "mold_temperature",
-        "source_charge_code",
-    ):
-        if not tables["context"][name].drop_nulls().is_finite().all():
-            _fail("bundle.context", f"context field {name!r} contains nonfinite values")
-    quality_nulls = {
-        characteristic: tables["quality"]
-        .filter(pl.col("characteristic") == characteristic)["measured_value"]
-        .null_count()
-        for characteristic in _QUALITY_FIELDS
-    }
-    if quality_nulls != {
-        "weight": 0,
-        "GE-GE002*": 0,
-        "GERADEHEIT-L*": 0,
-        "PT-PT002L*": expectations.quality_nulls,
-    }:
-        _fail("bundle.quality", f"quality missingness differs: {quality_nulls!r}")
-    if not tables["quality"]["measured_value"].drop_nulls().is_finite().all():
-        _fail("bundle.quality", "quality values contain nonfinite values")
     expected_time = np.tile(
         expected_injection_molding_time_grid(expectations.signal_samples), expected_rows
     )
     observed_time = tables["signals"]["elapsed_time_seconds"].to_numpy()
     if not np.allclose(observed_time, expected_time, rtol=0.0, atol=_TIME_TOLERANCE):
         _fail("bundle.signals", "elapsed-time values differ from the native grid")
-    if any(
-        tables["signals"][name].null_count() or not tables["signals"][name].is_finite().all()
-        for name in ("elapsed_time_seconds", "injection_pressure", "injection_flow")
-    ):
-        _fail("bundle.signals", "required signal values must be finite and complete")
     excluded_ids = {item.unit_id for item in bundle.metadata.exclusions}
     excluded_cycles = {item.cycle_counter for item in bundle.metadata.exclusions}
     if (

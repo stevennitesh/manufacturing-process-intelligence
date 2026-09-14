@@ -8,7 +8,17 @@ requirements rather than introducing another refactor architecture.
 M1 remains complete and open to useful future changes. M2 audit planning is next,
 not started by this cleanup.
 
-## Changes in this pass
+## Subsequent cleanup
+
+A further bounded pass removes unused validation-report objects, JSON logging and
+seed scaffolding, raw-array/mapping immutability, and forwarding-only helpers.
+Canonical construction constants and repeated source checks move to existing
+reference tests. Runtime schema/count/key/grid/exclusion checks remain. The
+duplicate M1 contract document is consolidated into the milestone summary and
+README. Current verification is recorded in the M1 summary; the counts below
+describe the earlier pass.
+
+## Changes in the acquisition/context pass
 
 | Area | Finding | Correction |
 | --- | --- | --- |

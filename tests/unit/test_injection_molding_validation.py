@@ -199,10 +199,6 @@ def test_source_native_result_preserves_shuffled_cycle_mappings_after_cleanup(
     assert pressure.values[0, pressure.cycle_to_column[20]] == 20
     assert flow.values[0, flow.cycle_to_column[20]] == 20
     assert result.scalars.values["weight"].tolist() == [1.0, 2.0]
-    assert not pressure.values.flags.writeable
-    assert not result.scalars.values["weight"].flags.writeable
-    with pytest.raises(ValueError, match="cannot set WRITEABLE flag"):
-        pressure.values.flags.writeable = True
     assert len(extracts) == 1
     assert all(not path.exists() for path in extracts)
 

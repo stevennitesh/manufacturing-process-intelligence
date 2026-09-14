@@ -7,7 +7,6 @@ import typer
 
 from mpi import __version__
 from mpi.core.config import load_dataset_config
-from mpi.core.logging import configure_logging
 from mpi.datasets.injection_molding import (
     DEFAULT_RAW_ROOT,
     AcquisitionError,
@@ -48,14 +47,9 @@ def main(
         bool | None,
         typer.Option("--version", callback=version_callback, is_eager=True, help="Show version."),
     ] = None,
-    log_level: Annotated[
-        str,
-        typer.Option(help="Application log level."),
-    ] = "INFO",
 ) -> None:
     """Initialize the command line application."""
     del version
-    configure_logging(log_level)
 
 
 @config_app.command("validate")
@@ -120,7 +114,7 @@ def validate_data(
     typer.echo(f"candidate: {result.candidate}")
     typer.echo(f"source version: {result.source_version}")
     typer.echo(f"archive: {result.archive_path}")
-    typer.echo(f"checks passed: {len(result.checks)}")
+    typer.echo("validation: passed")
     typer.echo(
         "membership: "
         f"{len(result.matched_cycle_ids)} matched / "

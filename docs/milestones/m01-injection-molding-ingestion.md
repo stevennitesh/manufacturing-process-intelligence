@@ -31,8 +31,10 @@ flowchart LR
   days and specification limits stay null. No source repair, feature eligibility
   or conformance labels are implied.
 - Six ordinary Polars tables and useful source metadata survive Parquet/JSON
-  round trips. The research dossier remains in dataset documentation. The offline preparation CLI and independent loader are documented
-  in [README](../../README.md). Raw/prepared data stay ignored.
+  round trips. One unversioned output directory contains six Parquet files and
+  metadata JSON; loading checks schema without repeating the raw audit. Research
+  stays in dataset documentation. [README](../../README.md) owns preparation,
+  loading and explicit regeneration instructions. Raw/prepared data stay ignored.
 - Source identity, types/nulls, joins and operational semantics remain required.
   Exact research prose, code-byte fingerprints and historical platform gates are
   not runtime requirements.
@@ -49,14 +51,17 @@ contract, not in aliases.
 
 ## Preparation completion evidence
 
-The [portfolio-sized data contract](m01-contract-simplification.md) owns the current
-layout. The latest simplification removes artifact hashing/staging, Git-state
-metadata, runtime research payloads and copy-on-access wrappers. Scientific
-transformations remain unchanged. See the
-[overbuilding report](../reports/m1-overbuilding-review.md) for the changes,
-verification and causes, including the subsequent receipt and repository-context
-cleanup. Acquisition no longer writes receipts; the compact specification and
-AGENTS.md replace the former planning/governance structure. M1 is complete.
+The latest cleanup removes unused validation-report objects, logging/seed scaffolding,
+defensive raw-array immutability and forwarding helpers. Construction constants
+and source-level checks are covered at their source or by transformation tests,
+rather than rechecked in canonicalization. Schema, counts, keys, relationships,
+native grid and exclusions retain runtime checks.
+
+All 52 tests, lint, formatting, typing and CLI smoke checks pass. Full-source
+comparison preserves 33,160 scalar cells and 1,697,792 values each for pressure,
+flow and elapsed time, with all 92 exclusions. See the
+[overbuilding report](../reports/m1-overbuilding-review.md) for earlier changes and
+causes. M1 remains complete and open to useful changes.
 
 The verifier is
 [scripts/verify_injection_molding_canonicalization.py](../../scripts/verify_injection_molding_canonicalization.py).

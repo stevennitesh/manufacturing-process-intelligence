@@ -11,7 +11,6 @@ import zipfile
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from types import MappingProxyType
 from typing import BinaryIO, NoReturn, cast
 
 import h5py
@@ -120,15 +119,6 @@ class RawValidationError(RuntimeError):
 
 
 @dataclass(frozen=True)
-class ValidationCheck:
-    """Structured evidence for one successful validation boundary."""
-
-    check_id: str
-    expected: str
-    observed: str
-
-
-@dataclass(frozen=True)
 class SourceScalarTable:
     """Full source scalar/quality table in source row and field order."""
 
@@ -166,7 +156,6 @@ class ValidatedInjectionMoldingSource:
     labeled_only_cycle_ids: tuple[int, ...]
     signal_only_cycle_ids: tuple[int, ...]
     optional_groups: tuple[str, ...]
-    checks: tuple[ValidationCheck, ...]
     limitations: tuple[str, ...]
 
 
@@ -200,14 +189,6 @@ def _fail(
     observed: object | None = None,
 ) -> NoReturn:
     raise RawValidationError(check_id, message, expected=expected, observed=observed)
-
-
-def _readonly(array: npt.NDArray[np.generic]) -> npt.NDArray[np.generic]:
-    contiguous = np.ascontiguousarray(array)
-    immutable = np.frombuffer(contiguous.tobytes(), dtype=contiguous.dtype).reshape(
-        contiguous.shape
-    )
-    return immutable
 
 
 def _decode_strings(dataset: h5py.Dataset) -> tuple[str, ...]:
@@ -288,7 +269,7 @@ def _read_frame(
         for column_index, name in enumerate(items):
             if name in by_column:
                 _fail(check_id, f"column {name!r} appears in more than one block")
-            by_column[name] = _readonly(np.asarray(block[:, column_index]))
+            by_column[name] = np.asarray(block[:, column_index])
         block_items.extend(items)
     if len(block_items) != len(set(block_items)) or set(block_items) != set(columns):
         _fail(
@@ -309,17 +290,12 @@ def _integral_ids(values: npt.NDArray[np.generic], field: str, check_id: str) ->
     return result
 
 
-def _expected_time_grid(rows: int) -> npt.NDArray[np.float64]:
+def expected_injection_molding_time_grid(rows: int) -> npt.NDArray[np.float64]:
     increments = np.full(rows - 1, 0.006, dtype=np.float64)
     for destination in (512, 1024, 1536):
         if destination < rows:
             increments[destination - 1] = 0.004
     return np.concatenate((np.array([0.0]), np.cumsum(increments)))
-
-
-def expected_injection_molding_time_grid(rows: int) -> npt.NDArray[np.float64]:
-    """Return the pinned native Dataset 2 elapsed-time grid for a row count."""
-    return _expected_time_grid(rows)
 
 
 def _read_signal(group: h5py.Group, name: str, expectations: _Expectations) -> SourceSignalMatrix:
@@ -356,7 +332,7 @@ def _read_signal(group: h5py.Group, name: str, expectations: _Expectations) -> S
         )
     if not np.isfinite(time).all() or not np.isfinite(matrix).all():
         _fail(f"signals.{name}.finite", "signal axis or values contain nonfinite cells")
-    expected_time = _expected_time_grid(expectations.signal_rows)
+    expected_time = expected_injection_molding_time_grid(expectations.signal_rows)
     if time.shape != expected_time.shape or not np.allclose(
         time, expected_time, rtol=0.0, atol=1e-9
     ):
@@ -371,13 +347,11 @@ def _read_signal(group: h5py.Group, name: str, expectations: _Expectations) -> S
             f"{expectations.signal_rows} pinned values",
             f"shape={time.shape}, first_mismatch={mismatch}",
         )
-    time = cast(npt.NDArray[np.float64], _readonly(time))
-    matrix = cast(npt.NDArray[np.float64], _readonly(matrix))
     return SourceSignalMatrix(
         group=name,
         source_columns=source_columns,
         cycle_ids=tuple(cycle_ids),
-        cycle_to_column=MappingProxyType({cycle: index for index, cycle in enumerate(cycle_ids)}),
+        cycle_to_column={cycle: index for index, cycle in enumerate(cycle_ids)},
         time_seconds=time,
         values=matrix,
     )
@@ -443,7 +417,7 @@ def _validate_scalars(group: h5py.Group, expectations: _Expectations) -> SourceS
             expectations.experiment_blocks,
             observed_blocks,
         )
-    return SourceScalarTable(columns=columns, values=MappingProxyType(values), cycle_ids=cycles)
+    return SourceScalarTable(columns=columns, values=values, cycle_ids=cycles)
 
 
 def _read_hdf(
@@ -472,7 +446,7 @@ def _read_hdf(
         raise RawValidationError(
             "hdf.read", f"could not safely decode {HDF_MEMBER}: {error}"
         ) from error
-    return scalars, MappingProxyType(signals), OPTIONAL_GROUPS
+    return scalars, signals, OPTIONAL_GROUPS
 
 
 def _copy_member(archive_stream: BinaryIO, expectations: _Expectations) -> Path:
@@ -600,43 +574,6 @@ def _validate_path(
     if observed_join != expected_join:
         _fail("joins.membership", "labeled/signal membership differs", expected_join, observed_join)
 
-    checks = (
-        ValidationCheck(
-            "archive.identity",
-            f"{identity.size} bytes / {identity.sha256}",
-            f"{size} bytes / {sha256}",
-        ),
-        ValidationCheck(
-            "zip.member",
-            f"{HDF_MEMBER} ({expectations.member_size} bytes)",
-            "present, CRC verified",
-        ),
-        ValidationCheck("hdf.representation", "numeric fixed-format frames", "passed"),
-        ValidationCheck(
-            "scalars.schema",
-            f"{expectations.scalar_rows} rows / {len(expectations.scalar_columns)} fields",
-            f"{len(scalars.cycle_ids)} rows / {len(scalars.columns)} fields",
-        ),
-        ValidationCheck(
-            "scalars.missingness", str(dict(expectations.missingness)), "passed exactly"
-        ),
-        ValidationCheck(
-            "signals.required",
-            f"2 x {expectations.signal_rows} rows / {expectations.signal_cycles} cycles",
-            "passed",
-        ),
-        ValidationCheck(
-            "signals.time_grid", "0..12.276 s with pinned irregular increments", "passed"
-        ),
-        ValidationCheck(
-            "joins.membership",
-            f"{expectations.matched}/0/{expectations.signal_only}",
-            f"{len(matched)}/{len(labeled_only)}/{len(signal_only)}",
-        ),
-        ValidationCheck(
-            "scalars.experiments", str(expectations.experiment_blocks), "passed in source order"
-        ),
-    )
     return ValidatedInjectionMoldingSource(
         dataset=identity.dataset,
         candidate=identity.candidate,
@@ -651,7 +588,6 @@ def _validate_path(
         labeled_only_cycle_ids=labeled_only,
         signal_only_cycle_ids=signal_only,
         optional_groups=optional_groups,
-        checks=checks,
         limitations=LIMITATIONS,
     )
 

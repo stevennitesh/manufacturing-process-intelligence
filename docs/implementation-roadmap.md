@@ -6,9 +6,9 @@ The plan owns scope and acceptance criteria; this roadmap owns current position.
 
 **Current position:** Milestones 0 and 1 are complete. The injection-molding source
 contract, reproducible Dataset 2 acquisition, raw validation, canonicalization and
-local Parquet/JSON save/load are verified. The
-[portfolio-sized data contract](milestones/m01-contract-simplification.md) uses one
-unversioned layout without an artifact registry or compatibility machinery.
+local Parquet/JSON save/load are verified. See the
+[M1 summary](milestones/m01-injection-molding-ingestion.md) for the current data
+contract and evidence.
 M2 audit planning is next; M2 implementation has not begun.
 The adapter retains all admitted source evidence
 while enforcing the weight-only MVP policy boundary.
@@ -32,7 +32,7 @@ cutoff, feature allowlist and leakage-safe calibration/tuning protocol before M4
 
 ```mermaid
 flowchart TB
-    F["✓ M0 · Foundation<br/>Runtime, mpi package and CLI, configuration, logging, tests, CI"]
+    F["✓ M0 · Foundation<br/>Runtime, mpi package and CLI, configuration, tests, CI"]
 
     MVP["v0.1 · Weight Prediction Under Process Shift<br/>✓ M1 Dataset 2 ingestion<br/>✓ Bounded simplification<br/>▶ M2 Audit planning<br/>○ M3 Experiment holdouts + feature contract<br/>○ M4 Mean, Ridge, PLS<br/>○ M5 Engineered + compressed trajectories<br/>○ M6 LightGBM + representation comparison<br/>○ M7 Conformal + shift evaluation<br/>○ M8 Selective measurement<br/>○ M9 Bounded predictive explanation<br/>○ M10 Five-page dashboard"]
 
@@ -57,7 +57,6 @@ from the required core. No new source is admitted by this roadmap.
 
 - [M0 — Repository foundation](milestones/m00-foundation.md)
 - [M1 — Injection-molding source contract and ingestion](milestones/m01-injection-molding-ingestion.md)
-- [M1 — Portfolio-sized data contract](milestones/m01-contract-simplification.md)
 
 [AGENTS.md](../AGENTS.md) contains the compact planning/engineering guidance.
 These diagrams summarize readiness; milestone documents hold relevant evidence.

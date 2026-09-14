@@ -9,7 +9,7 @@ quality gates without adding modeling.
 flowchart LR
     R["✓ Runtime<br/>Python 3.12, uv, lockfile"]
     P["✓ Package<br/>src/mpi and CLI shell"]
-    C["✓ Application core<br/>configuration, logging, seeds, types"]
+    C["✓ Application core<br/>configuration"]
     Q["✓ Quality system<br/>pytest, Ruff, Pyright, pre-commit"]
     D["✓ Repository system<br/>data hygiene, agent guidance, private origin"]
     I["✓ Continuous integration<br/>locked install, checks, CLI smoke test"]

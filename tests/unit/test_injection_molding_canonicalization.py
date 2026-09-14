@@ -107,7 +107,24 @@ def test_real_validator_handoff_maps_keys_values_nulls_lineage_and_evidence(tmp_
     source, expectations = validated_fixture(tmp_path)
     scalar_snapshots = {name: value.copy() for name, value in source.scalars.values.items()}
 
+    signal_snapshots = {
+        name: (signal.values.copy(), signal.time_seconds.copy())
+        for name, signal in source.signals.items()
+    }
     bundle = canonicalize_fixture(source, expectations)
+
+    # All scalar mappings preserve values/nulls, not just their English names.
+    for source_name, (section, canonical_name) in EXPECTED_MAPPING.items():
+        table = getattr(bundle, section)
+        observed = (
+            table.filter(pl.col("characteristic") == canonical_name)["measured_value"]
+            if section == "quality"
+            else table[canonical_name]
+        )
+        np.testing.assert_array_equal(observed.to_numpy(), source.scalars.values[source_name])
+    for name, (values, times) in signal_snapshots.items():
+        np.testing.assert_array_equal(source.signals[name].values, values)
+        np.testing.assert_array_equal(source.signals[name].time_seconds, times)
 
     assert bundle.units["cycle_counter"].to_list() == [100, 101]
     assert bundle.units["source_row_index"].to_list() == [0, 1]
@@ -130,6 +147,14 @@ def test_real_validator_handoff_maps_keys_values_nulls_lineage_and_evidence(tmp_
         == 6
     )
     assert bundle.quality["lower_spec"].null_count() == 8
+    assert bundle.quality["upper_spec"].null_count() == 8
+    assert bundle.units["product_family"].to_list() == ["stacking box"] * 2
+    assert bundle.units["material"].to_list() == ["BASF Ultramid B3EG6 (PA6-GF30)"] * 2
+    assert bundle.operations["process_stage"].to_list() == ["injection_molding"] * 2
+    for name in ("production_time", "batch_id"):
+        assert bundle.units[name].null_count() == 2
+    for name in ("machine_id", "start_time", "end_time"):
+        assert bundle.operations[name].null_count() == 2
     unit_100 = bundle.signals.filter(pl.col("unit_id").str.ends_with("/100"))
     assert unit_100["injection_pressure"].to_list() == pytest.approx(
         (100 * 100.0 + np.arange(513)).tolist()
@@ -156,8 +181,6 @@ def test_real_validator_handoff_maps_keys_values_nulls_lineage_and_evidence(tmp_
         ("duplicate_key", "bundle.keys"),
         ("misaligned_reference", "bundle.references"),
         ("changed_time_grid", "bundle.signals"),
-        ("wrong_weight_unit", "bundle.quality"),
-        ("fabricated_day", "bundle.context"),
         ("changed_exclusion", "bundle.exclusions"),
     ],
 )
@@ -187,17 +210,6 @@ def test_scientific_bundle_discriminators_remain_owned_by_canonical_validation(
             .alias("elapsed_time_seconds")
         )
         changed = _with_table(bundle, "signals", table)
-    elif mutation == "wrong_weight_unit":
-        table = bundle.quality.with_columns(
-            pl.when(pl.col("characteristic") == "weight")
-            .then(pl.lit(None, dtype=pl.String))
-            .otherwise(pl.col("measurement_unit"))
-            .alias("measurement_unit")
-        )
-        changed = _with_table(bundle, "quality", table)
-    elif mutation == "fabricated_day":
-        table = bundle.context.with_columns(pl.lit(1, dtype=pl.Int64).alias("production_day"))
-        changed = _with_table(bundle, "context", table)
     else:
         metadata = replace(
             bundle.metadata,
