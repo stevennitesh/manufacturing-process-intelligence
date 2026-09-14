@@ -85,8 +85,8 @@ may leave an incomplete directory; inspect/remove it or choose another output.
 Only the current schema is supported; there are no artifact manifests or compatibility readers.
 Both raw and prepared data remain outside Git.
 
-Training, evaluation, dashboard, and API commands will be added only in their
-owning milestones.
+Training, evaluation and dashboard commands are added in their owning milestones;
+optional engineering interfaces are added only if selected.
 
 ## Data policy
 
@@ -100,7 +100,7 @@ any dataset.
 The project follows this progression:
 
 ```text
-predict -> test generalization -> quantify uncertainty -> selectively measure
+predict -> test generalization -> quantify uncertainty -> selectively measure if supported
         -> detect abnormalities -> diagnose supported contributors -> transfer
 ```
 
