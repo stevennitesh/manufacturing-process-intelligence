@@ -122,13 +122,15 @@ per-fold MAE/RMSE/R² and counts, plus pooled out-of-fold MAE labeled sample-wei
 Record split identity with metrics. Three groups do not establish factory-wide
 generalization or strong population-level significance; show fold variability.
 
-Before M4, define a prediction cutoff; the initial candidate is complete cycle
-telemetry, before that cycle's quality measurement. Unknown availability means
-excluded. Early-cycle prediction is separate scope. The 31 retained process fields
-are not a training allowlist. Exclude quality and quality-derived data, geometry,
-IDs and row indices. Keep experiment ID, moisture, mold-temperature context and
-charge codes context-only. Optional process-plus-known-context ablations require
-availability justification and separate reporting.
+The [M3 contract](milestones/m03-feature-and-evaluation-contract.md) fixes the
+prediction cutoff at the completed machine-cycle record before consuming that
+cycle's quality result. This is a retrospective availability assumption, not a
+verified controller/inspection timestamp claim; early-cycle prediction is separate
+scope. The 31 retained process fields are not a training allowlist. Exclude quality
+and quality-derived data, geometry, IDs and row indices. Keep experiment ID,
+moisture, mold-temperature context and charge codes context-only. Optional
+process-plus-known-context ablations require availability justification and
+separate reporting.
 Source integrals are not established quality-derived fields, but their state/cutoff
 meaning is unresolved: exclude by default. Cavity pressure and state matrices are
 optional only after clearance. English translation does not grant eligibility.

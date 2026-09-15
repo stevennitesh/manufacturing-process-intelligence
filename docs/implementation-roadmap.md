@@ -10,8 +10,9 @@ local Parquet/JSON save/load are verified. See the
 [M1 summary](milestones/m01-injection-molding-ingestion.md) for the current data
 contract and evidence.
 The [bounded M2 audit](milestones/m02-dataset-audit.md) is complete and reviewed.
-Its descriptive findings confirm substantial experiment shift. M3 planning is
-next; its cutoff, allowlist and leakage-safe partitions remain open.
+Its descriptive findings confirm substantial experiment shift. The
+[M3 feature and evaluation contract](milestones/m03-feature-and-evaluation-contract.md)
+is complete and reviewed; M4 scalar-baseline planning is next.
 The adapter retains all admitted source evidence
 while enforcing the weight-only MVP policy boundary.
 The [all-candidate source refresh](datasets/injection-molding-source-contract.md#all-candidate-evidence-refresh--2026-09-12)
@@ -20,9 +21,9 @@ has been incorporated into that plan; Dataset 1/3 remain inspected, not admitted
 **Accepted scope:** v0.1 tests Dataset 2 part-weight prediction under experiment
 shift: scalar versus engineered/compressed trajectories, conformal uncertainty
 and, if a simple score supports error ranking, AUTO-PREDICT / MEASURE. Geometry is retained but deferred, and SPC/physical
-diagnostics are outside this MVP. This revision changes plans, not completion
-status. Leave-one-experiment-out is the primary benchmark; M3 must specify its
-cutoff, feature allowlist and leakage-safe calibration/tuning protocol before M4.
+diagnostics are outside this MVP. Leave-one-experiment-out is the primary benchmark;
+M3 now fixes its retrospective completed-cycle cutoff, feature allowlist and
+leakage-safe calibration/tuning memberships before M4.
 
 ## Status key
 
@@ -36,7 +37,7 @@ cutoff, feature allowlist and leakage-safe calibration/tuning protocol before M4
 flowchart TB
     F["✓ M0 · Foundation<br/>Runtime, mpi package and CLI, tests, CI"]
 
-    MVP["v0.1 · Weight Prediction Under Process Shift<br/>✓ M1 Dataset 2 ingestion<br/>✓ Bounded simplification<br/>✓ M2 Dataset audit<br/>▶ M3 Experiment holdouts + feature contract planning<br/>○ M4 Mean, Ridge, PLS<br/>○ M5 Engineered + compressed trajectories<br/>○ M6 LightGBM + representation comparison<br/>○ M7 Conformal + shift evaluation<br/>○ M8 Selective measurement if supported<br/>○ M9 Bounded predictive explanation<br/>○ M10 Three-tab dashboard"]
+    MVP["v0.1 · Weight Prediction Under Process Shift<br/>✓ M1 Dataset 2 ingestion<br/>✓ Bounded simplification<br/>✓ M2 Dataset audit<br/>✓ M3 Feature + membership contract<br/>▶ M4 Mean, Ridge, PLS planning<br/>○ M5 Engineered + compressed trajectories<br/>○ M6 LightGBM + representation comparison<br/>○ M7 Conformal + shift evaluation<br/>○ M8 Selective measurement if supported<br/>○ M9 Bounded predictive explanation<br/>○ M10 Three-tab dashboard"]
 
     AUDIT{"○ Source decision gate<br/>PyScrew vs CiP-DMD<br/>Cross-process-chain audit"}
     PI["v0.2 · Process / Assembly Intelligence<br/>○ Selected adapter, SPC/MSPC, anomalies, supported diagnostics"]
@@ -60,6 +61,7 @@ from the required core. No new source is admitted by this roadmap.
 - [M0 — Repository foundation](milestones/m00-foundation.md)
 - [M1 — Injection-molding source contract and ingestion](milestones/m01-injection-molding-ingestion.md)
 - [M2 — Bounded Dataset 2 audit](milestones/m02-dataset-audit.md)
+- [M3 — Feature and evaluation contract](milestones/m03-feature-and-evaluation-contract.md)
 
 [AGENTS.md](../AGENTS.md) contains the compact planning/engineering guidance.
 These diagrams summarize readiness; milestone documents hold relevant evidence.

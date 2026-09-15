@@ -102,6 +102,21 @@ feature allowlist, split, model, or trajectory representation. See the
 [M2 audit summary](docs/milestones/m02-dataset-audit.md) for aggregate findings
 and unresolved M3 decisions.
 
+## Reproduce the M3 memberships
+
+After preparing Dataset 2 at the default path, generate the ignored membership
+artifact used by future scalar and trajectory experiments:
+
+```powershell
+uv run python scripts/create_injection_molding_memberships.py
+```
+
+The command writes `artifacts/m03/injection_molding_memberships.parquet`. It records
+the source hash, protocol, fold, experiment, role, inner fold, seed and exact unit
+identity. Re-running it is deterministic for the locked environment and does not
+modify the prepared bundle. The [M3 contract](docs/milestones/m03-feature-and-evaluation-contract.md)
+owns the cutoff, predictor allowlist, allocation rules and limitations.
+
 Training, evaluation and dashboard commands are added in their owning milestones;
 optional engineering interfaces are added only if selected.
 
@@ -135,8 +150,8 @@ quality-intelligence milestones are complete.
 
 See the [roadmap](docs/implementation-roadmap.md) for the next action and the
 [M1 summary](docs/milestones/m01-injection-molding-ingestion.md) for completion
-evidence. The bounded M2 audit is complete; M3 planning is next. Its cutoff,
-feature-allowlist and evaluation decisions remain open.
+evidence. M2 and M3 are complete: the audit, retrospective cutoff, explicit feature
+allowlist and evaluation memberships are reviewed. M4 scalar-baseline planning is next.
 The current data contract has no legacy readers or migration paths. Version labels
 are not bumped for routine edits; historical versions become useful when there are
 data or results worth retaining across changes.

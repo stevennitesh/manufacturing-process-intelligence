@@ -181,6 +181,23 @@ hypotheses below are not source-confirmed assignments.
 No authoritative lower or upper quality specification limits are supplied.
 They must remain absent; observed ranges are not specification limits.
 
+### Completed-cycle availability evidence for M3
+
+The released scalar table supplies one cycle-keyed row for every admitted unit,
+and the released pressure and flow groups supply complete 2,048-sample records for
+those same units. This supports treating the 16 ordinary, non-integral machine
+measurements and the two trajectories as completed-cycle process evidence. The
+[M3 contract](../milestones/m03-feature-and-evaluation-contract.md) owns their exact
+allowlists and evaluation use.
+
+The source provides no authoritative wall-clock timestamps for scalar completion,
+controller export or quality inspection. M3 therefore makes the explicit
+retrospective assumption that a consumer can obtain the completed process record
+before consuming the quality result; it does not establish live availability.
+Machine-native units remain unresolved. In particular, the negative
+`actual_back_pressure` values are preserved, not repaired, and that field must not
+be described as an ordinary operating back-pressure setting without new evidence.
+
 ### Inferred units — interpretation only
 
 Assessed 2026-09-14 against the prepared Dataset 2 values and the references
