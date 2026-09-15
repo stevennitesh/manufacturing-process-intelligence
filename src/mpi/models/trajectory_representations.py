@@ -157,7 +157,7 @@ def _indices(data: TrajectoryData) -> dict[str, int]:
     return {unit_id: index for index, unit_id in enumerate(data.unit_ids)}
 
 
-def _arrays(
+def trajectory_arrays(
     data: TrajectoryData, rows: pl.DataFrame
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     lookup = _indices(data)
@@ -170,7 +170,7 @@ def _arrays(
     )
 
 
-def _prepare(
+def prepare_representation(
     representation: Representation,
     components: int | None,
     train: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
@@ -222,7 +222,7 @@ def fit_predict_representation(
     train: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
     evaluation: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
 ) -> np.ndarray:
-    prepared = _prepare(representation, components, train, evaluation)
+    prepared = prepare_representation(representation, components, train, evaluation)
     return np.asarray(_ridge_predict(alpha, prepared), dtype=np.float64)
 
 
@@ -255,13 +255,13 @@ def select_representation_candidate(
             prepared_folds.append(
                 (
                     inner_fold,
-                    _prepare(
+                    prepare_representation(
                         representation,
                         components,
-                        _arrays(data, train_rows),
-                        _arrays(data, validation_rows),
+                        trajectory_arrays(data, train_rows),
+                        trajectory_arrays(data, validation_rows),
                     ),
-                    _arrays(data, validation_rows)[3],
+                    trajectory_arrays(data, validation_rows)[3],
                 )
             )
         for alpha in RIDGE_ALPHAS:
@@ -288,7 +288,9 @@ def select_representation_candidate(
     return best[0], best[1], scores
 
 
-def _metrics(observed: np.ndarray, predicted: np.ndarray) -> tuple[float, float, float | None]:
+def regression_metrics(
+    observed: np.ndarray, predicted: np.ndarray
+) -> tuple[float, float, float | None]:
     errors = observed - predicted
     denominator = float(np.sum(np.square(observed - np.mean(observed))))
     return (
@@ -310,7 +312,7 @@ def run_trajectory_representations(
         fold_rows = rows.filter((pl.col("protocol") == protocol) & (pl.col("fold") == fold))
         fit_tune = fold_rows.filter(pl.col("role") == "fit_tune").sort("unit_id")
         evaluation = fold_rows.filter(pl.col("role") == "test").sort("unit_id")
-        observed = _arrays(data, evaluation)[3]
+        observed = trajectory_arrays(data, evaluation)[3]
         fold_maes: dict[str, float] = {}
         pending_metrics: list[dict[str, object]] = []
         for representation in REPRESENTATION_ORDER:
@@ -321,10 +323,10 @@ def run_trajectory_representations(
                 representation,
                 alpha,
                 components,
-                _arrays(data, fit_tune),
-                _arrays(data, evaluation),
+                trajectory_arrays(data, fit_tune),
+                trajectory_arrays(data, evaluation),
             )
-            mae, rmse, r2 = _metrics(observed, predicted)
+            mae, rmse, r2 = regression_metrics(observed, predicted)
             fold_maes[representation] = mae
             pending_metrics.append(
                 {
@@ -379,12 +381,12 @@ def run_trajectory_representations(
     )
 
 
-def _group_metrics(predictions: pl.DataFrame) -> list[dict[str, object]]:
+def representation_group_metrics(predictions: pl.DataFrame) -> list[dict[str, object]]:
     result: list[dict[str, object]] = []
     for (protocol, fold, representation, experiment), rows in predictions.partition_by(
         ["protocol", "fold", "representation", "experiment_id"], as_dict=True
     ).items():
-        mae, rmse, r2 = _metrics(
+        mae, rmse, r2 = regression_metrics(
             rows["observed_weight_g"].to_numpy(), rows["predicted_weight_g"].to_numpy()
         )
         result.append(
@@ -480,7 +482,7 @@ def write_trajectory_results(
         ],
         "selections": list(results.selections),
         "summaries": summaries,
-        "per_experiment_metrics": _group_metrics(results.predictions),
+        "per_experiment_metrics": representation_group_metrics(results.predictions),
         "package_versions": {
             "python": platform.python_version(),
             "numpy": version("numpy"),
