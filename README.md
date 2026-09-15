@@ -19,7 +19,8 @@ does not mean PASS/FAIL or product conformance.
 contract and ingestion** are complete. Dataset 2 can be acquired, strictly
 validated, canonicalized, saved as Parquet plus JSON source metadata,
 and independently reloaded without the raw source.
-The repository intentionally contains no modeling or performance claims yet.
+The first scalar-only benchmarks are now implemented; their grouped and separate
+within-experiment results are reported with their limitations below.
 
 See the [implementation roadmap](docs/implementation-roadmap.md) for the current
 milestone, subsystem status, and acceptance gates. The
@@ -117,8 +118,25 @@ identity. Re-running it is deterministic for the locked environment and does not
 modify the prepared bundle. The [M3 contract](docs/milestones/m03-feature-and-evaluation-contract.md)
 owns the cutoff, predictor allowlist, allocation rules and limitations.
 
-Training, evaluation and dashboard commands are added in their owning milestones;
-optional engineering interfaces are added only if selected.
+## Reproduce the M4 scalar baselines
+
+After preparing Dataset 2 and generating the M3 memberships, run:
+
+```powershell
+uv run python scripts/run_scalar_baselines.py
+```
+
+The command evaluates Mean, Ridge and PLS on all three grouped primary folds and
+the separate secondary ID fold. It writes ignored predictions, metrics and a run
+record under `artifacts/m04/`. Primary equal-fold mean MAEs are 1.041300 g for
+Mean, 0.918559 g for Ridge and 0.502668 g for PLS; pooled sample-weighted MAEs are
+1.090584 g, 0.966475 g and 0.523299 g, respectively. Performance varies strongly
+by held-out experiment and includes negative R² values. The much lower separate ID
+errors are descriptive, not a paired estimate of shift. See the
+[M4 results and limitations](docs/milestones/m04-scalar-baselines.md).
+
+Trajectory training, uncertainty and dashboard commands are added only in their
+owning milestones.
 
 ## Data policy
 
@@ -151,7 +169,8 @@ quality-intelligence milestones are complete.
 See the [roadmap](docs/implementation-roadmap.md) for the next action and the
 [M1 summary](docs/milestones/m01-injection-molding-ingestion.md) for completion
 evidence. M2 and M3 are complete: the audit, retrospective cutoff, explicit feature
-allowlist and evaluation memberships are reviewed. M4 scalar-baseline planning is next.
+allowlist and evaluation memberships are reviewed. M4 scalar baselines are
+complete and reviewed. M5 trajectory-representation planning is next.
 The current data contract has no legacy readers or migration paths. Version labels
 are not bumped for routine edits; historical versions become useful when there are
 data or results worth retaining across changes.

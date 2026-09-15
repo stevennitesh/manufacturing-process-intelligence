@@ -12,7 +12,8 @@ contract and evidence.
 The [bounded M2 audit](milestones/m02-dataset-audit.md) is complete and reviewed.
 Its descriptive findings confirm substantial experiment shift. The
 [M3 feature and evaluation contract](milestones/m03-feature-and-evaluation-contract.md)
-is complete and reviewed; M4 scalar-baseline planning is next.
+is complete and reviewed. The [M4 scalar baselines](milestones/m04-scalar-baselines.md)
+are complete and reviewed; M5 trajectory-representation planning is next.
 The adapter retains all admitted source evidence
 while enforcing the weight-only MVP policy boundary.
 The [all-candidate source refresh](datasets/injection-molding-source-contract.md#all-candidate-evidence-refresh--2026-09-12)
@@ -37,7 +38,7 @@ leakage-safe calibration/tuning memberships before M4.
 flowchart TB
     F["✓ M0 · Foundation<br/>Runtime, mpi package and CLI, tests, CI"]
 
-    MVP["v0.1 · Weight Prediction Under Process Shift<br/>✓ M1 Dataset 2 ingestion<br/>✓ Bounded simplification<br/>✓ M2 Dataset audit<br/>✓ M3 Feature + membership contract<br/>▶ M4 Mean, Ridge, PLS planning<br/>○ M5 Engineered + compressed trajectories<br/>○ M6 LightGBM + representation comparison<br/>○ M7 Conformal + shift evaluation<br/>○ M8 Selective measurement if supported<br/>○ M9 Bounded predictive explanation<br/>○ M10 Three-tab dashboard"]
+    MVP["v0.1 · Weight Prediction Under Process Shift<br/>✓ M1 Dataset 2 ingestion<br/>✓ Bounded simplification<br/>✓ M2 Dataset audit<br/>✓ M3 Feature + membership contract<br/>✓ M4 Mean, Ridge, PLS<br/>▶ M5 Engineered + compressed trajectory planning<br/>○ M6 LightGBM + representation comparison<br/>○ M7 Conformal + shift evaluation<br/>○ M8 Selective measurement if supported<br/>○ M9 Bounded predictive explanation<br/>○ M10 Three-tab dashboard"]
 
     AUDIT{"○ Source decision gate<br/>PyScrew vs CiP-DMD<br/>Cross-process-chain audit"}
     PI["v0.2 · Process / Assembly Intelligence<br/>○ Selected adapter, SPC/MSPC, anomalies, supported diagnostics"]
@@ -62,6 +63,7 @@ from the required core. No new source is admitted by this roadmap.
 - [M1 — Injection-molding source contract and ingestion](milestones/m01-injection-molding-ingestion.md)
 - [M2 — Bounded Dataset 2 audit](milestones/m02-dataset-audit.md)
 - [M3 — Feature and evaluation contract](milestones/m03-feature-and-evaluation-contract.md)
+- [M4 — Scalar weight-prediction baselines](milestones/m04-scalar-baselines.md)
 
 [AGENTS.md](../AGENTS.md) contains the compact planning/engineering guidance.
 These diagrams summarize readiness; milestone documents hold relevant evidence.
