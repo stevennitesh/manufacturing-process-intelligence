@@ -12,6 +12,10 @@ Prefer a correct, understandable end-to-end result over infrastructure breadth.
 - Plan only decisions the next work needs; a small change needs no saved plan.
   Keep progress/evidence in the roadmap or relevant milestone, not here.
   Planning does not authorize implementation. Completion does not restrict later changes.
+- Completed milestone documents describe the project, not the agent workflow used
+  to deliver it. Retain decisions, implementation, evidence, limitations and next
+  steps; keep model routing, custody, repair allowances and authorization state in
+  task handoffs rather than durable project documentation.
 - This compact file owns engineering and progression guidance. Do not recreate
   separate domain/engineering/tracker guides or an archive directory to satisfy
   skill templates. Git history retains obsolete documents; preserve useful facts
