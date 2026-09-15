@@ -21,9 +21,32 @@ from mpi.datasets.injection_molding_protocol import (
 )
 from mpi.models.scalar_baselines import (
     RIDGE_ALPHAS,
+    prediction_diagnostics,
     run_scalar_baselines,
     write_scalar_baseline_results,
 )
+
+
+def test_posthoc_metrics_separate_experiments_and_define_bias_sign() -> None:
+    predictions = pl.DataFrame(
+        {
+            "protocol": ["secondary_id"] * 4,
+            "fold": ["within_experiment"] * 4,
+            "model": ["ridge"] * 4,
+            "experiment_id": [15, 15, 23, 23],
+            "observed_weight_g": [0.0, 2.0, 4.0, 4.0],
+            "predicted_weight_g": [1.0, 3.0, 3.0, 5.0],
+        }
+    )
+    first, second = prediction_diagnostics(predictions.reverse())
+    assert first["experiment_id"] == 15
+    assert first["evaluation_count"] == 2
+    assert first["mae_g"] == first["rmse_g"] == 1.0
+    assert first["r2"] == 0.0
+    assert first["mean_signed_error_g"] == 1.0
+    assert second["experiment_id"] == 23
+    assert second["mean_signed_error_g"] == 0.0
+    assert second["r2"] is None  # A constant target has undefined R².
 
 
 def _synthetic_inputs() -> tuple[ManufacturingBundle, pl.DataFrame]:

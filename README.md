@@ -135,6 +135,14 @@ by held-out experiment and includes negative R² values. The much lower separate
 errors are descriptive, not a paired estimate of shift. See the
 [M4 results and limitations](docs/milestones/m04-scalar-baselines.md).
 
+The pooled ID result combines represented regimes; per-experiment ID metrics and
+post-hoc signed errors are recorded in `run.json` and the M4 results. To refresh
+only these diagnostics from saved predictions, without retraining:
+
+```powershell
+uv run python scripts/run_scalar_baselines.py --report-only
+```
+
 Trajectory training, uncertainty and dashboard commands are added only in their
 owning milestones.
 

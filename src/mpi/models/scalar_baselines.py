@@ -183,7 +183,7 @@ def _metric_row(
 ) -> dict[str, object]:
     errors = observed - predicted
     denominator = float(np.sum(np.square(observed - np.mean(observed))))
-    r2 = 1.0 - float(np.sum(np.square(errors))) / denominator
+    r2 = 1.0 - float(np.sum(np.square(errors))) / denominator if denominator > 0 else None
     return {
         "protocol": protocol,
         "fold": fold,
@@ -288,6 +288,27 @@ def _summaries(metrics: pl.DataFrame, predictions: pl.DataFrame) -> list[dict[st
     return summaries
 
 
+def prediction_diagnostics(predictions: pl.DataFrame) -> list[dict[str, object]]:
+    """Post-hoc per-experiment metrics; never used for fitting or model selection."""
+    diagnostics: list[dict[str, object]] = []
+    for (protocol, fold, model, experiment), rows in predictions.partition_by(
+        ["protocol", "fold", "model", "experiment_id"], as_dict=True
+    ).items():
+        observed = rows["observed_weight_g"].to_numpy()
+        predicted = rows["predicted_weight_g"].to_numpy()
+        metric = _metric_row(protocol, fold, model, None, observed, predicted)
+        metric.pop("selected_parameter")
+        metric.update(
+            experiment_id=experiment,
+            mean_signed_error_g=float(np.mean(predicted - observed)),
+        )
+        diagnostics.append(metric)
+    return sorted(
+        diagnostics,
+        key=lambda row: tuple(str(row[k]) for k in ("protocol", "fold", "model", "experiment_id")),
+    )
+
+
 def write_scalar_baseline_results(
     results: BaselineResults,
     bundle: ManufacturingBundle,
@@ -310,6 +331,7 @@ def write_scalar_baseline_results(
         "selection_metric": "equal-weight mean inner-validation MAE in grams",
         "selections": list(results.selections),
         "summaries": _summaries(results.metrics, results.predictions),
+        "posthoc_diagnostics": prediction_diagnostics(results.predictions),
         "package_versions": {
             "python": platform.python_version(),
             "numpy": version("numpy"),

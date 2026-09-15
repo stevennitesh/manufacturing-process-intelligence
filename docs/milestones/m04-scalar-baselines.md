@@ -27,6 +27,9 @@ Ridge and PLS use a training-pipeline `StandardScaler`. Ridge fits an intercept;
 PLS disables its own X scaling while retaining its standard internal centering.
 All four folds selected Ridge alpha 0.1 and 8 PLS components. Candidate grids were
 fixed before outer evaluation and were not expanded in response to these results.
+Both selections hit a search boundary (smallest alpha, largest component count).
+They are best among the predefined M4 candidates, not globally optimal settings;
+the grids remain unchanged after observing outer results.
 
 The ignored `artifacts/m04/` output contains unit-keyed evaluation predictions,
 per-fold metrics, and `run.json`. The run record retains source identity, the M3
@@ -36,7 +39,9 @@ inner scores and selected parameters, summaries, and package versions.
 ## Results
 
 Metrics are in grams except R². The primary folds are leave-one-experiment-out;
-the secondary row is the separate within-experiment interpolation benchmark.
+the secondary rows are pooled ID performance across represented regimes. Pooled
+R² rewards both between-regime separation and within-regime prediction; it must
+not be interpreted as the R² achieved inside every experiment.
 
 | Protocol / evaluation fold | Model | n | MAE | RMSE | R² |
 | --- | --- | ---: | ---: | ---: | ---: |
@@ -49,9 +54,9 @@ the secondary row is the separate within-experiment interpolation benchmark.
 | Primary / experiment 23 | Mean | 303 | 1.345954 | 1.360462 | -46.136632 |
 | Primary / experiment 23 | Ridge | 303 | 1.199722 | 1.217764 | -36.766963 |
 | Primary / experiment 23 | PLS | 303 | 0.798067 | 0.811999 | -15.791786 |
-| Secondary ID | Mean | 167 | 0.739535 | 0.833803 | -0.000010 |
-| Secondary ID | Ridge | 167 | 0.112408 | 0.150032 | 0.967622 |
-| Secondary ID | PLS | 167 | 0.113669 | 0.151713 | 0.966893 |
+| Pooled secondary ID | Mean | 167 | 0.739535 | 0.833803 | -0.000010 |
+| Pooled secondary ID | Ridge | 167 | 0.112408 | 0.150032 | 0.967622 |
+| Pooled secondary ID | PLS | 167 | 0.113669 | 0.151713 | 0.966893 |
 
 | Model | Primary equal-fold mean MAE | Primary pooled sample-weighted MAE |
 | --- | ---: | ---: |
@@ -71,6 +76,43 @@ not pristine prospective holdouts. Three experiments do not establish factory-wi
 generalization. M4 residuals and outer errors do not authorize M5 feature invention
 or M6 search changes; those choices remain pre-specified development decisions.
 
+### Post-hoc diagnostics from saved predictions
+
+These are grouped summaries of the same predictions, not newly fitted models or
+selection criteria. Each ID experiment below uses the same pooled-ID fitted model.
+
+| ID experiment | Model | n | MAE (g) | RMSE (g) | R² |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 15 | Mean | 61 | 0.826587 | 0.987229 | -2.314863 |
+| 15 | Ridge | 61 | 0.112578 | 0.138658 | 0.934609 |
+| 15 | PLS | 61 | 0.109463 | 0.136045 | 0.937051 |
+| 20 | Mean | 45 | 0.504686 | 0.548916 | -0.000380 |
+| 20 | Ridge | 45 | 0.146535 | 0.205227 | 0.860163 |
+| 20 | PLS | 45 | 0.150111 | 0.208897 | 0.855118 |
+| 23 | Mean | 61 | 0.825733 | 0.840493 | -27.724141 |
+| 23 | Ridge | 61 | 0.087061 | 0.106434 | 0.539380 |
+| 23 | PLS | 61 | 0.090991 | 0.110964 | 0.499338 |
+
+Within-regime predictive information remains evident, but experiment 23's ID R²
+is about 0.50–0.54, not the pooled 0.97. Its low target variance matters even when
+absolute errors are small.
+
+Mean signed error is mean(predicted − observed): positive means overprediction.
+
+| Primary evaluation experiment | Mean bias (g) | Ridge bias (g) | PLS bias (g) |
+| --- | ---: | ---: | ---: |
+| 15 | -1.247356 | 1.133925 | 0.420290 |
+| 20 | -0.104587 | 0.339919 | 0.089097 |
+| 23 | 1.345954 | 1.199722 | -0.798067 |
+
+PLS underpredicts every held-out experiment-23 part; its absolute mean bias equals
+its MAE. This identifies a strong directional error, not a physical cause or proof
+that cycle-level variation is otherwise predicted correctly. No offset correction,
+new feature or parameter search is authorized by this post-hoc observation.
+The diagnostics are saved in `run.json`; README documents report-only regeneration.
+R² is recorded as null when a group's target variance is zero, rather than dividing
+by zero or assigning a misleading finite score.
+
 ## Verification
 
 The real command produced 12 model/fold metric rows. Primary predictions cover each
@@ -83,10 +125,15 @@ calibration and evaluation exclusion, evaluation-feature isolation from fitting 
 selection, training-local scaling, mean predictions, MAE/RMSE/R², and equal-fold
 versus pooled aggregation. The locked dependency is scikit-learn 1.9.1 for the
 recorded run. Repository lint, formatting, type checking, full tests, CLI smoke and
-the real command pass (58 tests). A focused regression check rejects stale M3
+the real command pass. A focused regression check rejects stale M3
 mixed-experiment primary inner folds with an instruction to regenerate memberships.
 Independent calculations reproduced all saved metrics, mean predictions and
 population counts; this check did not change the candidate grids or results.
+The reporting update passes all 59 tests, including an analytic grouped-metric
+check for bias sign and constant-target R². All 18 post-hoc diagnostic rows were
+independently recalculated from saved predictions. Report-only regeneration leaves
+prediction/metric files and selected parameters unchanged; no model was retrained
+for this reporting update.
 
 ## Next step
 
