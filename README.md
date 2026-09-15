@@ -19,9 +19,9 @@ does not mean PASS/FAIL or product conformance.
 contract and ingestion** are complete. Dataset 2 can be acquired, strictly
 validated, canonicalized, saved as Parquet plus JSON source metadata,
 and independently reloaded without the raw source.
-The scalar baselines, fixed engineered/compressed trajectory comparison and bounded
-LightGBM representation comparison are now implemented; their grouped and separate
-within-experiment results are reported with their limitations below.
+The scalar baselines, trajectory comparisons and bounded uncertainty evaluation
+are now implemented; their grouped and separate within-experiment results are
+reported with their limitations below.
 
 See the [implementation roadmap](docs/implementation-roadmap.md) for the current
 milestone, subsystem status, and acceptance gates. The
@@ -178,7 +178,23 @@ consistent across held-out experiments, compression does not improve the aggrega
 LightGBM result, and no global winner is selected from outer performance. See the
 [M6 results and limitations](docs/milestones/m06-lightgbm-comparison.md).
 
-Uncertainty and dashboard commands are added only in their owning milestones.
+## Reproduce the M7 uncertainty evaluation
+
+After preparing Dataset 2 and generating the M3 memberships, run:
+
+```powershell
+uv run python scripts/run_uncertainty_shift.py
+```
+
+The command performs fixed development-only scalar PLS/LightGBM selection, 90%
+split-conformal calibration and the five-neighbor distance screen. Under primary
+experiment shift, pooled coverage is only 0.052 versus 0.862 for the separate ID
+protocol. The distance screen fails its pre-specified every-fold gate because one
+primary fold improves development MAE by only 4.31%; M8 is therefore skipped, with
+no additional score search. See the
+[M7 results and limitations](docs/milestones/m07-uncertainty-and-shift.md).
+
+Dashboard commands are added only in their owning milestone.
 
 ## Data policy
 
@@ -212,9 +228,9 @@ See the [roadmap](docs/implementation-roadmap.md) for the next action and the
 [M1 summary](docs/milestones/m01-injection-molding-ingestion.md) for completion
 evidence. M2 and M3 are complete: the audit, retrospective cutoff, explicit feature
 allowlist and evaluation memberships are reviewed. M4 scalar baselines, M5's fixed
-trajectory comparison and M6's bounded LightGBM comparison are complete. M7 must
-pre-specify its development-only model and representation selection policy before
-conformal uncertainty evaluation.
+trajectory comparison, M6's bounded LightGBM comparison and M7's conformal/shift
+evaluation are complete. M7's simple distance score failed the pre-specified gate,
+so M8 is skipped and the next work is M9's bounded predictive explanation.
 The current data contract has no legacy readers or migration paths. Version labels
 are not bumped for routine edits; historical versions become useful when there are
 data or results worth retaining across changes.

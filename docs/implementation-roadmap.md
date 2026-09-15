@@ -13,10 +13,11 @@ The [bounded M2 audit](milestones/m02-dataset-audit.md) is complete and reviewed
 Its descriptive findings confirm substantial experiment shift. The
 [M3 feature and evaluation contract](milestones/m03-feature-and-evaluation-contract.md)
 and [M4 scalar baselines](milestones/m04-scalar-baselines.md) are complete and reviewed.
-The bounded [M5 trajectory comparison](milestones/m05-trajectory-representations.md)
-and [M6 LightGBM comparison](milestones/m06-lightgbm-comparison.md) are complete.
-M7 must pre-specify its development-only model/representation selection policy
-before conformal uncertainty evaluation.
+The bounded [M5 trajectory comparison](milestones/m05-trajectory-representations.md),
+[M6 LightGBM comparison](milestones/m06-lightgbm-comparison.md) and
+[M7 uncertainty/shift evaluation](milestones/m07-uncertainty-and-shift.md) are
+complete. Primary interval coverage was poor and the simple distance score failed
+its development gate, so M8 is skipped. M9 bounded predictive explanation is next.
 The adapter retains all admitted source evidence
 while enforcing the weight-only MVP policy boundary.
 The [all-candidate source refresh](datasets/injection-molding-source-contract.md#all-candidate-evidence-refresh--2026-09-12)
@@ -41,7 +42,7 @@ leakage-safe calibration/tuning memberships before M4.
 flowchart TB
     F["✓ M0 · Foundation<br/>Runtime, mpi package and CLI, tests, CI"]
 
-    MVP["v0.1 · Weight Prediction Under Process Shift<br/>✓ M1 Dataset 2 ingestion<br/>✓ Bounded simplification<br/>✓ M2 Dataset audit<br/>✓ M3 Feature + membership contract<br/>✓ M4 Mean, Ridge, PLS<br/>✓ M5 Engineered + compressed trajectories<br/>✓ M6 LightGBM + representation comparison<br/>▶ M7 Conformal + shift evaluation<br/>○ M8 Selective measurement if supported<br/>○ M9 Bounded predictive explanation<br/>○ M10 Three-tab dashboard"]
+    MVP["v0.1 · Weight Prediction Under Process Shift<br/>✓ M1 Dataset 2 ingestion<br/>✓ Bounded simplification<br/>✓ M2 Dataset audit<br/>✓ M3 Feature + membership contract<br/>✓ M4 Mean, Ridge, PLS<br/>✓ M5 Engineered + compressed trajectories<br/>✓ M6 LightGBM + representation comparison<br/>✓ M7 Conformal + shift evaluation<br/>⊘ M8 Skipped after failed distance gate<br/>▶ M9 Bounded predictive explanation<br/>○ M10 Three-tab dashboard"]
 
     AUDIT{"○ Source decision gate<br/>PyScrew vs CiP-DMD<br/>Cross-process-chain audit"}
     PI["v0.2 · Process / Assembly Intelligence<br/>○ Selected adapter, SPC/MSPC, anomalies, supported diagnostics"]
@@ -69,6 +70,7 @@ from the required core. No new source is admitted by this roadmap.
 - [M4 — Scalar weight-prediction baselines](milestones/m04-scalar-baselines.md)
 - [M5 — Trajectory representations](milestones/m05-trajectory-representations.md)
 - [M6 — LightGBM representation comparison](milestones/m06-lightgbm-comparison.md)
+- [M7 — Uncertainty under experiment shift](milestones/m07-uncertainty-and-shift.md)
 
 [AGENTS.md](../AGENTS.md) contains the compact planning/engineering guidance.
 These diagrams summarize readiness; milestone documents hold relevant evidence.
