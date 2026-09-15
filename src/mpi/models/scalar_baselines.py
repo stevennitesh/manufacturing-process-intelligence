@@ -46,7 +46,7 @@ class BaselineResults:
     selections: tuple[dict[str, object], ...]
 
 
-def _assemble_rows(bundle: ManufacturingBundle, memberships: pl.DataFrame) -> pl.DataFrame:
+def assemble_model_rows(bundle: ManufacturingBundle, memberships: pl.DataFrame) -> pl.DataFrame:
     """Join model inputs by unit identity before selecting numeric arrays."""
     features = bundle.process_features.select("unit_id", *SCALAR_PREDICTOR_COLUMNS)
     weight_rows = bundle.quality.filter(pl.col("characteristic") == "weight")
@@ -198,7 +198,7 @@ def _metric_row(
 
 def run_scalar_baselines(bundle: ManufacturingBundle, memberships: pl.DataFrame) -> BaselineResults:
     """Run Mean, Ridge and PLS for every M3 protocol/fold."""
-    rows = _assemble_rows(bundle, memberships)
+    rows = assemble_model_rows(bundle, memberships)
     prediction_rows: list[dict[str, object]] = []
     metric_rows: list[dict[str, object]] = []
     selections: list[dict[str, object]] = []

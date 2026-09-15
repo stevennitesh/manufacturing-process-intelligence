@@ -19,8 +19,9 @@ does not mean PASS/FAIL or product conformance.
 contract and ingestion** are complete. Dataset 2 can be acquired, strictly
 validated, canonicalized, saved as Parquet plus JSON source metadata,
 and independently reloaded without the raw source.
-The first scalar-only benchmarks are now implemented; their grouped and separate
-within-experiment results are reported with their limitations below.
+The scalar baselines and fixed engineered/compressed trajectory comparison are now
+implemented; their grouped and separate within-experiment results are reported
+with their limitations below.
 
 See the [implementation roadmap](docs/implementation-roadmap.md) for the current
 milestone, subsystem status, and acceptance gates. The
@@ -143,8 +144,24 @@ only these diagnostics from saved predictions, without retraining:
 uv run python scripts/run_scalar_baselines.py --report-only
 ```
 
-Trajectory training, uncertainty and dashboard commands are added only in their
-owning milestones.
+## Reproduce the M5 trajectory comparison
+
+After preparing Dataset 2 and generating the M3 memberships, run:
+
+```powershell
+uv run python scripts/run_trajectory_representations.py
+```
+
+The command evaluates the pre-specified A scalar, B engineered-summary, C-PCA and
+C-PLS representations with fold-local transformations and Ridge. It writes ignored
+predictions, metrics and a run record under `artifacts/m05/`. Primary equal-fold
+mean MAEs are 0.918559 g for A, 1.457393 g for B, 1.046989 g for C-PCA and
+0.704219 g for C-PLS. The result is heterogeneous: each augmented representation
+is worse than A on at least one held-out experiment, and no representation is
+selected from its outer score. See the
+[M5 results and limitations](docs/milestones/m05-trajectory-representations.md).
+
+Uncertainty and dashboard commands are added only in their owning milestones.
 
 ## Data policy
 
@@ -177,8 +194,9 @@ quality-intelligence milestones are complete.
 See the [roadmap](docs/implementation-roadmap.md) for the next action and the
 [M1 summary](docs/milestones/m01-injection-molding-ingestion.md) for completion
 evidence. M2 and M3 are complete: the audit, retrospective cutoff, explicit feature
-allowlist and evaluation memberships are reviewed. M4 scalar baselines are
-complete and reviewed. M5 trajectory-representation planning is next.
+allowlist and evaluation memberships are reviewed. M4 scalar baselines and M5's
+fixed trajectory comparison are complete. M6 LightGBM and the representation
+comparison decision are next.
 The current data contract has no legacy readers or migration paths. Version labels
 are not bumped for routine edits; historical versions become useful when there are
 data or results worth retaining across changes.
