@@ -21,6 +21,9 @@ mpi = "mpi.cli.app:app"
 
 [dependency-groups]
 dev = [
+  "ipykernel>=6.30,<7",
+  "matplotlib>=3.10,<4",
+  "nbconvert>=7.16,<8",
   "pre-commit>=4.3,<5",
   "pyright>=1.1.400,<2",
   "pytest>=8.4,<9",

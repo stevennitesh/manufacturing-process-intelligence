@@ -175,10 +175,71 @@ authoritative scale source is required before publishing converted millimetre
 values. Weight alone is a fully source-supported physical target, so this geometry
 limitation does not defeat source admission.
 Units for individual machine-native scalar and signal values are not declared in
-the released files and remain unknown unless supported during adapter work.
+the released files. Their canonical units remain unresolved; the engineering
+hypotheses below are not source-confirmed assignments.
 
 No authoritative lower or upper quality specification limits are supplied.
 They must remain absent; observed ranges are not specification limits.
+
+### Inferred units — interpretation only
+
+Assessed 2026-09-14 against the prepared Dataset 2 values and the references
+below. Confidence is qualitative engineering judgment, not a probability.
+Preserve native values and canonical unknown units; do not convert data or label
+plots with unqualified physical units from these hypotheses. If a hypothesis is
+used in an explanation, label it **inferred**. This does not block weight modeling.
+
+| Field / family | Candidate unit | Confidence and evidence / limitation |
+| --- | --- | --- |
+| `cycle_duration` | s | High: observed 63.034–68.426 is plausible cycle duration. |
+| `injection_time` | s | High: observed 1.752–1.776 is plausible filling duration. |
+| `dosing_time` | s | High: observed 5.548–6.650 is plausible material-preparation duration. |
+| `maximum_injection_pressure` | bar | High: observed 850.894–1067.206 is plausible injection pressure on this scale. |
+| `switchover_injection_pressure` | bar | High: observed 639.732–897.247 is consistent with the same pressure scale. |
+| `barrel_heating_zone_1` through `_8` | °C | High: combined range about 239–280 is consistent with polymer-processing temperatures. |
+| `mold_heating_circuit_1` | °C | High for unit, not component identity: 271.7–275.5 resembles a heated runner/circuit, not the 70–90 mold-temperature intervention. Hot-runner mapping remains unconfirmed. |
+| `actual_back_pressure` | Possibly bar | Lower confidence: range −42.891–5.572, median 0.507. Measurement timing, reference and meaning need clarification; do not interpret it as an ordinary operating back-pressure setting. |
+| `melt_cushion` | mm or cm³ | Ambiguous: 4.534–7.652 could represent screw travel or melt volume. The name does not select between them. |
+| `injection_pressure` trajectory | bar | Strong candidate from pressure magnitude and machine conventions; export scale unconfirmed. |
+| `injection_flow` trajectory | cm³/s | Strong candidate from ARBURG's volumetric injection-flow convention; exact exported-channel mapping unconfirmed. |
+| Optional cavity-pressure trajectory | bar | Plausible convention, less established locally; not part of M2's detailed signal audit. |
+| `mold_temperature` (`Twkz`) | °C | Strong source-linked inference: 80 → 90 → 70 matches the paper's intervention sequence. |
+| `mean_moisture_content` | %; likely mass percentage | Strong inference for percent, measurement basis unconfirmed. Under this interpretation raw 0.180 means 0.180%, not 18%. Experiment 15's raw/paper discrepancy remains unresolved. |
+| `GE-GE002*` | 0.001 mm per stored unit (equivalent to µm) | Strong numerical evidence from the mean/variance comparison above. Raw range 101358–101846 would become 101.358–101.846 mm; storage scale and characteristic crosswalk remain unconfirmed. |
+| `GERADEHEIT-L*` | Possibly 0.001 mm per stored unit | Weak common-export-scale hypothesis only: raw 473–856 would become 0.473–0.856 mm. |
+| `PT-PT002L*` | Possibly 0.001 mm per stored unit | Weak common-export-scale hypothesis only: raw 1843–1923 would become 1.843–1.923 mm; exact characteristic meaning also unresolved. |
+
+Supporting conventions, not proof of this export's schema:
+
+- [EUROMAP 63, process-monitoring and temperature tables](https://www.euromap.org/media/recommendations/63/2000/eu63.pdf)
+  uses seconds, Celsius and bar for corresponding measurement families, and
+  explicitly distinguishes cushion stroke in mm from cushion volume in cm³.
+- [ARBURG's injection-volume technical article](https://www.arburg.com/media/daten/other/expert-article-ku-injection-volume-2021-10_en.pdf)
+  describes injection flow in cm³/s, distinct from screw feed speed in mm/s.
+  Converting between them requires screw diameter.
+- Paper-specific context and geometry evidence are recorded above and in
+  [intervention alignment](#intervention-alignment-evidence--inferred-not-a-day-assignment).
+
+**Exported integrals:** all five families have state suffixes 1, 2 and 8 (15
+fields total). Only if these are ordinary time integrals of the inferred signals
+would injection-/cavity-pressure integrals have units bar·s and injection-flow
+integrals have units cm³. Both measurement-trace families (`idx_0` and `idx_1`)
+have unknown signal units. The exporter may use seconds, milliseconds, sample
+sums, normalization or another calculation; neither units nor state windows can
+be assigned from the names alone.
+
+**Our audit-derived summaries:** means, maxima and standard deviations retain
+the native signal unit. AUC calculated against the released elapsed seconds has
+units native amplitude × s. If the amplitude hypotheses are confirmed, pressure
+AUC would be bar·s and flow AUC cm³; the latter is not automatically molded-part
+volume, because channel semantics and the integration window also matter.
+
+Weight is confirmed in grams and signal elapsed time in seconds. Experiment IDs,
+cycle counters, charge codes and state codes are identifiers/categories, not
+measurements missing physical units. Definitive resolution requires the original
+controller channel/unit dictionary and AVAPS export definitions, plus the optical
+measurement program/export scale for geometry. Plausible ranges or matching
+statistics alone cannot uniquely establish those mappings.
 
 ## Signal length and sampling discrepancy
 

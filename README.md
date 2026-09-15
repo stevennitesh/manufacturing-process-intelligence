@@ -85,6 +85,23 @@ may leave an incomplete directory; inspect/remove it or choose another output.
 Only the current schema is supported; there are no artifact manifests or compatibility readers.
 Both raw and prepared data remain outside Git.
 
+## Reproduce the M2 audit
+
+After preparing Dataset 2 at the default path, execute the bounded audit headlessly:
+
+```powershell
+New-Item -ItemType Directory -Force artifacts/m02 | Out-Null
+uv run jupyter nbconvert --to notebook --execute notebooks/m02_injection_molding_audit.ipynb `
+  --output m02_injection_molding_audit.executed.ipynb --output-dir artifacts/m02 `
+  --ExecutePreprocessor.timeout=300
+```
+
+The executed copy is generated under ignored `artifacts/`; the tracked notebook
+has no outputs. The audit is descriptive and does not approve a prediction cutoff,
+feature allowlist, split, model, or trajectory representation. See the
+[M2 audit summary](docs/milestones/m02-dataset-audit.md) for aggregate findings
+and unresolved M3 decisions.
+
 Training, evaluation and dashboard commands are added in their owning milestones;
 optional engineering interfaces are added only if selected.
 
@@ -118,7 +135,8 @@ quality-intelligence milestones are complete.
 
 See the [roadmap](docs/implementation-roadmap.md) for the next action and the
 [M1 summary](docs/milestones/m01-injection-molding-ingestion.md) for completion
-evidence. The bounded M1 simplification is complete; M2 audit planning is next.
+evidence. The bounded M2 audit is complete; M3 planning is next. Its cutoff,
+feature-allowlist and evaluation decisions remain open.
 The current data contract has no legacy readers or migration paths. Version labels
 are not bumped for routine edits; historical versions become useful when there are
 data or results worth retaining across changes.

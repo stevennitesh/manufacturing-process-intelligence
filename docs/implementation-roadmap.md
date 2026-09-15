@@ -9,7 +9,9 @@ contract, reproducible Dataset 2 acquisition, raw validation, canonicalization a
 local Parquet/JSON save/load are verified. See the
 [M1 summary](milestones/m01-injection-molding-ingestion.md) for the current data
 contract and evidence.
-M2 audit planning is next; M2 implementation has not begun.
+The [bounded M2 audit](milestones/m02-dataset-audit.md) is complete and reviewed.
+Its descriptive findings confirm substantial experiment shift. M3 planning is
+next; its cutoff, allowlist and leakage-safe partitions remain open.
 The adapter retains all admitted source evidence
 while enforcing the weight-only MVP policy boundary.
 The [all-candidate source refresh](datasets/injection-molding-source-contract.md#all-candidate-evidence-refresh--2026-09-12)
@@ -34,7 +36,7 @@ cutoff, feature allowlist and leakage-safe calibration/tuning protocol before M4
 flowchart TB
     F["✓ M0 · Foundation<br/>Runtime, mpi package and CLI, tests, CI"]
 
-    MVP["v0.1 · Weight Prediction Under Process Shift<br/>✓ M1 Dataset 2 ingestion<br/>✓ Bounded simplification<br/>▶ M2 Audit planning<br/>○ M3 Experiment holdouts + feature contract<br/>○ M4 Mean, Ridge, PLS<br/>○ M5 Engineered + compressed trajectories<br/>○ M6 LightGBM + representation comparison<br/>○ M7 Conformal + shift evaluation<br/>○ M8 Selective measurement if supported<br/>○ M9 Bounded predictive explanation<br/>○ M10 Three-tab dashboard"]
+    MVP["v0.1 · Weight Prediction Under Process Shift<br/>✓ M1 Dataset 2 ingestion<br/>✓ Bounded simplification<br/>✓ M2 Dataset audit<br/>▶ M3 Experiment holdouts + feature contract planning<br/>○ M4 Mean, Ridge, PLS<br/>○ M5 Engineered + compressed trajectories<br/>○ M6 LightGBM + representation comparison<br/>○ M7 Conformal + shift evaluation<br/>○ M8 Selective measurement if supported<br/>○ M9 Bounded predictive explanation<br/>○ M10 Three-tab dashboard"]
 
     AUDIT{"○ Source decision gate<br/>PyScrew vs CiP-DMD<br/>Cross-process-chain audit"}
     PI["v0.2 · Process / Assembly Intelligence<br/>○ Selected adapter, SPC/MSPC, anomalies, supported diagnostics"]
@@ -57,6 +59,7 @@ from the required core. No new source is admitted by this roadmap.
 
 - [M0 — Repository foundation](milestones/m00-foundation.md)
 - [M1 — Injection-molding source contract and ingestion](milestones/m01-injection-molding-ingestion.md)
+- [M2 — Bounded Dataset 2 audit](milestones/m02-dataset-audit.md)
 
 [AGENTS.md](../AGENTS.md) contains the compact planning/engineering guidance.
 These diagrams summarize readiness; milestone documents hold relevant evidence.
