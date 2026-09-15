@@ -101,11 +101,17 @@ M3's protocol precedes model comparisons.
 
 ### Validation and feature availability
 
-Primary: all three leave-one-experiment-out folds, holding out 15, 20 and 23 in
-turn. Keep each cycle and all samples together; never split signal rows.
+Primary: leave-one-experiment-out grouped cross-validation, holding out 15, 20 and
+23 in turn. M2 explored targets and associations in all three groups; these are
+evaluation folds, not untouched prospective holdouts. The artifact's `test` role
+does not imply the data were never inspected. Keep each cycle and all samples
+together; never split signal rows.
 Inside each outer fold only 526–606 development cycles from two experiments
 remain. Split development into fit/tune and held-out conformal calibration;
-use inner resampling within fit/tune only when tuning is needed. Save exact unit
+use two leave-one-development-experiment-out inner folds when tuning is needed.
+Validate on one development experiment's fit/tune rows and fit on the other's;
+select using equal-weight mean inner MAE, then refit on both fit/tune groups.
+Calibration remains excluded throughout selection. Save exact unit
 memberships and seeds. Never tune, fit transformations or calibrate on outer-test
 cycles; calibration also stays out of representation/model selection.
 
@@ -114,8 +120,9 @@ appropriate training folds. PLS is supervised. Run a separate secondary
 cycle-level within-distribution (ID) benchmark with a documented grouping/blocking
 choice and its dependence limitations. Do not reserve another ID subset inside
 every outer fold. ID-versus-shift comparisons use different fitted pipelines and
-are descriptive, not a paired estimate isolating shift. Training error is not
-ID evaluation.
+are descriptive, not a paired estimate isolating shift. Its inner tuning keeps
+three shuffled within-experiment folds, matching its interpolation objective.
+Training error is not ID evaluation.
 
 Headline: equal-weight mean of the three outer-fold MAEs in grams. Also report
 per-fold MAE/RMSE/R² and counts, plus pooled out-of-fold MAE labeled sample-weighted.
@@ -151,6 +158,11 @@ Compare representations using a common downstream estimator to isolate their
 benefit; report per-fold MAE_scalar minus MAE_augmented. LightGBM compares A/B/C
 on identical outer splits with scalar LightGBM as its matched reference.
 Choose/tune inside development data, not by selecting the best outer-test result.
+Specify precise M5 feature definitions and M6 search choices before their outer
+evaluation, using physical reasoning, existing M2 exploration and fold-local
+development evidence—not M4 outer errors or residuals. A redesign informed by
+outer results must be labeled exploratory rather than confirmatory. This needs
+no additional holdout dataset.
 
 ### Uncertainty and measurement policy
 

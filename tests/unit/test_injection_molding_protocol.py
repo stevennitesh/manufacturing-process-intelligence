@@ -6,7 +6,7 @@ import polars as pl
 
 from mpi.datasets.injection_molding_protocol import (
     EXPECTED_EXPERIMENTS,
-    INNER_FOLDS,
+    ID_INNER_FOLDS,
     SCALAR_PREDICTOR_COLUMNS,
     TRAJECTORY_INPUT_COLUMNS,
     build_memberships,
@@ -49,6 +49,15 @@ def test_primary_folds_are_disjoint_complete_experiment_holdouts() -> None:
         assert fold.height == units.height
         assert fold["unit_id"].n_unique() == units.height
         assert set(fold.filter(pl.col("role") == "test")["experiment_id"]) == {held_out}
+        fit_tune = fold.filter(pl.col("role") == "fit_tune")
+        development_experiments = set(EXPECTED_EXPERIMENTS) - {held_out}
+        assert set(fit_tune["inner_fold"]) == development_experiments
+        for inner_fold in development_experiments:
+            validation = fit_tune.filter(pl.col("inner_fold") == inner_fold)
+            training = fit_tune.filter(pl.col("inner_fold") != inner_fold)
+            assert set(validation["experiment_id"]) == {inner_fold}
+            assert set(training["experiment_id"]) == development_experiments - {inner_fold}
+            assert set(training["unit_id"]).isdisjoint(validation["unit_id"])
         for experiment in set(EXPECTED_EXPERIMENTS) - {held_out}:
             group = fold.filter(pl.col("experiment_id") == experiment)
             calibration = group.filter(pl.col("role") == "calibration")
@@ -88,7 +97,7 @@ def test_secondary_split_and_inner_folds_cover_only_fit_tune() -> None:
     fit_tune = secondary.filter(pl.col("role") == "fit_tune")
     excluded = secondary.filter(pl.col("role") != "fit_tune")
     assert fit_tune["inner_fold"].null_count() == 0
-    assert set(fit_tune["inner_fold"]) == set(range(INNER_FOLDS))
+    assert set(fit_tune["inner_fold"]) == set(range(ID_INNER_FOLDS))
     assert excluded["inner_fold"].null_count() == excluded.height
     for experiment in EXPECTED_EXPERIMENTS:
         counts = (
@@ -121,7 +130,10 @@ def test_scalar_selection_is_allowlisted() -> None:
     selected = select_scalar_predictors(process_features)
 
     assert "future_retained_process_field" not in selected.columns
-    assert selected.width == 2 + 16
+    assert selected.columns == list(SCALAR_PREDICTOR_COLUMNS)
+    assert selected.width == 16
+    assert "unit_id" not in selected.columns
+    assert "operation_id" not in selected.columns
 
 
 def test_trajectory_selection_keeps_native_coordinates_and_drops_extra_fields() -> None:

@@ -1,6 +1,6 @@
 # M2 — Bounded Dataset 2 audit
 
-**Status:** complete; M2-final review passed.
+**Status:** complete.
 
 ## Accepted outcome
 
@@ -53,44 +53,12 @@ and limitations; [M1](m01-injection-molding-ingestion.md) owns ingestion evidenc
    Correlations across all data are exploratory, not predictive performance or
    permission to choose outer folds based on their eventual results.
 
-## Delivery approach
+## Implementation
 
-- Start from `8b2cd3f71529b718b545ca0a8d8e10c16fd2cc72` on `main`; checkout was
-  clean before this plan. This plan is the only lead-created pre-existing change.
-- Implement primarily in `notebooks/m02_injection_molding_audit.ipynb`. Make the
-  full audit executable top-to-bottom from a documented command without manual
-  notebook interaction. Add only needed notebook/plotting dependencies to the
-  locked environment. Keep generated row-level outputs local/ignored; a clean
-  notebook and concise attributed aggregate findings are sufficient in Git.
-- Promote calculations into a small module only if actual reuse/testability
-  warrants it. No EDA framework, report generator, config system, new adapter,
-  persistence refactor, model training, feature selection or version bump.
-- Preserve raw/prepared inputs. Use existing `load_bundle`; joins and trajectory
-  reshaping must align by cycle/sample identity rather than incidental row order.
-- Use readable selected plots rather than a huge heatmap or plot catalog. Keep
-  conclusions tied to observed numeric evidence and cite the existing source.
-- Update README reproduction instructions and roadmap status/links. Do not rewrite
-  unrelated plans or create historical report/version directories.
-
-### Final gate: M2-final
-
-One integrated review covers the entire change against the starting commit plus
-this plan. No intermediate checkpoint is needed: the work has one local analytical
-consumer and no new persistent interface for downstream code.
-
-Required evidence: documented command successfully executes the full audit on the
-prepared Dataset 2 bundle; tables/figures inspected for readable labels and valid
-units/grouping; selected numerical calculations checked independently, including
-irregular-grid AUC and grouped statistics; focused synthetic tests where reusable
-calculation code is introduced; configured lint/format/type/test checks pass.
-Show no source mutation and no tracked raw/row-level dataset payload. Normal CI
-must remain independent of local third-party data. Notebook outputs may be cleared
-after execution; retain reproducible commands and concise result evidence here.
-
-Cost-aware delivery uses one Sol Medium implementer with the selected Ponytail
-guidance. Final review has at most two correction rounds. The implementer returns
-with writers stopped and checkout custody released; the lead records acceptance.
-No commits, pushes, issue changes or M3 implementation are authorized by this plan.
+One executable notebook uses the existing prepared bundle. Signal rows are joined
+to cycle identity and sorted by source cycle position and sample index before
+reshaping; physical-phase labels and resampling are not introduced. The tracked
+notebook has no outputs; generated figures and tables remain under `artifacts/`.
 
 ## Findings and handoff
 
@@ -160,7 +128,7 @@ an accepted feature set or validation design.
   and optional cavity/state groups remain unresolved/deferred. M3 must decide the
   cutoff and confirm measurement completion before admitting any candidate.
 
-### M3 questions left open
+### Questions handed to M3 at audit completion
 
 M3 must choose the prediction cutoff, verify availability at that cutoff, freeze
 the scalar and trajectory allowlists, and define leakage-safe tuning/calibration
@@ -170,7 +138,7 @@ Moisture, mold temperature, charge and experiment ID remain context, not default
 predictors. No split, model, tolerance, geometry role, integral-state decoding or
 complete-cycle policy is accepted by M2.
 
-### Execution evidence for final review
+### Verification
 
 The documented `jupyter nbconvert --execute` command completed the full notebook
 from the clean tracked source and wrote only the ignored executed copy. Rendered
@@ -184,14 +152,17 @@ weight means and sample standard deviations. For one cycle, `numpy.trapezoid`
 and an explicit adjacent-trapezoid sum both gave 6,124.330682938099; the checked
 time axis contained 3 intervals of 0.004 seconds and 2,044 of 0.006 seconds.
 
-`uv run ruff check .`, `uv run ruff format --check .`, `uv run pyright`, all 49
-tests, and the CLI version smoke test pass. The admitted raw ZIP still matches
+The original audit passed lint, formatting, type checking, 49 tests and the CLI
+smoke check. The admitted raw ZIP matched
 manifest SHA-256 `69294087889a52791c296734051d6b21b30847c2859613e4178074182150c491`.
 Only the source manifest is tracked under `data/`; notebook outputs and all raw,
 prepared and row-level data remain ignored.
 
-M2-final review passed against the starting commit and the full uncommitted
-delivery. One presentation correction made exhaustive tables readable without
-row/column/text truncation; re-execution passed. Numerical and source-boundary
-checks remain valid. No modeling, feature approval or version changes were made.
-Next: plan M3's cutoff, feature contract and evaluation memberships.
+The pre-M4 identity-ordering correction was checked against shuffled real signal
+rows: both reconstructed channel matrices, elapsed times and every cycle's AUC
+were identical to the original ordered-bundle results. The full notebook executed
+again successfully; the tracked copy remains output-free.
+
+The audit's all-experiment exploration is descriptive, not an untouched holdout.
+M3 now owns the cutoff, feature eligibility and evaluation memberships; see the
+[M3 contract](m03-feature-and-evaluation-contract.md). Next: scalar baselines in M4.

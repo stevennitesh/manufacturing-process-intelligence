@@ -14,7 +14,7 @@ from mpi.data.canonical import ManufacturingBundle
 
 DEFAULT_MEMBERSHIP_OUTPUT: Final = Path("artifacts/m03/injection_molding_memberships.parquet")
 SPLIT_SEED: Final = 42
-INNER_FOLDS: Final = 3
+ID_INNER_FOLDS: Final = 3
 EXPECTED_EXPERIMENTS: Final = (15, 20, 23)
 
 # Only completed-cycle machine measurements are admitted. This deliberately does
@@ -52,7 +52,7 @@ Role = Literal["fit_tune", "calibration", "test"]
 
 def select_scalar_predictors(process_features: pl.DataFrame) -> pl.DataFrame:
     """Select the explicit scalar predictor allowlist, never columns by exclusion."""
-    return process_features.select("unit_id", "operation_id", *SCALAR_PREDICTOR_COLUMNS)
+    return process_features.select(SCALAR_PREDICTOR_COLUMNS)
 
 
 def select_trajectory_inputs(signals: pl.DataFrame) -> pl.DataFrame:
@@ -99,7 +99,10 @@ def _assigned_roles(unit_ids: list[str], protocol: Protocol) -> dict[str, tuple[
     assigned: dict[str, tuple[Role, int | None]] = {unit_id: ("test", None) for unit_id in test}
     assigned.update({unit_id: ("calibration", None) for unit_id in calibration})
     assigned.update(
-        {unit_id: ("fit_tune", index % INNER_FOLDS) for index, unit_id in enumerate(fit_tune)}
+        {
+            unit_id: ("fit_tune", index % ID_INNER_FOLDS if protocol == "secondary_id" else None)
+            for index, unit_id in enumerate(fit_tune)
+        }
     )
     return assigned
 
@@ -142,6 +145,9 @@ def build_memberships(
             role, inner_fold = primary_assignments[experiment_id][unit_id]
             if experiment_id == held_out:
                 role, inner_fold = "test", None
+            elif role == "fit_tune":
+                # The two development experiments are the two inner validation groups.
+                inner_fold = experiment_id
             rows.append(
                 {
                     "protocol": "primary",
