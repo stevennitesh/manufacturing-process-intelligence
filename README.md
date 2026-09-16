@@ -211,7 +211,21 @@ separate. These diagnostics describe fitted-model associations and observed marg
 support, not physical causes or product limits. See the
 [M9 results and limitations](docs/milestones/m09-predictive-explanation.md).
 
-Dashboard commands are added only in their owning milestone.
+## Run the Dataset 2 dashboard
+
+After preparing Dataset 2 and reproducing M4-M7 and M9 at their default artifact
+paths, launch the offline portfolio dashboard from the repository root:
+
+```powershell
+uv run streamlit run src/mpi/dashboard.py --browser.gatherUsageStats false
+```
+
+The three tabs present the saved data/process, prediction/generalization, and
+reliability-under-shift evidence. Dashboard use does not fit models, download data,
+write artifacts or call remote services; the documented command also disables
+Streamlit usage telemetry. If a required input is absent, the page
+lists the missing paths and the existing reproduction commands. Weight is shown in
+grams; pressure and flow amplitudes remain in unresolved source-native units.
 
 ## Data policy
 
@@ -245,10 +259,10 @@ See the [roadmap](docs/implementation-roadmap.md) for the next action and the
 [M1 summary](docs/milestones/m01-injection-molding-ingestion.md) for completion
 evidence. M2 and M3 are complete: the audit, retrospective cutoff, explicit feature
 allowlist and evaluation memberships are reviewed. M4 scalar baselines, M5's fixed
-trajectory comparison, M6's bounded LightGBM comparison and M7's conformal/shift
-evaluation and M9's bounded predictive explanation are complete. M7's simple
-distance score failed the pre-specified gate, so M8 is skipped and M10's bounded
-three-tab dashboard is next.
+trajectory comparison, M6's bounded LightGBM comparison, M7's conformal/shift
+evaluation, M9's bounded predictive explanation, and M10's three-tab offline
+dashboard are complete. M7's simple distance score failed the pre-specified gate,
+so M8 remains skipped; the dashboard does not invent a selective-measurement policy.
 The current data contract has no legacy readers or migration paths. Version labels
 are not bumped for routine edits; historical versions become useful when there are
 data or results worth retaining across changes.

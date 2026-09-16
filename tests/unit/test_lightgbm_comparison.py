@@ -175,12 +175,20 @@ def test_direct_lightgbm_reference_and_saved_metrics_match(
                 inner_train.select(SCALAR_PREDICTOR_COLUMNS).to_numpy()
             )
             fitted = _direct_estimator(setting).fit(
-                inner_scaler.transform(inner_train.select(SCALAR_PREDICTOR_COLUMNS).to_numpy()),
+                np.asarray(
+                    inner_scaler.transform(inner_train.select(SCALAR_PREDICTOR_COLUMNS).to_numpy()),
+                    dtype=np.float64,
+                ),
                 inner_train["observed_weight_g"].to_numpy(),
             )
             predicted = np.asarray(
                 fitted.predict(
-                    inner_scaler.transform(validation.select(SCALAR_PREDICTOR_COLUMNS).to_numpy())
+                    np.asarray(
+                        inner_scaler.transform(
+                            validation.select(SCALAR_PREDICTOR_COLUMNS).to_numpy()
+                        ),
+                        dtype=np.float64,
+                    )
                 ),
                 dtype=np.float64,
             )
@@ -204,12 +212,18 @@ def test_direct_lightgbm_reference_and_saved_metrics_match(
     evaluation = pl.DataFrame({"unit_id": test_ids}).join(feature_rows, on="unit_id")
     scaler = StandardScaler().fit(train.select(SCALAR_PREDICTOR_COLUMNS).to_numpy())
     independent = _direct_estimator(selected_setting).fit(
-        scaler.transform(train.select(SCALAR_PREDICTOR_COLUMNS).to_numpy()),
+        np.asarray(
+            scaler.transform(train.select(SCALAR_PREDICTOR_COLUMNS).to_numpy()),
+            dtype=np.float64,
+        ),
         train["observed_weight_g"].to_numpy(),
     )
     expected_prediction = np.asarray(
         independent.predict(
-            scaler.transform(evaluation.select(SCALAR_PREDICTOR_COLUMNS).to_numpy())
+            np.asarray(
+                scaler.transform(evaluation.select(SCALAR_PREDICTOR_COLUMNS).to_numpy()),
+                dtype=np.float64,
+            )
         ),
         dtype=np.float64,
     )
