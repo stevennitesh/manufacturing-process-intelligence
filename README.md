@@ -194,6 +194,23 @@ primary fold improves development MAE by only 4.31%; M8 is therefore skipped, wi
 no additional score search. See the
 [M7 results and limitations](docs/milestones/m07-uncertainty-and-shift.md).
 
+## Reproduce the M9 predictive explanation
+
+After reproducing M7, run:
+
+```powershell
+uv run python scripts/run_predictive_explanation.py
+```
+
+The command reads M7's four selected scalar-model settings, refits each model once
+on its original fit/tune rows, and verifies its unit-aligned predictions against
+the saved M7 evaluation predictions. It writes ignored 96-row permutation-importance
+and marginal feature-support tables plus a compact run record under `artifacts/m09/`.
+The six populations keep each primary holdout and each secondary ID experiment
+separate. These diagnostics describe fitted-model associations and observed marginal
+support, not physical causes or product limits. See the
+[M9 results and limitations](docs/milestones/m09-predictive-explanation.md).
+
 Dashboard commands are added only in their owning milestone.
 
 ## Data policy
@@ -229,8 +246,9 @@ See the [roadmap](docs/implementation-roadmap.md) for the next action and the
 evidence. M2 and M3 are complete: the audit, retrospective cutoff, explicit feature
 allowlist and evaluation memberships are reviewed. M4 scalar baselines, M5's fixed
 trajectory comparison, M6's bounded LightGBM comparison and M7's conformal/shift
-evaluation are complete. M7's simple distance score failed the pre-specified gate,
-so M8 is skipped and the next work is M9's bounded predictive explanation.
+evaluation and M9's bounded predictive explanation are complete. M7's simple
+distance score failed the pre-specified gate, so M8 is skipped and M10's bounded
+three-tab dashboard is next.
 The current data contract has no legacy readers or migration paths. Version labels
 are not bumped for routine edits; historical versions become useful when there are
 data or results worth retaining across changes.

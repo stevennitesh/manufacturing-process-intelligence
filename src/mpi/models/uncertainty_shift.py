@@ -82,6 +82,14 @@ def _candidate_record(candidate: ScalarCandidate) -> dict[str, object]:
     }
 
 
+def scalar_candidate_from_record(record: dict[str, object]) -> ScalarCandidate:
+    """Resolve one saved M7 selected-candidate record to the existing model definition."""
+    for candidate in scalar_candidates():
+        if _candidate_record(candidate) == record:
+            return candidate
+    raise ValueError(f"unknown M7 scalar candidate record: {record}")
+
+
 def _pipeline(candidate: ScalarCandidate) -> Pipeline:
     estimator: RegressorMixin
     if candidate.family == "pls":
@@ -103,8 +111,18 @@ def _fit(candidate: ScalarCandidate, rows: pl.DataFrame) -> Pipeline:
     return _pipeline(candidate).fit(_x(rows), rows["weight_g"].to_numpy())
 
 
+def fit_scalar_candidate(candidate: ScalarCandidate, rows: pl.DataFrame) -> Pipeline:
+    """Refit a fixed M7 scalar candidate on supplied fit/tune rows."""
+    return _fit(candidate, rows)
+
+
 def _predict(fitted: Pipeline, rows: pl.DataFrame) -> np.ndarray:
     return np.asarray(fitted.predict(_x(rows)), dtype=np.float64).reshape(-1)
+
+
+def predict_scalar_candidate(fitted: Pipeline, rows: pl.DataFrame) -> np.ndarray:
+    """Predict with a fixed fitted M7 scalar pipeline."""
+    return _predict(fitted, rows)
 
 
 def conformal_radius(errors: np.ndarray, coverage: float = 0.90) -> tuple[float, int]:
