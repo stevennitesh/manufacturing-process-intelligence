@@ -8,7 +8,8 @@ Before adding a dataset adapter or download command:
 2. document whether automated download and local processing are permitted;
 3. document whether raw or derived data may be redistributed;
 4. keep raw, interim, and processed data outside Git unless redistribution is explicitly permitted;
-5. commit only acquisition instructions, schemas, manifests, and small synthetic test fixtures.
+5. commit acquisition instructions, schemas, manifests, small synthetic test fixtures,
+   and the attributed portfolio screenshots permitted below, not dataset tables.
 
 ## High-resolution injection molding — admitted MVP source
 
@@ -27,5 +28,8 @@ Before adding a dataset adapter or download command:
   attribution, license/source link, and modification-notice conditions.
 - **Repository policy:** raw and prepared data remain outside Git. Only the verified
   source contract, acquisition manifest, schemas, instructions, and synthetic fixtures
-  may be version controlled. This project policy is intentionally stricter than the
-  source license.
+  may be version controlled, plus the user-requested dashboard screenshots in
+  `docs/images/` with source attribution, license link and transformation notice
+  in the README. This exception covers rendered portfolio evidence, not raw data,
+  prepared tables or generated result artifacts. The project policy remains
+  intentionally stricter than the source license.

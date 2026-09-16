@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from unittest.mock import patch
 
 import polars as pl
 import pytest
@@ -110,6 +111,20 @@ def _write_dashboard_fixture(root: Path) -> DashboardPaths:
     )
     for directory in (paths.bundle, paths.m04, paths.m05, paths.m06, paths.m07, paths.m09):
         directory.mkdir(parents=True)
+    identity = {
+        "dataset": "injection_molding",
+        "source_version": "fixture-source",
+        "source_archive_sha256": "fixture-archive",
+        "membership_sha256": "fixture-memberships",
+    }
+    (paths.bundle / "metadata.json").write_text(
+        json.dumps({**identity, "archive_sha256": identity["source_archive_sha256"]}),
+        encoding="utf-8",
+    )
+    for directory in (paths.m04, paths.m05, paths.m06, paths.m07, paths.m09):
+        (directory / "run.json").write_text(
+            json.dumps({**identity, "m8_eligible": False}), encoding="utf-8"
+        )
 
     pl.DataFrame(
         {
@@ -180,7 +195,6 @@ def _write_dashboard_fixture(root: Path) -> DashboardPaths:
         )
     )
     interval_predictions.write_parquet(paths.m07 / "evaluation_predictions.parquet")
-    (paths.m07 / "run.json").write_text(json.dumps({"m8_eligible": False}), encoding="utf-8")
 
     population_rows: list[dict[str, object]] = []
     for protocol in ("primary", "secondary_id"):
@@ -322,6 +336,31 @@ def test_missing_inputs_report_reproduction_commands(tmp_path: Path) -> None:
         load_dashboard_data(DashboardPaths(bundle=tmp_path / "missing"))
 
 
+@pytest.mark.parametrize("field", ["source_archive_sha256", "membership_sha256"])
+def test_loader_rejects_mixed_milestone_lineage(tmp_path: Path, field: str) -> None:
+    paths = _write_dashboard_fixture(tmp_path)
+    record_path = paths.m05 / "run.json"
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+    record[field] = "different-run"
+    record_path.write_text(json.dumps(record), encoding="utf-8")
+    with pytest.raises(ValueError, match=f"Artifact lineage mismatch:.*{field}"):
+        load_dashboard_data(paths)
+
+
+def test_loader_caches_until_explicit_reload(tmp_path: Path) -> None:
+    paths = _write_dashboard_fixture(tmp_path)
+    with patch("mpi.dashboard.pl.read_parquet", wraps=pl.read_parquet) as read:
+        first = load_dashboard_data(paths)
+        reads = read.call_count
+        assert reads > 0
+        second = load_dashboard_data(paths)
+        assert read.call_count == reads
+        assert first.signals.equals(second.signals)
+        load_dashboard_data.clear()
+        load_dashboard_data(paths)
+        assert read.call_count == 2 * reads
+
+
 def test_synthetic_app_renders_three_tabs_and_selectors(tmp_path: Path) -> None:
     paths = _write_dashboard_fixture(tmp_path)
     app_script = tmp_path / "app.py"
@@ -342,6 +381,7 @@ def test_synthetic_app_renders_three_tabs_and_selectors(tmp_path: Path) -> None:
     app = AppTest.from_file(app_script).run(timeout=10)
 
     assert not app.exception
+    assert app.title[0].value == "Injection Molding · Quality Prediction Under Process Shift"
     assert [tab.label for tab in app.tabs] == [
         "Data & process",
         "Prediction & generalization",
@@ -354,3 +394,22 @@ def test_synthetic_app_renders_three_tabs_and_selectors(tmp_path: Path) -> None:
     protocol_selector.select("secondary_id")
     app.run(timeout=10)
     assert not app.exception
+    app.button[0].click().run(timeout=10)
+    assert not app.exception
+    for family in ("Ridge representations", "LightGBM representations"):
+        next(box for box in app.selectbox if box.label == "Model family").select(family).run(
+            timeout=10
+        )
+        for _ in range(3):
+            representation = next(
+                box for box in app.selectbox if box.label == "Model / representation"
+            )
+            assert representation.options == ["A", "B"]
+            representation.select("B").run(timeout=10)
+            assert not app.exception
+            selected = next(box for box in app.selectbox if box.label == "Model / representation")
+            assert selected.value == "B"
+        app.selectbox(key="prediction_experiment").select(20).run(timeout=10)
+        assert (
+            next(box for box in app.selectbox if box.label == "Model / representation").value == "B"
+        )

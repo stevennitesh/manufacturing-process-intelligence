@@ -105,16 +105,25 @@ command, prerequisites and launch-time disabling of Streamlit usage telemetry.
 Missing inputs name every absent path and show the existing bounded reproduction
 commands; the dashboard does not run them or write artifacts.
 
+Release polish gives the app an injection-molding title and Dataset 2 subtitle.
+Streamlit caches loaded evidence between widget interactions; an explicit reload
+button refreshes it after local artifact regeneration. On load, existing milestone
+run records must agree on source/version and membership identity, with the source
+also matched to prepared metadata. This is a consistency check of recorded lineage,
+not a Parquet-integrity registry or automatic stale-file detector.
+
 ## Verification
 
 - `uv sync --locked --group dev` completed against the 122-package lock.
 - CI-equivalent checks passed: `ruff check .`, `ruff format --check .`, `pyright`,
-  all 83 tests, and `mpi --version` (`0.0.1`).
-- Five focused dashboard tests cover synthetic equal-fold versus pooled aggregation,
+  all 86 tests, and `mpi --version` (`0.0.1`).
+- Eight focused dashboard cases cover synthetic equal-fold versus pooled aggregation,
   protocol/experiment preservation, experiment 23-style small nonzero coverage,
   analytic MAE/RMSE/R² including null R² for a constant target, support populations,
   actionable missing-input guidance, all three tabs and a selector rerun through
-  Streamlit's application test harness.
+  Streamlit's application test harness. The release-polish cases also verify cache
+  reuse/explicit reload and rejection of mixed source or membership records. The
+  real-data app passed a selector rerun and explicit reload with all three tabs.
 - The real-data application test rendered all three tabs from the existing prepared
   bundle and M4-M7/M9 artifacts, then reran secondary-ID prediction and support
   selectors without exceptions. Direct reconciliation recovered PLS MAE of

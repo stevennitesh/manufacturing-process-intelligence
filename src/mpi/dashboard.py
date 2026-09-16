@@ -63,25 +63,31 @@ DEFAULT_PATHS: Final = DashboardPaths()
 
 def _required_files(paths: DashboardPaths) -> tuple[Path, ...]:
     return (
+        paths.bundle / "metadata.json",
         paths.bundle / "quality.parquet",
         paths.bundle / "context.parquet",
         paths.bundle / "signals.parquet",
         paths.m04 / "metrics.parquet",
         paths.m04 / "predictions.parquet",
+        paths.m04 / "run.json",
         paths.m05 / "metrics.parquet",
         paths.m05 / "predictions.parquet",
+        paths.m05 / "run.json",
         paths.m06 / "metrics.parquet",
         paths.m06 / "predictions.parquet",
+        paths.m06 / "run.json",
         paths.m07 / "metrics.parquet",
         paths.m07 / "evaluation_predictions.parquet",
         paths.m07 / "run.json",
         paths.m09 / "permutation_importance.parquet",
         paths.m09 / "feature_support.parquet",
+        paths.m09 / "run.json",
     )
 
 
+@st.cache_data(show_spinner=False, hash_funcs={DashboardPaths: repr}, max_entries=1)
 def load_dashboard_data(paths: DashboardPaths = DEFAULT_PATHS) -> DashboardData:
-    """Load the current saved evidence without fitting models or writing artifacts."""
+    """Cache a local snapshot; clear explicitly after regenerating saved evidence."""
     missing = [path for path in _required_files(paths) if not path.is_file()]
     if missing:
         listed = "\n".join(f"- {path}" for path in missing)
@@ -89,7 +95,25 @@ def load_dashboard_data(paths: DashboardPaths = DEFAULT_PATHS) -> DashboardData:
             f"Dashboard inputs are missing:\n{listed}\n\n{REPRODUCTION_COMMANDS}"
         )
     try:
-        uncertainty_run = json.loads((paths.m07 / "run.json").read_text(encoding="utf-8"))
+        metadata = json.loads((paths.bundle / "metadata.json").read_text(encoding="utf-8"))
+        runs = {
+            directory: json.loads((directory / "run.json").read_text(encoding="utf-8"))
+            for directory in (paths.m04, paths.m05, paths.m06, paths.m07, paths.m09)
+        }
+        identity = {
+            "dataset": metadata.get("dataset"),
+            "source_version": metadata.get("source_version"),
+            "source_archive_sha256": metadata.get("archive_sha256"),
+            "membership_sha256": runs[paths.m07].get("membership_sha256"),
+        }
+        for directory, record in runs.items():
+            for field, expected in identity.items():
+                if not expected or record.get(field) != expected:
+                    raise ValueError(
+                        f"Artifact lineage mismatch: {directory / 'run.json'} ({field}). "
+                        "Reproduce the milestone artifacts from the same prepared source and "
+                        "M3 memberships, then reload saved evidence."
+                    )
         return DashboardData(
             quality=pl.read_parquet(paths.bundle / "quality.parquet"),
             context=pl.read_parquet(paths.bundle / "context.parquet"),
@@ -102,7 +126,7 @@ def load_dashboard_data(paths: DashboardPaths = DEFAULT_PATHS) -> DashboardData:
             lightgbm_predictions=pl.read_parquet(paths.m06 / "predictions.parquet"),
             interval_metrics=pl.read_parquet(paths.m07 / "metrics.parquet"),
             interval_predictions=pl.read_parquet(paths.m07 / "evaluation_predictions.parquet"),
-            uncertainty_run=cast(dict[str, object], uncertainty_run),
+            uncertainty_run=cast(dict[str, object], runs[paths.m07]),
             importance=pl.read_parquet(paths.m09 / "permutation_importance.parquet"),
             support=pl.read_parquet(paths.m09 / "feature_support.parquet"),
         )
@@ -344,7 +368,9 @@ def _render_prediction_tab(data: DashboardData) -> None:
     )
     predictions, group_column = _prediction_source(data, family)
     protocol = str(st.selectbox("Protocol", ("primary", "secondary_id"), key="prediction_protocol"))
-    choices = predictions.filter(pl.col("protocol") == protocol)[group_column].unique().to_list()
+    choices = sorted(
+        predictions.filter(pl.col("protocol") == protocol)[group_column].unique().to_list()
+    )
     choice = str(st.selectbox("Model / representation", choices))
     selected = predictions.filter(
         (pl.col("protocol") == protocol) & (pl.col(group_column) == choice)
@@ -570,12 +596,15 @@ def _render_reliability_tab(data: DashboardData) -> None:
 
 def render_dashboard(paths: DashboardPaths = DEFAULT_PATHS) -> None:
     """Render the bounded three-tab local dashboard."""
-    st.set_page_config(page_title="Dataset 2 · Process intelligence", layout="wide")
-    st.title("Dataset 2 · Prediction under process shift")
+    st.set_page_config(page_title="Injection Molding · Quality Prediction", layout="wide")
+    st.title("Injection Molding · Quality Prediction Under Process Shift")
+    st.caption("scatimdata Dataset 2 · machine-cycle telemetry → molded-part weight")
     st.caption(
         "Existing portfolio evidence only · no model fitting, downloads, artifact writes, or "
         "remote services"
     )
+    if st.button("Reload saved evidence", help="Use after regenerating local artifacts."):
+        load_dashboard_data.clear()
     try:
         data = load_dashboard_data(paths)
     except (FileNotFoundError, ValueError) as error:

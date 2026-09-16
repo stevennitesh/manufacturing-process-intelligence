@@ -1,11 +1,52 @@
 # Manufacturing Process & Quality Intelligence
 
-A greenfield manufacturing data-science project starting with a focused question:
+A manufacturing data-science portfolio investigating a focused question:
 does high-resolution machine telemetry improve part-weight prediction beyond
 scalar measurements, and does it generalize under controlled process changes?
 
 This is a personal résumé/portfolio project: rigorous analysis, reproducible local
 commands and an understandable demo, not a production-grade factory service.
+
+## Results at a glance
+
+On 829 injection-molding cycles, scalar PLS achieved 0.114 g pooled MAE within
+represented regimes, versus 0.503 g equal-fold MAE when entire experiments were
+held out. These are descriptive comparisons between separately fitted pipelines,
+not a paired estimate of the effect of process shift. Engineered and compressed
+pressure/flow trajectories provided inconsistent cross-experiment benefit.
+The development-selected scalar models' nominal 90% conformal intervals covered
+86.2% of the separate ID evaluation but only 5.2% of pooled held-out-experiment
+observations. Held-out groups often departed from observed marginal training
+ranges, but this does not establish the cause of prediction or coverage failures.
+The development distance-ranking gate failed, so no selective-measurement policy
+is claimed.
+
+### Dashboard preview
+
+**Data and process:** three controlled experiments, linked to physical part weight.
+
+![Injection-molding dashboard showing experiment counts and weight distributions](docs/images/dashboard-overview.png)
+
+<details>
+<summary>Prediction: within-regime accuracy versus unseen-experiment generalization</summary>
+
+![Scalar baseline MAE with equal-fold primary, sample-weighted primary and separate pooled ID results](docs/images/dashboard-prediction.png)
+
+</details>
+
+<details>
+<summary>Reliability: nominal versus observed interval coverage</summary>
+
+![Nominal 90 percent coverage compared with held-out and ID experiment coverage](docs/images/dashboard-reliability.png)
+
+</details>
+
+Screenshots show this project's analysis and visualization of **scatimdata Dataset 2**,
+by Bogedale et al., from the [pinned source](https://github.com/sc4t1m/scatimdata/tree/7bd35941d75c97a3f276439377dc430ab47402be),
+licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+The source data were transformed into English-named canonical tables and analyzed
+by this project; these are not publisher figures. See [data licensing](DATA_LICENSES.md)
+and [local dashboard instructions](#run-the-dataset-2-dashboard).
 
 The MVP uses **scatimdata Dataset 2 only**: 829 labeled cycles, pressure/flow
 trajectories and weight in grams. Its three experimental production groups
@@ -226,6 +267,10 @@ write artifacts or call remote services; the documented command also disables
 Streamlit usage telemetry. If a required input is absent, the page
 lists the missing paths and the existing reproduction commands. Weight is shown in
 grams; pressure and flow amplitudes remain in unresolved source-native units.
+Inputs are cached between interactions. After regenerating artifacts, click
+**Reload saved evidence** (or restart Streamlit). Loading checks that the milestone
+run records share the prepared source and M3 membership identity; it does not
+re-hash every Parquet or detect files changed while a cached snapshot is displayed.
 
 ## Data policy
 
