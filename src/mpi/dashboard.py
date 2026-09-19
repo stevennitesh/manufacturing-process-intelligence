@@ -59,6 +59,10 @@ uv run python scripts/run_predictive_explanation.py
 ```
 """
 DEFAULT_PATHS: Final = DashboardPaths()
+PROTOCOL_LABELS: Final = {
+    "primary": "Primary · entire experiment held out",
+    "secondary_id": "Secondary ID · all experiment groups represented",
+}
 
 
 def _required_files(paths: DashboardPaths) -> tuple[Path, ...]:
@@ -250,9 +254,117 @@ def _bar_chart(
 def _render_data_tab(data: DashboardData) -> None:
     st.header("Data & process")
     st.write(
-        "Machine telemetry is linked to the weight of one molded part. Weight is measured in "
-        "grams; injection pressure and flow amplitudes remain in source-native units because "
-        "their physical units are unresolved. Experiments are controlled groups, not calendar days."
+        "Injection molding injects molten plastic into a mold, holds it under pressure, then "
+        "cools and removes the part. Pressure, flow, temperature and timing describe how it was "
+        "made. We ask whether these machine records can estimate completed-part weight before "
+        "using its physical measurement. Weight is one quality characteristic, not a complete "
+        "acceptability verdict. "
+        "Dataset 2 contains controlled injection-molding runs for a stacking-box part made from "
+        "BASF Ultramid B3EG6 (PA6-GF30). Each labeled machine cycle maps to one molded part."
+    )
+    st.subheader("What one cycle contains—and how it is used")
+    st.markdown(
+        "\n".join(
+            (
+                "| Dataset component | Role in this project |",
+                "| --- | --- |",
+                "| **Scalar process measurements** | 16 completed-cycle variables form the "
+                "scalar baseline, including injection time, maximum pressure "
+                "and barrel temperatures. |",
+                "| **Pressure and flow trajectories** | 2,048 native-time samples per channel "
+                "test whether dynamic signal shape adds transferable information. |",
+                "| **Experimental context** | Experiment, moisture, mold-temperature and charge "
+                "context describe controlled conditions; they group analysis but are not default "
+                "model inputs. |",
+                "| **Physical quality** | Part weight in grams is the target measured after "
+                "molding. Geometry remains deferred because its released scale/mapping is "
+                "unresolved. |",
+            )
+        )
+    )
+    st.caption(
+        "The source also contains optional cavity-pressure/state data that this bounded MVP does "
+        "not use. Another 92 signal-only cycles are excluded because they have no matching "
+        "released scalar/quality row and therefore no supported weight target."
+    )
+
+    st.subheader("How the data becomes an experiment")
+    st.graphviz_chart(
+        r"""
+        digraph pipeline {
+            graph [rankdir=TB, bgcolor="transparent", nodesep=0.3, ranksep=0.45];
+            node [shape=box, style="rounded,filled", fillcolor="#e8f0fa",
+                  color="#7593b8", fontcolor="#172b45", fontname="Arial", fontsize=12];
+            edge [color="#7593b8", fontcolor="#8798ab", fontname="Arial", fontsize=10];
+            raw [label="Dataset 2 raw files\nScalars + pressure/flow + measured weight"];
+            prepare [label="Validate and join by cycle identity\n"
+                + "829 labeled parts; exclude 92 signal-only cycles\n"
+                + "Preserve native 2,048-point signals"];
+            split [label="Audit data and fix evaluation memberships\n"
+                + "Primary: whole experiment held out, repeated three times\n"
+                + "Secondary ID: random cycles from every experiment"];
+            train [label="Fit/tune rows only\nA: 16 scalars\n"
+                + "B: scalars + signal summaries\nC: scalars + compressed signals"];
+            models [label="Train and tune predefined models\nMean / Ridge / PLS scalar baselines\n"
+                + "Ridge / LightGBM representation comparisons\n"
+                + "Fit scaling/compression inside training folds"];
+            evaluate [label="Reserved evaluation cycles\n"
+                + "Compare predictions with measured weights"];
+            result [label="Prediction results\nStrong represented-group accuracy\n"
+                + "Weak transfer; mixed trajectory benefit"];
+            selected [label="Uncertainty study\nSelect scalar PLS or LightGBM\n"
+                + "using development data only"];
+            calibration [label="Reserved calibration cycles\n"
+                + "Measured errors set 90% interval margin"];
+            coverage [label="Evaluate intervals on reserved evaluation cycles\n"
+                + "86.2% ID coverage; 5.2% under experiment shift"];
+            gate [label="Development-only distance screen\n"
+                + "One setup misses required error reduction\nNo automatic measurement policy"];
+            explain [label="Explain saved predictions\n"
+                + "Feature importance + input-range departures\n"
+                + "Associations, not physical causes"];
+            raw -> prepare -> split -> train -> models -> evaluate -> result;
+            models -> selected -> calibration -> coverage;
+            split -> calibration [style=dashed, label="reserve separately"];
+            split -> evaluate [style=dashed, label="keep out of fitting/tuning"];
+            selected -> gate;
+            selected -> explain;
+        }
+        """,
+        width="stretch",
+    )
+    st.markdown(
+        "**Completed-cycle scalars + pressure/flow trajectories → predict part weight.** The "
+        "model trains on two experiment groups and evaluates on the third, then repeats for all "
+        "three groups. Scalars establish the baseline; trajectory representations test added "
+        "value; context defines the holdout; weight never enters as a predictor. Separate "
+        "calibration rows are reserved for prediction intervals. The uncertainty branch uses "
+        "scalar models; it does not select a trajectory model from evaluation results. "
+        "The dashboard reads saved results from these experiments."
+    )
+
+    st.subheader("How the controlled experiments differ")
+    st.markdown(
+        "\n".join(
+            (
+                "| Experiment | Labeled cycles | Observed controlled context | Mean part weight "
+                "| Distinguishing evidence |",
+                "| ---: | ---: | --- | ---: | --- |",
+                "| 15 | 303 | Moisture: raw 0.050 → 0.100 → 0.150 | 115.956 g | Highest mean "
+                "weight; first two moisture values differ from the paper. |",
+                "| 20 | 223 | Moisture: raw 0.086 → 0.180 → 0.046 | 115.237 g | Broader "
+                "pressure/flow-summary spread than experiment 23. |",
+                "| 23 | 303 | Mold temperature: 80 → 90 → 70 (raw) | 114.308 g | Lowest/narrowest "
+                "weight distribution; higher mean pressure and lower mean flow. |",
+            )
+        )
+    )
+    st.warning(
+        "Each experiment contains several settings; validation withholds the whole group. "
+        "The temperature values match the paper's °C settings, but the unit mapping is inferred. "
+        "These are source experiment groups, not verified calendar days. The context identifies "
+        "controlled interventions, but other process measurements move with them; it does not "
+        "prove that moisture or mold temperature alone caused the weight differences."
     )
     weights = weight_rows(data)
     counts = weights.group_by("experiment_id").agg(pl.len().alias("cycles")).sort("experiment_id")
@@ -261,11 +373,21 @@ def _render_data_tab(data: DashboardData) -> None:
         column.metric(f"Experiment {row['experiment_id']}", f"{row['cycles']} cycles")
 
     figure = go.Figure()
-    for experiment, rows in weights.partition_by("experiment_id", as_dict=True).items():
+    for experiment, rows in (
+        weights.sort("experiment_id").partition_by("experiment_id", as_dict=True).items()
+    ):
         value = experiment[0]
         figure.add_box(name=f"Experiment {value}", y=rows["weight_g"].to_list(), boxpoints=False)
-    figure.update_layout(title="Observed part-weight distributions", yaxis_title="Weight (g)")
+    figure.update_layout(
+        title="Weight distributions differ across experiment groups", yaxis_title="Weight (g)"
+    )
     st.plotly_chart(figure, width="stretch")
+    st.info(
+        "About 70.45% of observed weight variation lies between these three experiment groups. "
+        "Pooled "
+        "metrics can therefore reward condition separation while hiding weaker within-condition "
+        "explanation or transfer to a new condition."
+    )
 
     st.subheader("Native cycle example")
     experiments = sorted(data.context["experiment_id"].unique().to_list())
@@ -305,10 +427,28 @@ def _prediction_source(data: DashboardData, family: str) -> tuple[pl.DataFrame, 
 
 def _render_prediction_tab(data: DashboardData) -> None:
     st.header("Prediction & generalization")
-    st.write(
-        "The headline is equal-fold MAE across held-out experiments. Pooled primary MAE is shown "
-        "separately and is sample-weighted. The ID comparison uses separately fitted pipelines, so "
-        "it is not a paired estimate of the effect of process shift."
+    st.success(
+        "Scalar PLS reached 0.114 g pooled MAE when every experiment group was "
+        "represented during training, but 0.503 g equal-fold MAE when a complete experiment was "
+        "withheld. Familiar-condition accuracy did not establish new-condition transfer."
+    )
+    st.subheader("How the experiment works")
+    st.markdown(
+        "**Train on two experiment groups → evaluate on the third → repeat for all three.** "
+        "Each group contains multiple settings. The separate in-distribution (ID) benchmark "
+        "randomly splits cycles within every group; neighboring-cycle similarity can make it "
+        "optimistic for later production. The original paper's "
+        "random cross-validation asked whether detailed signals improve prediction within the "
+        "available condition mixture; this project asks the harder transfer question. Our "
+        "features and models also differ, so this is an extension, not an exact replication."
+    )
+    st.markdown(
+        "**Reading the comparisons:** MAE is average absolute weight error in grams (lower is "
+        "better). Primary means an entire experiment is held out; secondary ID means all groups "
+        "are represented. Equal-fold means weight each experiment equally; pooled means weight "
+        "each cycle equally. **Mean** predicts a constant training average; **Ridge** is a "
+        "regularized linear model; **PLS** learns components linking correlated inputs to weight; "
+        "**LightGBM** learns nonlinear relationships with decision trees."
     )
     st.info(
         "Retrospective grouped cross-validation: M2 inspected all three experiments before M3 "
@@ -321,10 +461,15 @@ def _render_prediction_tab(data: DashboardData) -> None:
             "model",
             "mae_g",
             "population",
-            title="Scalar baseline MAE",
+            title="Familiar-condition accuracy does not transfer automatically",
             y_title="MAE (g)",
         ),
         width="stretch",
+    )
+    st.caption(
+        "Scalar PLS reached 0.114 g pooled MAE with represented conditions and 0.503 g "
+        "equal-fold MAE with whole-experiment holdouts. The protocols use separately fitted "
+        "pipelines, so this gap is descriptive rather than a paired causal effect."
     )
 
     ridge = headline_mae(data.ridge_metrics, data.ridge_predictions, "representation").with_columns(
@@ -355,9 +500,81 @@ def _render_prediction_tab(data: DashboardData) -> None:
         width="stretch",
     )
     st.caption(
-        "A = scalar only; B = engineered pressure/flow summaries; C-PCA and C-PLS = compressed "
-        "native trajectories. Results vary by experiment; no universal representation won."
+        "A = scalar only; B = scalars plus engineered pressure/flow summaries; C-PCA and C-PLS "
+        "= scalars plus compressed trajectories. PCA summarizes signal variation; PLS compression "
+        "learns components associated with training weights, before Ridge/LightGBM predicts. "
+        "Benefits varied by experiment; none of these Ridge/LightGBM "
+        "representations beat scalar PLS's 0.503 g grouped aggregate. This is a descriptive "
+        "comparison of predefined experiments, not an outer-selected deployment winner."
     )
+
+    st.subheader("Where trajectories helped—and where they hurt")
+    delta_rows = []
+    for family_name, metrics in (
+        ("Ridge", data.ridge_metrics),
+        ("LightGBM", data.lightgbm_metrics),
+    ):
+        primary = metrics.filter(pl.col("protocol") == "primary")
+        baseline = primary.filter(pl.col("representation") == "A").select(
+            "fold", pl.col("mae_g").alias("scalar_mae_g")
+        )
+        delta_rows.append(
+            primary.filter(pl.col("representation") != "A")
+            .join(baseline, on="fold", validate="m:1")
+            .with_columns(
+                (pl.col("scalar_mae_g") - pl.col("mae_g")).alias("improvement_g"),
+                pl.concat_str(pl.lit(family_name + " · "), "representation").alias("comparison"),
+                pl.col("fold")
+                .str.replace("holdout_experiment_", "Experiment ")
+                .alias("experiment"),
+            )
+            .select("experiment", "comparison", "improvement_g")
+        )
+    delta_figure = _bar_chart(
+        pl.concat(delta_rows).sort("experiment", "comparison"),
+        "experiment",
+        "improvement_g",
+        "comparison",
+        title="Trajectory benefit relative to the same model's scalar baseline",
+        y_title="Scalar MAE - augmented MAE (g)",
+    )
+    delta_figure.add_hline(y=0, line_color="gray")
+    st.plotly_chart(delta_figure, width="stretch")
+    st.caption(
+        "Above zero means trajectories reduced error; below zero means they increased it. "
+        "Each comparison uses the same held-out experiment and model family."
+    )
+
+    st.subheader("What was learned and what comes next")
+    learned, next_step = st.columns(2)
+    with learned:
+        st.markdown(
+            """
+            **Learned from this experiment**
+
+            - About 70.45% of observed weight variation was between experiment groups, so
+              pooled performance can hide weak within-condition explanation.
+            - Scalar PLS transferred better on aggregate than the tested nonlinear and
+              trajectory alternatives; complexity did not replace condition coverage.
+            - Held-out conditions often extended beyond fitted marginal ranges, but that does
+              not prove range departure caused every error.
+            - Predictive importance changed by population; no universal or causal sensor ranking
+              was established.
+            - This is a completed-cycle weight estimate, not control, conformance or physical
+              root-cause analysis.
+            """
+        )
+    with next_step:
+        st.markdown(
+            """
+            **The next question: does the model know when it is unreliable?**
+
+            The Reliability tab tests whether calibrated intervals still contain measured
+            weights under experiment shift, and whether input distance identifies predictions
+            that need physical measurement. Those results determine the next data-collection
+            and validation steps.
+            """
+        )
 
     st.subheader("Per-experiment predictions")
     family = str(
@@ -367,17 +584,32 @@ def _render_prediction_tab(data: DashboardData) -> None:
         )
     )
     predictions, group_column = _prediction_source(data, family)
-    protocol = str(st.selectbox("Protocol", ("primary", "secondary_id"), key="prediction_protocol"))
+    protocol = str(
+        st.selectbox(
+            "Protocol",
+            ("primary", "secondary_id"),
+            key="prediction_protocol",
+            format_func=PROTOCOL_LABELS.__getitem__,
+        )
+    )
     choices = sorted(
         predictions.filter(pl.col("protocol") == protocol)[group_column].unique().to_list()
     )
-    choice = str(st.selectbox("Model / representation", choices))
+    default_choice = choices.index("pls") if "pls" in choices else 0
+    choice = str(st.selectbox("Model / representation", choices, index=default_choice))
     selected = predictions.filter(
         (pl.col("protocol") == protocol) & (pl.col(group_column) == choice)
     )
     experiments = sorted(selected["experiment_id"].unique().to_list())
+    default_experiment = experiments.index(23) if protocol == "primary" and 23 in experiments else 0
     experiment = cast(
-        int, st.selectbox("Evaluation experiment", experiments, key="prediction_experiment")
+        int,
+        st.selectbox(
+            "Evaluation experiment",
+            experiments,
+            index=default_experiment,
+            key="prediction_experiment",
+        ),
     )
     selected = selected.filter(pl.col("experiment_id") == experiment)
     actual_figure = go.Figure()
@@ -402,14 +634,42 @@ def _render_prediction_tab(data: DashboardData) -> None:
         yaxis_title="Predicted weight (g)",
     )
     st.plotly_chart(actual_figure, width="stretch")
+    signed_errors = (
+        selected["predicted_weight_g"].to_numpy() - selected["observed_weight_g"].to_numpy()
+    )
+    mean_bias = float(np.mean(signed_errors))
+    direction = ""
+    if np.all(signed_errors < 0):
+        direction = " Every prediction underestimates the measured weight."
+    elif np.all(signed_errors > 0):
+        direction = " Every prediction overestimates the measured weight."
+    st.caption(
+        f"Mean signed error (predicted - measured): {mean_bias:+.3f} g.{direction} "
+        "Negative means underprediction on average; positive means overprediction."
+    )
     experiment_table = per_experiment_metrics(predictions, group_column).filter(
         (pl.col("protocol") == protocol) & (pl.col(group_column) == choice)
     )
     st.dataframe(experiment_table, hide_index=True, width="stretch")
 
     st.subheader("Population-specific predictive importance")
+    st.write(
+        "Permutation importance shuffles one input across evaluated parts and measures the "
+        "change in prediction error. Positive values mean shuffling hurt predictions; negative "
+        "values mean it improved this model's predictions, not that changing the physical "
+        "process would help. "
+        "Importance changed with the evaluated population. Switchover pressure led several "
+        "populations, while injection time led represented experiment 23; 40 of 96 saved mean "
+        "importances were negative. The chart explains one fitted model and population at a "
+        "time—not a universal sensor hierarchy."
+    )
     importance_protocol = str(
-        st.selectbox("Importance protocol", ("primary", "secondary_id"), key="importance_protocol")
+        st.selectbox(
+            "Importance protocol",
+            ("primary", "secondary_id"),
+            key="importance_protocol",
+            format_func=PROTOCOL_LABELS.__getitem__,
+        )
     )
     importance_experiments = sorted(
         data.importance.filter(pl.col("protocol") == importance_protocol)[
@@ -418,9 +678,17 @@ def _render_prediction_tab(data: DashboardData) -> None:
         .unique()
         .to_list()
     )
+    default_importance_experiment = (
+        importance_experiments.index(20) if 20 in importance_experiments else 0
+    )
     importance_experiment = cast(
         int,
-        st.selectbox("Importance experiment", importance_experiments, key="importance_experiment"),
+        st.selectbox(
+            "Importance experiment",
+            importance_experiments,
+            index=default_importance_experiment,
+            key="importance_experiment",
+        ),
     )
     importance = data.importance.filter(
         (pl.col("protocol") == importance_protocol)
@@ -459,10 +727,20 @@ def _render_prediction_tab(data: DashboardData) -> None:
 
 def _render_reliability_tab(data: DashboardData) -> None:
     st.header("Reliability under shift")
+    st.error(
+        "Nominal 90% intervals covered 86.2% of represented-group outcomes "
+        "but only 5.2% under held-out-experiment shift. The input-distance score missed the "
+        "required error-reduction threshold in one development setup, so no automatic "
+        "measurement policy is claimed."
+    )
     st.write(
-        "Intervals target 90% marginal coverage. Empirical coverage under held-out-experiment "
-        "shift "
-        "was poor; experiment 23 retained a small nonzero coverage of about 0.3%."
+        "This uncertainty study selects between scalar PLS and LightGBM using development "
+        "data separately for each fold, then calibrates on reserved cycles. LightGBM was "
+        "selected for held-out experiments 15/20 and the ID benchmark; PLS for experiment 23. "
+        "A nominal 90% interval aims to contain nine in ten measured weights under its "
+        "assumptions; empirical coverage is how often it actually did. Calibration sets one "
+        "fixed error margin per fitted model, so intervals do not automatically widen for "
+        "an unfamiliar cycle."
     )
     coverage = coverage_summary(data.interval_metrics)
     coverage_figure = go.Figure()
@@ -494,14 +772,55 @@ def _render_reliability_tab(data: DashboardData) -> None:
         hide_index=True,
         width="stretch",
     )
+    st.caption(
+        "Experiment 23 illustrates the failure mode: its interval averaged 0.550 g wide, yet "
+        "coverage was about 0.3%. That calibrated interval was insufficient to cover the "
+        "systematic underprediction; no separate interval-widening experiment was run."
+    )
+
+    m8_eligible = data.uncertainty_run.get("m8_eligible")
+    st.subheader("Why the selective-measurement gate stopped")
+    st.write(
+        "M7 tested whether distance from familiar training cycles could identify predictions "
+        "that were safer to accept. Retaining the closest 75% had to reduce development MAE by "
+        "at least 10% in every primary fold before M8 could proceed."
+    )
+    st.markdown(
+        """
+        | Future held-out experiment | Development MAE reduction | Decision |
+        | --- | ---: | --- |
+        | Experiment 15 | 19.66% | Pass |
+        | Experiment 20 | 4.31% | **Fail** |
+        | Experiment 23 | 16.31% | Pass |
+        """
+    )
+    st.warning(
+        "The all-fold gate failed. Input distance can identify an unfamiliar cycle without "
+        "reliably identifying whether its weight prediction will be wrong. The project therefore "
+        f"stopped before risk-coverage curves or an automatic measurement rule (M8 eligible: "
+        f"{m8_eligible}) instead of searching for a favorable score after seeing the result."
+    )
 
     st.subheader("Saved interval example")
-    protocol = str(st.selectbox("Interval protocol", ("primary", "secondary_id")))
+    protocol = str(
+        st.selectbox(
+            "Interval protocol",
+            ("primary", "secondary_id"),
+            format_func=PROTOCOL_LABELS.__getitem__,
+        )
+    )
     interval_rows = data.interval_predictions.filter(pl.col("protocol") == protocol)
     experiments = sorted(interval_rows["experiment_id"].unique().to_list())
     experiment = cast(int, st.selectbox("Interval experiment", experiments))
     interval_rows = interval_rows.filter(pl.col("experiment_id") == experiment).sort(
         "cycle_counter"
+    )
+    interval_model = data.importance.filter(
+        (pl.col("protocol") == protocol) & (pl.col("evaluation_experiment_id") == experiment)
+    ).item(0, "model_family")
+    st.caption(
+        f"Selected model: {interval_model}. "
+        "The band is the saved prediction plus/minus its calibration error margin."
     )
     start_options = list(range(0, interval_rows.height, 30))
     start = st.selectbox(
@@ -546,7 +865,12 @@ def _render_reliability_tab(data: DashboardData) -> None:
 
     st.subheader("Observed marginal feature-range departures")
     support_protocol = str(
-        st.selectbox("Support protocol", ("primary", "secondary_id"), key="support_protocol")
+        st.selectbox(
+            "Support protocol",
+            ("primary", "secondary_id"),
+            key="support_protocol",
+            format_func=PROTOCOL_LABELS.__getitem__,
+        )
     )
     support = support_heatmap_table(data.support, support_protocol)
     populations = support["population"].unique(maintain_order=True).to_list()
@@ -585,13 +909,43 @@ def _render_reliability_tab(data: DashboardData) -> None:
         "distributional support, a cause, or a product limit."
     )
 
-    m8_eligible = data.uncertainty_run.get("m8_eligible")
-    st.error(
-        "The development-only distance gate did not pass every required fold "
-        f"(saved M8 eligibility: {m8_eligible}). M8 was skipped: there is no validated "
-        "selective-measurement curve or support-based deployment policy. Feature shift co-occurs "
-        "with errors, but is not established as their dominant cause."
+    st.subheader("What to do next")
+    st.markdown(
+        """
+        1. **Expand the labeled operating envelope** across its boundaries, interior and important
+           combinations—not just more cycles from one familiar condition.
+        2. **Keep holding out complete conditions, lots or machines** so familiar-condition
+           accuracy cannot hide transfer failure.
+        3. **Validate guardrails prospectively:** warn on unsupported inputs, physically measure
+           those cases, and use the outcomes to test error, coverage and recalibration before
+           automating any measurement decision.
+        """
     )
+    with st.expander("Future monitoring and intended-use details"):
+        st.markdown(
+            """
+            An input-drift warning means the model may be outside its validated use; it does not
+            mean the part is defective. Data-quality, operating-context and process-distribution
+            changes can be checked immediately. Actual performance and interval-calibration drift
+            require later measured weights. This dataset lacks authoritative wall-clock chronology,
+            so it cannot validate temporal drift detection or warning delay.
+
+            A future system could distinguish **represented**, **boundary/drift warning** and
+            **unsupported** operation. Those states are not current product functionality; their
+            thresholds need development selection and prospective validation.
+
+            A deployable model should define and enforce:
+
+            - supported machine, mold, material, target and operating envelope;
+            - required inputs, units, sampling grid and prediction cutoff;
+            - validated performance by relevant process condition;
+            - unsupported conditions, warning/refusal rules and physical-measurement policy;
+            - data/model identity, calibration date and the evidence required for recalibration.
+
+            The operating loop is: **build the envelope → predict inside it → warn near or
+            outside it → physically measure unsupported cases → expand and recalibrate**.
+            """
+        )
 
 
 def render_dashboard(paths: DashboardPaths = DEFAULT_PATHS) -> None:

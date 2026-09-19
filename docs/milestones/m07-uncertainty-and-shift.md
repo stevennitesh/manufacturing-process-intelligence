@@ -157,6 +157,8 @@ uncertainty score. Continue to bounded predictive explanation and the dashboard 
 M9/M10 while presenting interval failures and the negative gate result directly.
 This is failure of the pre-specified conservative criterion, not proof that the
 distance score has no utility in every population or use case.
+The final cross-milestone interpretation and proposed path to broader operating-
+condition coverage are consolidated in [M10](m10-dashboard.md#consolidated-interpretation).
 
 ## Reproduction and verification
 

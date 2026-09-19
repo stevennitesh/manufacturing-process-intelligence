@@ -139,3 +139,5 @@ for this reporting update.
 
 Plan M5's bounded trajectory representations from the specified feature families
 and development evidence, not from these outer-evaluation residuals.
+The final cross-milestone interpretation and data-collection implications are
+consolidated in [M10](m10-dashboard.md#consolidated-interpretation).

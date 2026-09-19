@@ -148,3 +148,107 @@ failed, and M8 remains skipped. There is no selective-measurement curve or polic
 The bounded Dataset 2 MVP is ready for the separate release decision. No Git tag or
 publication is part of this milestone; the roadmap's next decision is the post-MVP
 source audit gate.
+
+## Consolidated interpretation
+
+The published work and this portfolio answer related but different questions. The
+paper used repeated nested random cross-validation to test the incremental predictive
+value of high-resolution pressure and flow signals when observations from the available
+conditions can occur across folds. This project withholds a complete experiment group,
+including its multiple intervention settings. Features and models also differ, so this
+is an extension rather than an exact replication. Its transfer result does not contradict the published result; it
+demonstrates that random-cycle accuracy is not evidence of new-condition transfer.
+
+This experiment supports a bounded conclusion: part weight is predicted well when
+the evaluated operating regimes are represented during fitting, but point accuracy
+and interval reliability do not transfer reliably when a complete controlled
+experiment is withheld. M9 shows that held-out regimes frequently extend beyond
+observed marginal fitting ranges, which is direct evidence of extrapolation pressure,
+not proof that support departure caused every error or that all future process
+changes must fail.
+
+Four secondary findings sharpen that conclusion. About 70.45% of observed weight
+variation lies between the three controlled experiments, so pooled metrics partly
+reward regime separation and can hide weaker within-experiment explanation. Scalar
+PLS produced the lowest grouped aggregate error among the predefined scalar,
+LightGBM and trajectory comparisons; added model or representation complexity did
+not replace process-condition coverage. Its experiment-23 failure was directional:
+every prediction was low, with -0.798 g mean signed error. The corresponding M7
+interval averaged 0.550 g wide but covered only about 0.3%; this calibration-derived
+margin was insufficient for the systematic underprediction. No separate widening study
+was run. M7 selected PLS for this fold and LightGBM for the other primary folds and ID,
+using development data. Its intervals have constant width per fitted model. Finally,
+M9 importance changed across populations; correlated inputs and 40/96 negative mean
+importances preclude a stable or causal sensor hierarchy.
+
+Improving transfer requires labeled coverage across the conditions expected in use.
+The intended operating envelope should be defined and sampled near its boundaries
+and throughout its interior, including relevant combinations of material lots,
+recipes, machines, temperatures, pressures and other physically meaningful context.
+Boundary observations help establish the supported envelope; interior observations
+teach interpolation within it. Additional context may be evaluated as a predictor
+when its physical meaning and prediction-time availability are established.
+
+A future adaptive workflow should be evaluated as a new experiment: detect conditions
+outside the well-covered envelope, route those parts to physical measurement, add their labeled
+outcomes to the training set, retrain/recalibrate, and continue validating on whole
+unseen conditions, lots or machines. This is a recommended data-collection and
+validation strategy, not a capability established by v0.1. The current distance
+screen failed its gate, so no support-based rejection policy is claimed.
+Interpolation inside a well-covered envelope may be reliable after validation;
+extrapolation beyond it remains a separate, less reliable problem.
+
+Trajectory information is useful without being automatically transferable. The
+engineered and compressed representations tested here produced inconsistent improvements
+across held-out conditions. A future study may compare direct raw-trajectory models or
+representations designed for stability across conditions, but it must keep whole-condition
+evaluation. Otherwise additional signal detail can improve interpolation while hiding the
+same transfer failure.
+
+Repeated collection across time with measured outcomes would also test the random-cycle
+benchmark's potential optimism from neighboring-cycle dependence. Depending on those
+data, the appropriate solution may be
+separate process-family models, a shared model with qualified recalibration, or a
+hierarchical/transfer-learning design rather than one universal model.
+
+The current model is a completed-cycle virtual measurement of part weight. It is not an
+early-cycle controller, physical root-cause model, product-conformance decision, setting
+recommender or validated replacement for physical measurement.
+
+## Future drift and intended-use controls
+
+Input drift should be interpreted as evidence that the model may be outside its validated
+use, not evidence that the part is defective. A future system should distinguish:
+
+| Drift evidence | Candidate checks | Labels required? |
+| --- | --- | --- |
+| Data quality | Missing channels, changed units/sampling, malformed cycles | No |
+| Operating context | Machine, mold, material lot or recipe changes | No |
+| Covariate/trajectory shift | Ranges, robust scores, multivariate distance, PCA T²/SPE, trajectory shape | No |
+| Temporal process drift | EWMA/CUSUM and gradual signal movement | No, but this dataset lacks authoritative wall-clock chronology for validation |
+| Performance/concept drift | Residual error and changes in the process-to-weight relationship | Yes |
+| Calibration drift | Prediction-interval coverage by condition | Yes |
+
+Prospective evaluation should report detection rate, false-warning rate, detection delay,
+the relationship between warnings and later error, recalibration coverage, and results by
+the physical conditions relevant to use. A three-state interface could distinguish
+**represented**, **boundary/drift warning**, and **unsupported** cycles. Its thresholds must
+be selected on development data and validated before use. The M8 distance ranking failed,
+so the current project has no qualified selective-measurement gate or automated policy.
+
+The M8 stop is itself a reviewer-facing result. The tested score was mean standardized
+five-neighbor distance across the 16 scalar process measurements. Its pre-specified gate
+retained the lowest-distance 75% of development predictions and required at least 10% MAE
+reduction in every primary fold. Reductions were 19.66%, 4.31% and 16.31% for future
+holdouts 15, 20 and 23 respectively; the represented-regime diagnostic reached only
+5.68%. Because one primary fold failed, no risk-coverage curve or automatic measurement
+rule was produced. Input novelty may support a warning without reliably ranking prediction
+error, and trying additional scores after observing this result would weaken the evidence.
+
+A future intended-use contract must be enforced at inference time and should define the
+supported machine/mold/material/target, required inputs and units, sampling grid and
+prediction cutoff, operating envelope, validated performance by condition, unsupported
+conditions, model/data identity, calibration date, measurement policy, and warning/refusal
+rules. The intended lifecycle is: build the envelope, predict within it, detect approach to
+or departure from it, physically measure unsupported cases, and expand/recalibrate using
+their labeled outcomes.

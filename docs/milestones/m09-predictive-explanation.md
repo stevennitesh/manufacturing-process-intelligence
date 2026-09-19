@@ -117,6 +117,10 @@ largest ID outside-range fraction was 4.9%. These values describe one-dimensiona
 observed ranges only; they do not establish multivariate support, invalid operation,
 causality or an explanation for M7's interval-coverage failure.
 
+The final interpretation—represented-regime prediction, unseen-regime limits and
+the proposed labeled-condition expansion strategy—is consolidated in
+[M10](m10-dashboard.md#consolidated-interpretation).
+
 ## Verification evidence
 
 The locked real-data workflow completed twice with identical output tables and

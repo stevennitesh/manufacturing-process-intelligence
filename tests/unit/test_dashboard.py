@@ -155,8 +155,8 @@ def _write_dashboard_fixture(root: Path) -> DashboardPaths:
         }
     ).write_parquet(paths.bundle / "signals.parquet")
 
-    _metrics("model", ("mean", "ridge")).write_parquet(paths.m04 / "metrics.parquet")
-    _predictions("model", ("mean", "ridge")).write_parquet(paths.m04 / "predictions.parquet")
+    _metrics("model", ("mean", "ridge", "pls")).write_parquet(paths.m04 / "metrics.parquet")
+    _predictions("model", ("mean", "ridge", "pls")).write_parquet(paths.m04 / "predictions.parquet")
     _metrics("representation", ("A", "B")).write_parquet(paths.m05 / "metrics.parquet")
     _predictions("representation", ("A", "B")).write_parquet(paths.m05 / "predictions.parquet")
     _metrics("representation", ("A", "B")).write_parquet(paths.m06 / "metrics.parquet")
@@ -390,6 +390,37 @@ def test_synthetic_app_renders_three_tabs_and_selectors(tmp_path: Path) -> None:
     assert len(app.selectbox) >= 10
     assert any("not prospective untouched holdouts" in info.value for info in app.info)
     assert any("not confidence intervals" in caption.value for caption in app.caption)
+    rendered_markdown = " ".join("\n".join(markdown.value for markdown in app.markdown).split())
+    subheaders = " ".join(subheader.value for subheader in app.subheader)
+    assert "What one cycle contains—and how it is used" in subheaders
+    assert "How the controlled experiments differ" in subheaders
+    assert "16 completed-cycle variables" in rendered_markdown
+    assert "Moisture: raw 0.050" in rendered_markdown
+    assert "Mold temperature: 80" in rendered_markdown
+    assert "weight never enters as a predictor" in rendered_markdown
+    assert "How the experiment works" in subheaders
+    assert "harder transfer question" in rendered_markdown
+    assert "70.45% of observed weight variation" in rendered_markdown
+    assert "complexity did not replace condition coverage" in rendered_markdown
+    assert "completed-cycle weight estimate" in rendered_markdown
+    assert "What was learned and what comes next" in subheaders
+    assert "Why the selective-measurement gate stopped" in subheaders
+    assert any(
+        "Input distance can identify an unfamiliar cycle" in warning.value
+        for warning in app.warning
+    )
+    assert "19.66%" in rendered_markdown
+    assert "Expand the labeled operating envelope" in rendered_markdown
+    assert "Future monitoring and intended-use details" in " ".join(
+        expander.label for expander in app.expander
+    )
+    assert (
+        next(box for box in app.selectbox if box.label == "Model / representation").value == "pls"
+    )
+    assert app.selectbox(key="importance_experiment").value == 20
+    captions = " ".join(caption.value for caption in app.caption)
+    assert "Mean signed error (predicted - measured)" in captions
+    assert "interval averaged 0.550 g wide" in captions
     protocol_selector = next(box for box in app.selectbox if box.label == "Protocol")
     protocol_selector.select("secondary_id")
     app.run(timeout=10)
