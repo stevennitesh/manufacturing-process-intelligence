@@ -365,6 +365,47 @@ def _bar_chart(
     return figure
 
 
+def observed_vs_predicted_figure(selected: pl.DataFrame, *, title: str) -> go.Figure:
+    """Plot observed and predicted weights on one padded range with equal scale."""
+    low = min(
+        cast(float, selected["observed_weight_g"].min()),
+        cast(float, selected["predicted_weight_g"].min()),
+    )
+    high = max(
+        cast(float, selected["observed_weight_g"].max()),
+        cast(float, selected["predicted_weight_g"].max()),
+    )
+    padding = max((high - low) * 0.1, 0.001)
+    shared_range = [low - padding, high + padding]
+    figure = go.Figure()
+    figure.add_scatter(
+        x=selected["observed_weight_g"].to_list(),
+        y=selected["predicted_weight_g"].to_list(),
+        mode="markers",
+        marker={"size": 9, "opacity": 0.8},
+        name="Cycles",
+    )
+    figure.add_scatter(x=[low, high], y=[low, high], mode="lines", name="Ideal")
+    figure.update_layout(
+        title=title,
+        height=600,
+        xaxis={
+            "title": "Observed weight (g)",
+            "range": shared_range,
+            "tickformat": ".3f",
+            "constrain": "domain",
+        },
+        yaxis={
+            "title": "Predicted weight (g)",
+            "range": shared_range,
+            "tickformat": ".3f",
+            "scaleanchor": "x",
+            "scaleratio": 1,
+        },
+    )
+    return figure
+
+
 def cycle_signal_summary(signals: pl.DataFrame) -> pl.DataFrame:
     """Pointwise observed spread on the shared native grid; no peak alignment."""
     return (
@@ -393,7 +434,8 @@ def _render_data_tab(data: DashboardData) -> None:
         "using its physical measurement. Weight is one quality characteristic, not a complete "
         "acceptability verdict. "
         "Dataset 2 contains controlled injection-molding runs for a stacking-box part made from "
-        "BASF Ultramid B3EG6 (PA6-GF30). Each labeled machine cycle maps to one molded part."
+        "BASF Ultramid B3EG6, a glass-fiber-reinforced nylon 6 material (PA6-GF30). Each labeled "
+        "machine cycle maps to one molded part."
     )
     with st.expander("What one cycle contains—and how it is used"):
         st.markdown(
@@ -420,6 +462,25 @@ def _render_data_tab(data: DashboardData) -> None:
             "The source also contains optional cavity-pressure/state data that this bounded MVP "
             "does not use. Signal-only cycles without a matching scalar/quality row have no "
             "supported weight target and are excluded during preparation."
+        )
+    with st.expander("Process feature glossary"):
+        st.markdown(
+            """
+            - **Maximum injection pressure:** the highest recorded injection-pressure value for
+              the completed cycle.
+            - **Switchover injection pressure:** the named machine measurement at the transition
+              from filling to the next molding phase.
+            - **Melt cushion:** material remaining ahead of the screw after injection; the source
+              does not establish whether its native value represents travel or volume.
+            - **Dosing time:** the recorded duration of preparing material for the next cycle.
+            - **Barrel heating zones:** temperature measurements along the machine barrel.
+            - **Actual back pressure:** a preserved source measurement whose negative values and
+              unresolved semantics do not support interpreting it as an ordinary pressure
+              setpoint.
+
+            Machine-native units remain unresolved except where explicitly stated; these labels
+            explain the recorded features without adding unit or causal assumptions.
+            """
         )
 
     summary, between_fraction = experiment_summary(data)
@@ -628,8 +689,10 @@ def _render_prediction_tab(data: DashboardData) -> None:
     )
     with st.expander("Method and reading guide"):
         st.markdown(
-            "Each group contains multiple settings. Random cycle holdout can be optimistic for "
-            "later production when neighboring cycles resemble one another. The original "
+            "Each group contains multiple settings. Because training and evaluation contain "
+            "cycles from the same experiment groups, random-cycle holdout primarily measures "
+            "interpolation within represented conditions and may overstate performance for "
+            "genuinely new production conditions. The original "
             "paper's random cross-validation asked whether detailed signals improve prediction "
             "within the available condition mixture; this project adds the harder transfer "
             "question. Its features and models also differ, so this is an extension, not an "
@@ -640,7 +703,7 @@ def _render_prediction_tab(data: DashboardData) -> None:
             "regularized linear model; **PLS** learns components linking correlated inputs to "
             "weight; **LightGBM** learns nonlinear relationships with decision trees.\n\n"
             "The initial exploratory audit inspected all loaded experiments before the grouped "
-            "evaluation protocol was fixed. These are retrospective comparisons, not "
+            "evaluation design was fixed. These are retrospective comparisons, not "
             "prospective untouched holdouts."
         )
     scalar = headline_mae(data.scalar_metrics, data.scalar_predictions, "model")
@@ -661,7 +724,8 @@ def _render_prediction_tab(data: DashboardData) -> None:
     st.caption(
         f"The like-weighted reviewer comparison is {id_mae:.3f} g versus {heldout_mae:.3f} g "
         f"pooled MAE. The predefined primary result remains {equal_fold_mae:.3f} g equal-fold "
-        "MAE. The protocols use separately fitted pipelines, so the gap is descriptive rather "
+        "MAE. The evaluation settings use separately fitted pipelines, so the gap is "
+        "descriptive rather "
         "than a paired causal effect."
     )
 
@@ -828,7 +892,7 @@ def _render_prediction_tab(data: DashboardData) -> None:
         gate_result = "passed" if data.uncertainty_run.get("m8_eligible") else "failed"
         st.markdown(
             f"""
-            **Next in the analysis: can a model recognize when it is unreliable?**
+            **The next analysis asked whether the model could recognize when it was unreliable.**
 
             Empirical interval coverage was {coverage_direction} for unseen experiments, and the
             saved development distance gate {gate_result}. The Reliability tab shows the loaded
@@ -846,7 +910,7 @@ def _render_prediction_tab(data: DashboardData) -> None:
     predictions, group_column = _prediction_source(data, family)
     protocol = str(
         st.selectbox(
-            "Protocol",
+            "Evaluation setting",
             ("primary", "secondary_id"),
             key="prediction_protocol",
             format_func=PROTOCOL_LABELS.__getitem__,
@@ -879,47 +943,15 @@ def _render_prediction_tab(data: DashboardData) -> None:
         ),
     )
     selected = selected.filter(pl.col("experiment_id") == experiment)
-    actual_figure = go.Figure()
-    actual_figure.add_scatter(
-        x=selected["observed_weight_g"].to_list(),
-        y=selected["predicted_weight_g"].to_list(),
-        mode="markers",
-        name="Cycles",
-    )
-    low = min(
-        cast(float, selected["observed_weight_g"].min()),
-        cast(float, selected["predicted_weight_g"].min()),
-    )
-    high = max(
-        cast(float, selected["observed_weight_g"].max()),
-        cast(float, selected["predicted_weight_g"].max()),
-    )
-    actual_figure.add_scatter(x=[low, high], y=[low, high], mode="lines", name="Ideal")
-    zoom_predictions = st.checkbox(
-        "Zoom axes to the observed and predicted samples",
-        value=True,
-        key="prediction_axis_zoom",
-    )
-    for column, axis in (("observed_weight_g", "xaxis"), ("predicted_weight_g", "yaxis")):
-        axis_low = cast(float, selected[column].min()) if zoom_predictions else low
-        axis_high = cast(float, selected[column].max()) if zoom_predictions else high
-        padding = max((axis_high - axis_low) * 0.1, 0.001)
-        actual_figure.update_layout(
-            {axis: {"range": [axis_low - padding, axis_high + padding], "tickformat": ".3f"}}
-        )
-    actual_figure.update_layout(
+    actual_figure = observed_vs_predicted_figure(
+        selected,
         title=f"{family} · {_display_label(choice)} · experiment {experiment}",
-        xaxis_title="Observed weight (g)",
-        yaxis_title="Predicted weight (g)",
     )
     st.plotly_chart(actual_figure, width="stretch")
-    if zoom_predictions:
-        st.caption(
-            "Zoomed view: the axes use different ranges to reveal individual samples. "
-            "The ideal prediction line may be partly or entirely outside the view. "
-            "Small visible differences do not imply accurate predictions; turn off zoom "
-            "to compare both axes over the same weight range."
-        )
+    st.caption(
+        "Observed and predicted weights use the same padded numerical range and equal physical "
+        "scale, so distance from the ideal line is not distorted."
+    )
     signed_errors = (
         selected["predicted_weight_g"].to_numpy() - selected["observed_weight_g"].to_numpy()
     )
@@ -951,6 +983,12 @@ def _render_prediction_tab(data: DashboardData) -> None:
         hide_index=True,
         width="stretch",
     )
+    st.caption(
+        "RMSE emphasizes larger errors more than MAE. R² compares squared prediction error with "
+        "a constant predictor equal to the observed mean of the displayed evaluation population; "
+        "R² = 1 is perfect, 0 matches that reference, and negative values are worse. That "
+        "reference is not necessarily the fitted model's training-mean prediction."
+    )
 
     st.subheader("Population-specific predictive importance")
     st.write(
@@ -965,7 +1003,7 @@ def _render_prediction_tab(data: DashboardData) -> None:
     )
     importance_protocol = str(
         st.selectbox(
-            "Importance protocol",
+            "Importance evaluation setting",
             ("primary", "secondary_id"),
             key="importance_protocol",
             format_func=PROTOCOL_LABELS.__getitem__,
@@ -1182,7 +1220,7 @@ def _render_reliability_tab(data: DashboardData) -> None:
     st.subheader("Saved interval example")
     protocol = str(
         st.selectbox(
-            "Interval protocol",
+            "Interval evaluation setting",
             ("primary", "secondary_id"),
             format_func=PROTOCOL_LABELS.__getitem__,
         )
@@ -1244,7 +1282,7 @@ def _render_reliability_tab(data: DashboardData) -> None:
     st.subheader("How often were process measurements outside the training range?")
     support_protocol = str(
         st.selectbox(
-            "Support protocol",
+            "Support evaluation setting",
             ("primary", "secondary_id"),
             key="support_protocol",
             format_func=PROTOCOL_LABELS.__getitem__,
@@ -1322,8 +1360,10 @@ def _render_reliability_tab(data: DashboardData) -> None:
     st.subheader("What to do next")
     st.markdown(
         """
-        1. **Expand the labeled operating envelope** across its boundaries, interior and important
-           combinations—not just more cycles from one familiar condition.
+        1. **Expand the labeled operating envelope**—the combinations and ranges of process
+           conditions for which the model has labeled examples and validation evidence—across
+           its boundaries, interior and important combinations, not just more cycles from one
+           familiar condition.
         2. **Keep holding out complete conditions, lots or machines** so familiar-condition
            accuracy cannot hide transfer failure.
         3. **Validate guardrails prospectively:** warn on unsupported inputs, physically measure
@@ -1381,22 +1421,21 @@ def render_dashboard(paths: DashboardPaths = DEFAULT_PATHS) -> None:
     data_kpi.metric(
         "Loaded evidence",
         f"{cast(int, experiment_rows['labeled_cycles'].sum())} cycles",
-        f"{experiment_rows.height} experiment groups",
     )
+    data_kpi.caption(f"{experiment_rows.height} experiment groups")
     prediction_kpi.metric(
-        "PLS pooled MAE",
-        f"{prediction['Represented conditions — pooled cycles']:.3f} → "
-        f"{prediction['Unseen experiment — pooled cycles']:.3f} g",
-        "represented → unseen experiment",
-        delta_color="off",
+        "PLS pooled MAE — represented",
+        f"{prediction['Represented conditions — pooled cycles']:.3f} g",
+    )
+    prediction_kpi.caption(
+        f"Unseen experiment: {prediction['Unseen experiment — pooled cycles']:.3f} g"
     )
     reliability_kpi.metric(
-        f"{cast(float, data.uncertainty_run.get('nominal_coverage', 0.9)):.0%} interval coverage",
-        f"{uncertainty['secondary_id_empirical_coverage']:.1%} → "
-        f"{uncertainty['primary_empirical_coverage']:.1%}",
-        "represented → unseen experiment",
-        delta_color="off",
+        "Interval coverage — represented "
+        f"(nominal {cast(float, data.uncertainty_run.get('nominal_coverage', 0.9)):.0%})",
+        f"{uncertainty['secondary_id_empirical_coverage']:.1%}",
     )
+    reliability_kpi.caption(f"Unseen experiment: {uncertainty['primary_empirical_coverage']:.1%}")
     st.info(
         "This project evaluates completed-cycle virtual measurement: software estimates a "
         "physical part-weight measurement from machine data after molding. It does not select "

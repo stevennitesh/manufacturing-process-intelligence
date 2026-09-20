@@ -2,6 +2,38 @@
 
 **Status:** complete.
 
+## Reviewer cleanup delivery — 2026-09-20
+
+Purpose: make the completed study easier to read without misleading graphical or
+causal comparisons. Modeling, saved results and evaluation memberships are unchanged.
+
+Accepted changes:
+
+- Observed-versus-predicted plots use one padded combined range on both axes and
+  equal physical scale. Remove independent-axis zoom; preserve sample visibility
+  with adequate plot size and markers, not distorted geometry.
+- Describe independently fitted benchmark results with labeled comparisons, not
+  temporal arrows or “fell from” language. Preserve artifact-driven conclusions.
+- Remove repeated README headlines and the visible milestone ledger/future-dataset
+  list; retain scientific findings, limitations, reproduction and roadmap links.
+- Explain RMSE and R² accurately (the R² reference is the evaluated population's
+  observed mean, not necessarily the fitted training-mean predictor). Add a compact
+  process glossary, expand the material name and define operating envelope.
+- Replace visible protocol jargon and unsupported temporal-dependence wording;
+  describe finished analyses in past tense without asserting unsupported causes.
+- Consolidate this milestone's verification into one current record and refresh
+  reviewer screenshots affected by these changes.
+
+Delivery: implement these related presentation changes together, then perform one
+final integrated review. Required evidence: project CI checks, focused regression
+coverage for equal plot ranges/aspect, a saved-data smoke test, browser inspection
+of the prediction plot and headline layout, and README/link consistency checks.
+No new charts, models, dependencies, frameworks, schema changes or historical-data
+migration. Release version changes, tagging, commits and pushes remain separate.
+
+Progress: complete. Implementation, integrated verification, refreshed screenshots and
+final review passed.
+
 ## Purpose and accepted scope
 
 Give a portfolio reviewer a clear, runnable account of Dataset 2: strong prediction
@@ -158,10 +190,8 @@ the real headline and gate summaries with existing prediction/run records. Run C
 real-artifact app smoke, and visually inspect all three tabs and updated screenshots.
 README content/links and the brief/full diagrams must tell the same scientific story.
 
-Progress: complete. Final review verified the loaded-result comparisons, conditional
-interpretation, hash checks and reader flow. All three tabs were visually inspected and
-the tracked overview, prediction and reliability screenshots refreshed from the final
-dashboard. No scientific artifacts, models or release versions changed.
+The loaded-result comparisons, conditional interpretation, hash checks and reader flow
+remain in place. No scientific artifacts, models or release versions changed.
 
 `src/mpi/dashboard.py` provides the single offline Streamlit entry point. It loads
 the prepared Dataset 2 bundle and saved M4-M7/M9 Parquet/JSON outputs directly,
@@ -195,50 +225,27 @@ not a Parquet-integrity registry or automatic stale-file detector.
 
 ## Verification
 
-### Reviewer-surface verification — 2026-09-19
+### Current integrated verification — 2026-09-20
 
-- Focused dashboard tests passed: 12 cases cover loaded-derived experiment, prediction,
-  coverage and gate summaries; changed synthetic metrics and membership; both M7 hash
-  mismatches; missing-input guidance; cache/reload behavior; and all three tabs plus
-  selector reruns through Streamlit's application test harness. The changed-outcome case
-  reverses the real study's error and coverage relationship, makes an augmented
-  representation outperform, and passes every gate fold; the rendered narrative follows
-  those loaded outcomes without retaining failure claims.
-- The real-artifact application rendered all three tabs, reran the represented-condition
-  support selector and explicit reload without exceptions. Independent calculations from
-  saved predictions recovered pooled PLS MAE of 0.113668893 g for represented conditions
-  and 0.523299419 g for unseen-experiment evaluation; interval coverage of 0.862275449 and
-  0.051869723; and development reductions of 0.196563815, 0.043129992 and 0.163110092.
-  Direct hashing confirmed that M9's recorded M7 run and prediction hashes match the
-  currently configured M7 files.
-- Browser inspection at 1280 × 720 confirmed that the overview KPI strip, tolerance caveat,
-  brief flow, descriptive chart labels, prediction comparison and reliability result are
-  readable. The tracked PNG files have not yet been refreshed from this final surface.
-- CI-equivalent checks passed: Ruff lint and format, Pyright, all 90 tests and the CLI
-  version smoke (`0.0.1`). README/M10 local links also resolved. Pytest emitted one
-  environment-only warning because its ignored cache directory was not writable.
-
-- `uv sync --locked --group dev` completed against the 122-package lock.
-- CI-equivalent checks passed: `ruff check .`, `ruff format --check .`, `pyright`,
-  all 86 tests, and `mpi --version` (`0.0.1`).
-- Eight focused dashboard cases cover synthetic equal-fold versus pooled aggregation,
-  protocol/experiment preservation, experiment 23-style small nonzero coverage,
-  analytic MAE/RMSE/R² including null R² for a constant target, support populations,
-  actionable missing-input guidance, all three tabs and a selector rerun through
-  Streamlit's application test harness. The release-polish cases also verify cache
-  reuse/explicit reload and rejection of mixed source or membership records. The
-  real-data app passed a selector rerun and explicit reload with all three tabs.
-- The real-data application test rendered all three tabs from the existing prepared
-  bundle and M4-M7/M9 artifacts, then reran secondary-ID prediction and support
-  selectors without exceptions. Direct reconciliation recovered PLS MAE of
-  0.502667583 g (primary equal-fold), 0.523299419 g (primary pooled) and
-  0.113668893 g (separately fitted pooled ID), three per-experiment ID Ridge rows,
-  including experiment 23's 0.087060831 g MAE, 0.106434371 g RMSE and 0.539380043
-  R², and all 48 primary feature-support cells with a maximum fraction of 1.0.
-- Desktop browser inspection at 1280 × 720 confirmed readable tabs, headings,
-  legends, axes and units for representative data, prediction, coverage, interval
-  and support views. Changing support from primary to secondary ID visibly updated
-  the heatmap. The temporary browser tab and local Streamlit server were closed.
+- The focused dashboard suite passed 14 cases. The added regression proves that the
+  observed-versus-predicted plot uses one padded combined range on both axes, anchors the
+  y-axis to the x-axis at a 1:1 scale and retains a 600-pixel review surface. Existing
+  synthetic coverage still reverses the real study's error and coverage relationships,
+  changes the winning representation and passes the gate; rendered conclusions continue
+  to follow loaded evidence rather than fixed real-result prose.
+- The real saved-data application rendered all three tabs, reran represented-condition
+  prediction and support selectors, and explicitly reloaded without exceptions. This
+  exercises the existing prepared bundle and M4-M7/M9 artifacts without training or writes.
+- Desktop browser inspection at 1280 × 720 confirmed the arrow-free headline comparisons,
+  readable tabs and labels, and the experiment-23 observed-versus-predicted plot with matching
+  113-115 g axes and equal physical scale. The RMSE/R² explanation was readable beneath the
+  per-experiment table, and the reliability surface retained the descriptive 86.2% versus
+  5.2% comparison. The tracked overview, prediction and reliability PNGs were refreshed from
+  the final reviewed surface.
+- The locked 122-package environment resolved, and all CI-equivalent checks passed:
+  `ruff check .`, `ruff format --check .`, Pyright, all 92 tests and `mpi --version`
+  (`0.0.1`). README/M10 local links resolved. The focused run emitted one environment-only
+  warning because its ignored pytest cache directory was not writable.
 
 ## Limitations and next step
 
@@ -250,8 +257,7 @@ fitted pipelines. Coverage under shift remains poor, the development distance ga
 failed, and M8 remains skipped. There is no selective-measurement curve or policy.
 
 The bounded Dataset 2 MVP is ready for the separate release decision. No Git tag or
-publication is part of this milestone; the roadmap's next decision is the post-MVP
-source audit gate.
+publication is part of this milestone; the roadmap owns later project decisions.
 
 ## Consolidated interpretation
 
@@ -309,9 +315,9 @@ representations designed for stability across conditions, but it must keep whole
 evaluation. Otherwise additional signal detail can improve interpolation while hiding the
 same transfer failure.
 
-Repeated collection across time with measured outcomes would also test the random-cycle
-benchmark's potential optimism from neighboring-cycle dependence. Depending on those
-data, the appropriate solution may be
+Repeated collection across time with measured outcomes would also test whether the
+represented-condition benchmark overstates performance for genuinely new production
+conditions. Depending on those data, the appropriate solution may be
 separate process-family models, a shared model with qualified recalibration, or a
 hierarchical/transfer-learning design rather than one universal model.
 

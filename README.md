@@ -14,14 +14,15 @@ and does that accuracy hold when process conditions change?
 
 **Result:** With all experiment groups represented during training, scalar PLS reached
 **0.114 g pooled MAE**. When a complete experiment was withheld, the like-weighted pooled
-MAE was **0.523 g**. Nominal 90% interval coverage fell from **86.2%** to **5.2%**.
+MAE was **0.523 g**. Nominal 90% interval coverage was **86.2%** in the
+represented-condition benchmark versus **5.2%** under whole-experiment holdout.
 Richer pressure/flow representations sometimes helped, but not consistently across the
 three held-out conditions.
 
-**Practical implication:** Validation design and labeled operating-condition coverage
-mattered more than additional model or signal complexity. The simple uncertainty screen
-failed its development gate, so this project does not claim that physical measurement can
-safely be skipped.
+**Practical implication:** The error difference between the two evaluation settings was much
+larger than the observed gains from additional model or signal complexity. The simple
+uncertainty screen failed its development gate, so this project does not claim that physical
+measurement can safely be skipped.
 
 ```mermaid
 flowchart LR
@@ -55,8 +56,8 @@ after the cycle, before using the physical weight measurement. Weight is one qua
 characteristic, not a complete verdict on whether a part is acceptable.
 
 The project uses **scatimdata Dataset 2**: controlled injection-molding runs for a
-stacking-box part made from BASF Ultramid B3EG6 (PA6-GF30). Each labeled machine cycle
-maps to one molded part.
+stacking-box part made from BASF Ultramid B3EG6, a glass-fiber-reinforced nylon 6 material
+(PA6-GF30). Each labeled machine cycle maps to one molded part.
 
 | Data available for each labeled cycle | How this project uses it |
 | --- | --- |
@@ -99,20 +100,15 @@ the detailed study flow and evaluation boundaries.
 
 The models predict completed-part weight well on randomly held-out cycles from experiment
 groups represented during training. Accuracy degrades when a whole experiment is withheld.
-Neighboring cycles can resemble one another, so the random-cycle benchmark may be optimistic
-for later production. The gap between these two evaluations is the central result.
+Because training and evaluation contain cycles from the same controlled experiment groups,
+the random-cycle benchmark primarily measures interpolation within represented conditions
+and may overstate performance for genuinely new production conditions. The gap between
+these two evaluations is the central result.
 The represented-group benchmark is called secondary in-distribution (ID) evaluation.
 The primary benchmark is retrospective grouped cross-validation: the initial audit
 examined all three experiments, so these are not untouched prospective tests.
 
-| Evidence | All experiment groups represented | Entire experiment held out |
-| --- | ---: | ---: |
-| Scalar PLS MAE | 0.114 g pooled | 0.523 g pooled |
-| Nominal 90% interval coverage | 86.2% pooled | 5.2% pooled |
-| Pressure/flow trajectory benefit | Useful in some comparisons | Inconsistent across conditions |
-
-MAE is the average absolute prediction error in grams; smaller is better. The like-weighted
-pooled comparison above gives each cycle equal weight. The predefined primary headline was
+The like-weighted pooled comparison gives each cycle equal weight. The predefined primary headline was
 0.503 g and gives each held-out experiment equal weight. PLS predicts through a small set of components learned from correlated inputs
 and measured weights. For the separate uncertainty study, development data select PLS
 or LightGBM for each fold before reserved cycles calibrate the intervals. Thus the
@@ -176,9 +172,11 @@ reliable error ranking or a working temporal drift detector.
 
 ### What to do next
 
-1. **Expand the labeled operating envelope.** Sample its boundaries, interior and
-   important combinations across material lots, recipes, machines and process settings;
-   more diverse conditions matter more than more cycles from one familiar setup.
+1. **Expand the labeled operating envelope—the combinations and ranges of process
+   conditions for which the model has labeled examples and validation evidence.** Sample
+   its boundaries, interior and important combinations across material lots, recipes,
+   machines and process settings; more diverse conditions matter more than more cycles
+   from one familiar setup.
 2. **Keep condition-held-out validation.** Hold out complete conditions, lots or machines
    so within-condition accuracy cannot conceal transfer failure.
 3. **Validate guardrails prospectively.** Warn when inputs approach or leave the supported
@@ -206,10 +204,6 @@ The intended loop is: **build the envelope → predict inside it → warn near o
 </details>
 
 ### Dashboard preview
-
-**Data and process:** three controlled experiments, linked to physical part weight.
-
-![Dashboard explaining experiment settings, cycle counts and differences in part weight](docs/images/dashboard-overview.png)
 
 <details>
 <summary>Prediction: within-regime accuracy versus unseen-experiment generalization</summary>
@@ -477,35 +471,5 @@ Version-controlled manifests in `data/manifests/` record admitted-source provena
 and hashes. See [DATA_LICENSES.md](DATA_LICENSES.md) before acquiring or redistributing
 any dataset.
 
-## Scope
-
-The project follows this progression:
-
-```text
-predict -> test generalization -> quantify uncertainty -> selectively measure if supported
-        -> detect abnormalities -> diagnose supported contributors -> transfer
-```
-
-After the MVP: audit PyScrew versus CiP-DMD and the cross-process-chain candidate
-for process/assembly intelligence (v0.2), prioritize Bosch Plasma semiconductor
-transfer (v0.3), then an optional role-specific engineering demo (v0.4). Pharma (v0.5) and advanced
-manufacturing (v0.6) are optional later extensions. These are planned capabilities,
-not implemented results; SPC and physical RCA are not Dataset 2 MVP requirements.
-
-The core excludes predictive maintenance, computer vision, distributed
-infrastructure, agentic AI, and autonomous process control until the defined
-quality-intelligence milestones are complete.
-
-## Status
-
-See the [roadmap](docs/implementation-roadmap.md) for the next action and the
-[M1 summary](docs/milestones/m01-injection-molding-ingestion.md) for completion
-evidence. M2 and M3 are complete: the audit, retrospective cutoff, explicit feature
-allowlist and evaluation memberships are reviewed. M4 scalar baselines, M5's fixed
-trajectory comparison, M6's bounded LightGBM comparison, M7's conformal/shift
-evaluation, M9's bounded predictive explanation, and M10's three-tab offline
-dashboard are complete. M7's simple distance score failed the pre-specified gate,
-so M8 remains skipped; the dashboard does not invent a selective-measurement policy.
-The current data contract has no legacy readers or migration paths. Version labels
-are not bumped for routine edits; historical versions become useful when there are
-data or results worth retaining across changes.
+The Dataset 2 MVP is complete. Detailed implementation history, milestone evidence and
+future project decisions remain in the [roadmap](docs/implementation-roadmap.md).

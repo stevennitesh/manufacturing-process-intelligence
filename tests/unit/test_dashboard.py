@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+from typing import cast
 from unittest.mock import patch
 
 import polars as pl
@@ -18,6 +19,7 @@ from mpi.dashboard import (
     experiment_summary,
     headline_mae,
     load_dashboard_data,
+    observed_vs_predicted_figure,
     per_experiment_metrics,
     prediction_headline,
     support_heatmap_table,
@@ -48,6 +50,26 @@ def test_cycle_summary_preserves_native_grid_and_pointwise_spread() -> None:
             assert summary[f"{channel}_{stat}"].to_list() == pytest.approx(
                 [value * scale for value in expected]
             )
+
+
+def test_observed_vs_predicted_uses_one_range_and_equal_scale() -> None:
+    selected = pl.DataFrame(
+        {
+            "observed_weight_g": [114.0, 114.2],
+            "predicted_weight_g": [113.1, 113.4],
+        }
+    )
+    figure = observed_vs_predicted_figure(selected, title="Example")
+    figure_json = cast(dict[str, object], figure.to_plotly_json())
+    layout = cast(dict[str, object], figure_json["layout"])
+    xaxis = cast(dict[str, object], layout["xaxis"])
+    yaxis = cast(dict[str, object], layout["yaxis"])
+
+    assert xaxis["range"] == yaxis["range"]
+    assert xaxis["range"] == pytest.approx((112.99, 114.31))
+    assert yaxis["scaleanchor"] == "x"
+    assert yaxis["scaleratio"] == 1
+    assert layout["height"] == 600
 
 
 def _predictions(group: str, values: tuple[str, ...]) -> pl.DataFrame:
@@ -541,7 +563,7 @@ def test_synthetic_app_renders_three_tabs_and_selectors(tmp_path: Path) -> None:
     assert "0.114" not in all_visible_text
     assert "70.45%" not in all_visible_text
     assert "0.550 g" not in all_visible_text
-    protocol_selector = next(box for box in app.selectbox if box.label == "Protocol")
+    protocol_selector = app.selectbox(key="prediction_protocol")
     protocol_selector.select("secondary_id")
     app.run(timeout=10)
     assert not app.exception
