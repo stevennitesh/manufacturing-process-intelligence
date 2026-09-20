@@ -2,7 +2,8 @@
 
 A manufacturing data-science portfolio investigating a focused question:
 does high-resolution machine telemetry improve part-weight prediction beyond
-scalar measurements, and does it generalize under controlled process changes?
+cycle-level measurements, such as peak pressure and temperature, and does it generalize
+under controlled process changes?
 
 This is a personal résumé/portfolio project: rigorous analysis, reproducible local
 commands and an understandable demo, not a production-grade factory service.
@@ -12,17 +13,22 @@ commands and an understandable demo, not a production-grade factory service.
 **Problem:** Can ordinary injection-molding telemetry estimate completed-part weight,
 and does that accuracy hold when process conditions change?
 
-**Result:** With all experiment groups represented during training, scalar PLS reached
-**0.114 g pooled MAE**. When a complete experiment was withheld, the like-weighted pooled
-MAE was **0.523 g**. Nominal 90% interval coverage was **86.2%** in the
-represented-condition benchmark versus **5.2%** under whole-experiment holdout.
+**Result:** Partial least squares (PLS), a model that combines related machine measurements,
+achieved a **mean absolute error (MAE) of 0.114 g** when training included cycles from every
+experiment group and different cycles were held out for evaluation (*represented conditions*).
+With one entire experiment group excluded from training (*unseen experiment*), MAE was
+**0.523 g**. Both errors are pooled: every evaluated cycle counts equally.
+In the separate uncertainty study, intervals intended to contain 90% of measured weights
+contained **86.2%** in the represented-condition benchmark versus **5.2%** under
+whole-experiment holdout.
 Richer pressure/flow representations sometimes helped, but not consistently across the
 three held-out conditions.
 
-**Practical implication:** The error difference between the two evaluation settings was much
-larger than the observed gains from additional model or signal complexity. The simple
-uncertainty screen failed its development gate, so this project does not claim that physical
-measurement can safely be skipped.
+**Practical implication:** Accurate prediction within represented conditions did not establish
+reliable prediction for an unseen experiment. Adding detailed signals or more complex models
+did not consistently solve that transfer problem. The check for identifying more reliable
+predictions also failed its acceptance criterion, so physical measurement cannot be safely
+skipped on the strength of this study.
 
 ```mermaid
 flowchart LR
@@ -35,9 +41,17 @@ flowchart LR
 
 ![Dashboard summary of the loaded Dataset 2 evidence](docs/images/dashboard-overview.png)
 
-MAE is average absolute prediction error in grams; lower is better. Both headline errors
-above pool cycles, so their weighting is comparable. The predefined primary scientific
-metric was **0.503 g equal-experiment MAE**, reported separately in the technical results.
+### How to read the numbers
+
+| Term | Meaning |
+| --- | --- |
+| MAE | Average absolute weight-prediction error in grams; lower is better. |
+| Pooled | Every evaluated cycle contributes equally. |
+| Equal-experiment | Each held-out experiment contributes equally, regardless of its cycle count. |
+| Interval coverage | Fraction of measured weights inside their prediction intervals. |
+
+The predefined whole-experiment summary was **0.503 g equal-experiment MAE**;
+the **0.523 g pooled MAE** above instead weights experiments by their number of cycles.
 The represented-condition and held-out-condition values come from separately fitted
 pipelines, not a paired causal estimate of shift.
 
@@ -104,17 +118,14 @@ Because training and evaluation contain cycles from the same controlled experime
 the random-cycle benchmark primarily measures interpolation within represented conditions
 and may overstate performance for genuinely new production conditions. The gap between
 these two evaluations is the central result.
-The represented-group benchmark is called secondary in-distribution (ID) evaluation.
-The primary benchmark is retrospective grouped cross-validation: the initial audit
+The whole-experiment benchmark is retrospective grouped cross-validation: the initial audit
 examined all three experiments, so these are not untouched prospective tests.
 
-The like-weighted pooled comparison gives each cycle equal weight. The predefined primary headline was
-0.503 g and gives each held-out experiment equal weight. PLS predicts through a small set of components learned from correlated inputs
-and measured weights. For the separate uncertainty study, development data select PLS
-or LightGBM for each fold before reserved cycles calibrate the intervals. Thus the
-coverage row does not describe a PLS-only study. Coverage is the fraction of measured
-weights inside their intervals; a nominal 90% interval aims to contain nine in ten
-outcomes under its assumptions.
+The uncertainty study is not PLS-only: it selects either PLS or LightGBM (a model built
+from decision trees) using development data, then uses separate reserved cycles to set
+the interval widths. Evaluation cycles are excluded from both steps. Its 90% coverage
+target means nine in ten measured weights should lie inside their intervals under the
+method's assumptions—not that this reliability is guaranteed for new process conditions.
 
 The held-out experiments frequently extended beyond process-variable ranges seen during
 fitting, so the models faced extrapolation pressure. That shift co-occurs with the errors;
@@ -154,9 +165,11 @@ measurement.
 
 ### Why the selective-measurement gate stopped
 
-The uncertainty study tested one deliberately simple score: mean distance to the five nearest training
-cycles in standardized scalar-process space. Before final evaluation, retaining the
-closest 75% of development predictions had to reduce MAE by at least 10% in every fold.
+The uncertainty study tested one simple measure of unfamiliarity. Each process feature
+was rescaled using training data so large numerical units would not dominate. The score
+was the average distance to the five most similar training cycles. Before final evaluation,
+keeping only the closest 75% of development predictions had to reduce MAE by at least 10%
+in every held-out-experiment setup.
 
 | Future held-out experiment | Development MAE reduction | Decision |
 | --- | ---: | --- |
@@ -164,8 +177,9 @@ closest 75% of development predictions had to reduce MAE by at least 10% in ever
 | Experiment 20 | 4.31% | **Fail** |
 | Experiment 23 | 16.31% | Pass |
 
-Because one fold failed, the project did not create a risk-coverage curve or claim that
-physical measurement could safely be skipped. The pre-specified study stopped after this
+Because one setup failed, the project stopped before testing how prediction error changes
+as more questionable predictions are routed to physical measurement. It makes no claim
+that physical measurement could safely be skipped. The pre-specified study stopped after this
 failed screen; a separately designed follow-up could evaluate other warning methods.
 Observed input-range departures are evidence of unfamiliar inputs, but do not establish
 reliable error ranking or a working temporal drift detector.
@@ -316,6 +330,9 @@ uv run streamlit run src/mpi/dashboard.py --browser.gatherUsageStats false
 <summary>Per-step methodology, outputs and special commands</summary>
 
 The following notes link each step to its detailed methodology and limitations.
+Saved files call the represented-condition benchmark `secondary_id` and the
+whole-experiment benchmark `primary`; these are implementation labels for the two
+evaluation settings described above.
 
 ### Exploratory audit
 

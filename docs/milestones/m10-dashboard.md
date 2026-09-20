@@ -227,6 +227,11 @@ not a Parquet-integrity registry or automatic stale-file detector.
 
 ### Current integrated verification — 2026-09-20
 
+- The reader-language pass narrows the title to part weight, defines evaluation settings
+  and headline metrics before use, and explains individual-feature range checks and the
+  five-neighbor screen in plain English. The practical implication makes no claim that
+  one source of performance differences outweighs all model improvements. Refreshed
+  previews show the revised wording; computations and saved results remain unchanged.
 - The focused dashboard suite passed 14 cases. The added regression proves that the
   observed-versus-predicted plot uses one padded combined range on both axes, anchors the
   y-axis to the x-axis at a 1:1 scale and retains a 600-pixel review surface. Existing

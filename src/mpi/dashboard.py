@@ -470,7 +470,8 @@ def _render_data_tab(data: DashboardData) -> None:
               the completed cycle.
             - **Switchover injection pressure:** the named machine measurement at the transition
               from filling to the next molding phase.
-            - **Melt cushion:** material remaining ahead of the screw after injection; the source
+            - **Melt cushion:** material remaining in front of the injection screw after filling;
+              the source
               does not establish whether its native value represents travel or volume.
             - **Dosing time:** the recorded duration of preparing material for the next cycle.
             - **Barrel heating zones:** temperature measurements along the machine barrel.
@@ -559,7 +560,7 @@ def _render_data_tab(data: DashboardData) -> None:
         "stronger when all groups are represented, motivating the whole-experiment holdout."
     )
 
-    st.subheader("Typical cycle and variation within this experiment")
+    st.subheader("Median pressure/flow profile and cycle-to-cycle variation")
     experiments = sorted(data.context["experiment_id"].unique().to_list())
     experiment = cast(int, st.selectbox("Experiment", experiments, key="cycle_experiment"))
     candidates = data.context.filter(pl.col("experiment_id") == experiment)["unit_id"].to_list()
@@ -723,7 +724,7 @@ def _render_prediction_tab(data: DashboardData) -> None:
     )
     st.caption(
         f"The like-weighted reviewer comparison is {id_mae:.3f} g versus {heldout_mae:.3f} g "
-        f"pooled MAE. The predefined primary result remains {equal_fold_mae:.3f} g equal-fold "
+        f"pooled MAE. The predefined result remains {equal_fold_mae:.3f} g equal-experiment "
         "MAE. The evaluation settings use separately fitted pipelines, so the gap is "
         "descriptive rather "
         "than a paired causal effect."
@@ -760,7 +761,8 @@ def _render_prediction_tab(data: DashboardData) -> None:
     )
     st.caption(
         "Scalars establish the baseline; trajectory summaries add engineered pressure/flow "
-        "features; PCA and supervised PLS add compressed signal components. PCA summarizes "
+        "features; principal component analysis (PCA) and supervised PLS add compressed signal "
+        "components. PCA summarizes "
         "signal variation; PLS compression "
         "learns components associated with training weights, before Ridge/LightGBM predicts. "
         "The chart reports the loaded results for each predefined representation and model "
@@ -1096,8 +1098,8 @@ def _render_reliability_tab(data: DashboardData) -> None:
         st.info(lead)
     selections = cast(list[dict[str, object]], data.uncertainty_run.get("selections", []))
     st.write(
-        "This uncertainty study selects between scalar PLS and LightGBM using development "
-        "data separately for each fold, then calibrates on reserved cycles. Empirical coverage "
+        "For each evaluation setup, this study selected PLS or LightGBM using only development "
+        "cycles, then used separate reserved cycles to set interval widths. Observed coverage "
         f"is how often the nominal {nominal:.0%} intervals actually contained measured weights. "
         "Calibration sets one fixed error margin per fitted model, so intervals do not "
         "automatically widen for an unfamiliar cycle."
@@ -1109,8 +1111,8 @@ def _render_reliability_tab(data: DashboardData) -> None:
                     PROTOCOL_LABELS.get(str(row["protocol"]), str(row["protocol"]))
                     for row in selections
                 ],
-                "Fold": [_fold_label(row["fold"]) for row in selections],
-                "Development-selected model": [
+                "Evaluation group": [_fold_label(row["fold"]) for row in selections],
+                "Model selected without evaluation cycles": [
                     _display_label(cast(dict[str, object], row["selected_candidate"])["family"])
                     for row in selections
                 ],
@@ -1191,9 +1193,12 @@ def _render_reliability_tab(data: DashboardData) -> None:
     threshold = cast(float, screen.get("primary_fold_minimum_mean_relative_reduction", 0.1))
     st.write(
         "The uncertainty study tested whether distance from familiar training cycles could "
-        f"identify predictions that were safer to accept. Retaining the closest {retained:.0%} "
+        "identify predictions that were safer to accept. Each process feature was rescaled "
+        "using training data so large numerical units would not dominate; the score was the "
+        "average distance to the five most similar training cycles. "
+        f"Retaining the closest {retained:.0%} "
         f"had to reduce development MAE by at least {threshold:.0%} in every whole-experiment "
-        "fold before a selective-measurement study could proceed."
+        "setup before testing whether some physical measurements could be skipped."
     )
     st.dataframe(
         distance_gate_summary(data.uncertainty_run),
@@ -1352,9 +1357,9 @@ def _render_reliability_tab(data: DashboardData) -> None:
     st.caption(
         f"Maximum shown: {maximum['fraction_outside_training_range']:.1%} for "
         f"{_feature_label(maximum['feature'])} in {maximum['population']}, across the displayed "
-        f"{PROTOCOL_LABELS[support_protocol]} features and populations. This is a marginal "
-        "range check, not full "
-        "distributional support, a cause, or a product limit."
+        f"{PROTOCOL_LABELS[support_protocol]} features and populations. This checks each "
+        "process feature separately; it does not establish whether the full combination of "
+        "values was represented in training, explain an error's cause, or define product limits."
     )
 
     st.subheader("What to do next")
@@ -1400,8 +1405,8 @@ def _render_reliability_tab(data: DashboardData) -> None:
 
 def render_dashboard(paths: DashboardPaths = DEFAULT_PATHS) -> None:
     """Render the bounded three-tab local dashboard."""
-    st.set_page_config(page_title="Injection Molding · Quality Prediction", layout="wide")
-    st.title("Injection Molding · Quality Prediction Under Process Shift")
+    st.set_page_config(page_title="Injection Molding · Part-Weight Prediction", layout="wide")
+    st.title("Injection Molding · Part-Weight Prediction Under Process Shift")
     st.caption("scatimdata Dataset 2 · machine-cycle telemetry → molded-part weight")
     st.caption(
         "Existing portfolio evidence only · no model fitting, downloads, artifact writes, or "
@@ -1417,6 +1422,18 @@ def render_dashboard(paths: DashboardPaths = DEFAULT_PATHS) -> None:
     experiment_rows, _ = experiment_summary(data)
     prediction = prediction_headline(data)
     uncertainty = uncertainty_headline(data)
+    st.markdown(
+        "**Represented conditions:** training includes cycles from every experiment group; "
+        "different cycles are held out for evaluation. **Unseen experiment:** one entire "
+        "experiment group is excluded from training and used for evaluation."
+    )
+    st.caption(
+        "Part-weight error is mean absolute error (MAE): average absolute error in grams. "
+        "These errors use partial least squares (PLS), which combines related machine "
+        "measurements, and are pooled: each evaluated cycle counts equally. Interval coverage "
+        "is the percentage of measured weights inside prediction intervals from the separate "
+        "uncertainty study. The two evaluation settings use separately fitted pipelines."
+    )
     data_kpi, prediction_kpi, reliability_kpi = st.columns(3)
     data_kpi.metric(
         "Loaded evidence",
@@ -1424,18 +1441,22 @@ def render_dashboard(paths: DashboardPaths = DEFAULT_PATHS) -> None:
     )
     data_kpi.caption(f"{experiment_rows.height} experiment groups")
     prediction_kpi.metric(
-        "PLS pooled MAE — represented",
-        f"{prediction['Represented conditions — pooled cycles']:.3f} g",
+        "Part-weight error · represented conditions",
+        f"{prediction['Represented conditions — pooled cycles']:.3f} g MAE",
     )
-    prediction_kpi.caption(
-        f"Unseen experiment: {prediction['Unseen experiment — pooled cycles']:.3f} g"
+    prediction_kpi.metric(
+        "Part-weight error · unseen experiment",
+        f"{prediction['Unseen experiment — pooled cycles']:.3f} g MAE",
     )
     reliability_kpi.metric(
         "Interval coverage — represented "
         f"(nominal {cast(float, data.uncertainty_run.get('nominal_coverage', 0.9)):.0%})",
         f"{uncertainty['secondary_id_empirical_coverage']:.1%}",
     )
-    reliability_kpi.caption(f"Unseen experiment: {uncertainty['primary_empirical_coverage']:.1%}")
+    reliability_kpi.metric(
+        "Interval coverage · unseen experiment",
+        f"{uncertainty['primary_empirical_coverage']:.1%}",
+    )
     st.info(
         "This project evaluates completed-cycle virtual measurement: software estimates a "
         "physical part-weight measurement from machine data after molding. It does not select "

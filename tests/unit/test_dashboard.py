@@ -523,7 +523,7 @@ def test_synthetic_app_renders_three_tabs_and_selectors(tmp_path: Path) -> None:
     app = AppTest.from_file(app_script).run(timeout=10)
 
     assert not app.exception
-    assert app.title[0].value == "Injection Molding · Quality Prediction Under Process Shift"
+    assert app.title[0].value == "Injection Molding · Part-Weight Prediction Under Process Shift"
     assert [tab.label for tab in app.tabs] == [
         "Data & process",
         "Prediction & generalization",
