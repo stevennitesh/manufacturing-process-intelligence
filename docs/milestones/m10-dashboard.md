@@ -24,8 +24,8 @@ framework, new analytics, deployment, model persistence or compatibility layer.
    counts and weight distributions, plus selectable pressure/flow cycle examples
    against their native elapsed-time grid. Identify weight in grams and unknown
    signal amplitudes as native units. Experiments are not calendar days.
-2. **Prediction & generalization:** lead with primary equal-fold MAE versus
-   separately labeled pooled ID MAE. Show scalar baselines and matched Ridge/
+2. **Prediction & generalization:** compare pooled held-out and pooled ID MAE with
+   identical cycle weighting; retain primary equal-fold MAE separately. Show scalar baselines and matched Ridge/
    LightGBM representation comparisons without selecting a universal winner.
    Allow per-experiment metrics and actual-versus-predicted inspection. Keep ID
    per-experiment results available, not just its pooled R². Include a small
@@ -42,8 +42,9 @@ framework, new analytics, deployment, model persistence or compatibility layer.
 - Derive displayed values from saved data, including any presentation-only grouping;
   do not maintain a second hand-entered results table. Preserve unit joins and
   distinguish model/representation/protocol/population selectors.
-- Primary headline is equal-fold MAE; any pooled primary value is sample-weighted
-  and explicitly labeled. ID-versus-primary compares different fitted pipelines,
+- The predefined primary scientific metric remains equal-fold MAE. The reviewer
+  comparison uses pooled-to-pooled MAE, explicitly labeled with cycle weighting.
+  ID-versus-primary compares different fitted pipelines,
   not a paired estimate of the effect of shift. M2 inspected all experiments.
 - Show small nonzero coverage accurately (experiment 23 is approximately 0.3%,
   not 0%). Distinguish pooled ID coverage from per-experiment coverage.
@@ -84,11 +85,91 @@ there is no costly intermediate interface requiring a separate checkpoint.
 
 ## Implementation
 
+### Reviewer-surface delivery — 2026-09-19
+
+Purpose: make the completed study understandable in a short first read, with dashboard
+claims that remain consistent with the evidence actually loaded. This is presentation
+and artifact consistency work; existing experiments, artifacts and scientific protocols
+remain unchanged.
+
+Accepted outcome:
+
+- README leads with problem, comparable pooled PLS errors (0.114 vs 0.523 g), interval
+  coverage and practical implication, then one preview. Preserve the predefined
+  0.503 g equal-experiment metric in technical detail. These compare separately fitted
+  protocols, not a causal estimate. State missing authoritative weight tolerances and
+  the limited evidence of three specific transfer scenarios near the results.
+- Dashboard counts, means, variance fraction, errors, coverage/widths, selected models,
+  feature-importance counts and gate values/status derive from loaded tables/run records.
+  Static dataset context and prescribed method constants may stay static, clearly
+  distinguished from computed evidence. Conditional conclusions must not contradict
+  synthetic or regenerated results; absent groups must not produce invented observations.
+- Use descriptive model, representation and evaluation labels throughout visible charts,
+  selectors and tables. Keep internal identifiers unchanged in saved artifacts. Explain
+  virtual measurement as software estimating a physical measurement; no global production
+  model was selected. Present completed findings rather than future analysis questions.
+- Lead the dashboard with a small evidence summary. Keep essential context and charts
+  visible; put longer methodology behind expanders. Preserve a brief data-to-results
+  flowchart in both surfaces and retain its full technical detail here. Consolidate README
+  reproduction into one complete sequence, retaining useful commands and methodology links.
+- Verify M9's existing hashes of M7 run.json and evaluation predictions against the loaded
+  files, in addition to existing source/membership checks. A mismatch has actionable
+  regeneration guidance; no new registry or artifact format is required.
+
+Delivery approach: revise presentation derivations and consistency checks, simplify the
+reader journey and reconcile this record, then verify the integrated result. One final
+checkpoint covers the whole change because there is no external interface migration.
+Keep the single dashboard module and existing dependencies. No training, tuning, new
+analysis methods, deployment, release tag, version bump, commit or push is included.
+
+#### Technical study flow
+
+```mermaid
+flowchart TD
+    raw["Dataset 2 source<br/>scalars · pressure/flow · measured weight"]
+    prepare["Validate and join by cycle identity<br/>preserve native signal sampling"]
+    membership["Fixed evaluation memberships<br/>whole-experiment holdout + represented-condition benchmark"]
+    fit["Fit/tune rows only<br/>scalars · summaries · compressed signals"]
+    compare["Predefined models and representations<br/>fold-local scaling/compression"]
+    evaluate["Reserved evaluation cycles<br/>prediction error by protocol and experiment"]
+    select["Development-only scalar-model selection"]
+    calibrate["Reserved calibration cycles<br/>90% conformal margin"]
+    reliability["Reserved evaluation cycles<br/>coverage and interval width"]
+    gate["Development-only distance gate<br/>selective measurement only if every fold passes"]
+    explain["Saved selected-model predictions<br/>importance + marginal range departures"]
+    raw --> prepare --> membership
+    membership --> fit --> compare --> evaluate
+    compare --> select --> calibrate --> reliability
+    membership -->|reserve separately| calibrate
+    membership -->|exclude from fitting/tuning| evaluate
+    select --> gate
+    select --> explain
+```
+
+Source manifests own source identity; fixed memberships own train/calibration/evaluation
+roles. Scaling, compression, tuning and model selection stay inside the permitted training
+or development rows. Prediction intervals use separately reserved calibration rows.
+Explanation reloads the selected settings and verifies its source M7 run and prediction
+hashes. Outer results describe performance; they do not select a universal model.
+
+Acceptance: focused synthetic tests must prove that displayed quantities follow fixture
+values and group membership, and reject either M7 hash mismatch. Independently compare
+the real headline and gate summaries with existing prediction/run records. Run CI checks,
+real-artifact app smoke, and visually inspect all three tabs and updated screenshots.
+README content/links and the brief/full diagrams must tell the same scientific story.
+
+Progress: complete. Final review verified the loaded-result comparisons, conditional
+interpretation, hash checks and reader flow. All three tabs were visually inspected and
+the tracked overview, prediction and reliability screenshots refreshed from the final
+dashboard. No scientific artifacts, models or release versions changed.
+
 `src/mpi/dashboard.py` provides the single offline Streamlit entry point. It loads
 the prepared Dataset 2 bundle and saved M4-M7/M9 Parquet/JSON outputs directly,
 then renders the three accepted tabs with Plotly. Small presentation helpers own
 the independently tested equal-fold versus pooled MAE, per-experiment metrics,
-coverage labels, weight/context join and feature-support heatmap shaping.
+coverage labels, weight/context join, experiment/variance summaries, uncertainty and
+distance-gate headlines, and feature-support heatmap shaping. Visible result claims now
+follow those loaded summaries rather than a second prose results table.
 
 The data tab shows the 303/223/303 experiment counts, weight distributions in
 grams, and selectable pressure/flow cycles on the native elapsed-time grid. The
@@ -113,6 +194,29 @@ also matched to prepared metadata. This is a consistency check of recorded linea
 not a Parquet-integrity registry or automatic stale-file detector.
 
 ## Verification
+
+### Reviewer-surface verification — 2026-09-19
+
+- Focused dashboard tests passed: 12 cases cover loaded-derived experiment, prediction,
+  coverage and gate summaries; changed synthetic metrics and membership; both M7 hash
+  mismatches; missing-input guidance; cache/reload behavior; and all three tabs plus
+  selector reruns through Streamlit's application test harness. The changed-outcome case
+  reverses the real study's error and coverage relationship, makes an augmented
+  representation outperform, and passes every gate fold; the rendered narrative follows
+  those loaded outcomes without retaining failure claims.
+- The real-artifact application rendered all three tabs, reran the represented-condition
+  support selector and explicit reload without exceptions. Independent calculations from
+  saved predictions recovered pooled PLS MAE of 0.113668893 g for represented conditions
+  and 0.523299419 g for unseen-experiment evaluation; interval coverage of 0.862275449 and
+  0.051869723; and development reductions of 0.196563815, 0.043129992 and 0.163110092.
+  Direct hashing confirmed that M9's recorded M7 run and prediction hashes match the
+  currently configured M7 files.
+- Browser inspection at 1280 × 720 confirmed that the overview KPI strip, tolerance caveat,
+  brief flow, descriptive chart labels, prediction comparison and reliability result are
+  readable. The tracked PNG files have not yet been refreshed from this final surface.
+- CI-equivalent checks passed: Ruff lint and format, Pyright, all 90 tests and the CLI
+  version smoke (`0.0.1`). README/M10 local links also resolved. Pytest emitted one
+  environment-only warning because its ignored cache directory was not writable.
 
 - `uv sync --locked --group dev` completed against the 122-package lock.
 - CI-equivalent checks passed: `ruff check .`, `ruff format --check .`, `pyright`,

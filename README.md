@@ -7,6 +7,45 @@ scalar measurements, and does it generalize under controlled process changes?
 This is a personal résumé/portfolio project: rigorous analysis, reproducible local
 commands and an understandable demo, not a production-grade factory service.
 
+## Result at a glance
+
+**Problem:** Can ordinary injection-molding telemetry estimate completed-part weight,
+and does that accuracy hold when process conditions change?
+
+**Result:** With all experiment groups represented during training, scalar PLS reached
+**0.114 g pooled MAE**. When a complete experiment was withheld, the like-weighted pooled
+MAE was **0.523 g**. Nominal 90% interval coverage fell from **86.2%** to **5.2%**.
+Richer pressure/flow representations sometimes helped, but not consistently across the
+three held-out conditions.
+
+**Practical implication:** Validation design and labeled operating-condition coverage
+mattered more than additional model or signal complexity. The simple uncertainty screen
+failed its development gate, so this project does not claim that physical measurement can
+safely be skipped.
+
+```mermaid
+flowchart LR
+    data["829 molded parts<br/>machine scalars + pressure/flow"]
+    split["Train on represented groups<br/>test on the held-out experiment"]
+    compare["Compare scalar and<br/>trajectory models"]
+    reliable["Calibrate intervals and<br/>test reliability under shift"]
+    data --> split --> compare --> reliable
+```
+
+![Dashboard summary of the loaded Dataset 2 evidence](docs/images/dashboard-overview.png)
+
+MAE is average absolute prediction error in grams; lower is better. Both headline errors
+above pool cycles, so their weighting is comparable. The predefined primary scientific
+metric was **0.503 g equal-experiment MAE**, reported separately in the technical results.
+The represented-condition and held-out-condition values come from separately fitted
+pipelines, not a paired causal estimate of shift.
+
+Dataset 2 provides no authoritative weight specification or tolerance for this study, so
+neither 0.1 g nor 0.5 g MAE can be interpreted as product acceptance or production
+adequacy. These are three specific controlled transfer scenarios—two moisture experiments
+and one mold-temperature experiment—not independent estimates of arbitrary future factory
+changes.
+
 ## Dataset and experiment at a glance
 
 Injection molding injects molten plastic into a mold, holds it under pressure, then
@@ -47,35 +86,14 @@ weight changes.
 
 ### How the data becomes an experiment
 
-```mermaid
-flowchart TD
-    raw["Dataset 2 raw files<br/>Machine scalars · pressure/flow · measured weight"]
-    prepare["Validate and join by cycle identity<br/>829 labeled parts; exclude 92 signal-only cycles<br/>Preserve native 2,048-point signals"]
-    split["Audit data and fix evaluation memberships<br/>Primary: hold out a whole experiment, repeat three times<br/>Secondary ID: random cycles from every experiment"]
-    train["Fit/tune rows only<br/>A: 16 scalars<br/>B: scalars + signal summaries<br/>C: scalars + compressed signals"]
-    models["Train and tune predefined models<br/>Mean / Ridge / PLS scalar baselines<br/>Ridge / LightGBM representation comparisons<br/>Fit scaling and compression inside training folds"]
-    eval["Reserved evaluation cycles<br/>Compare predictions with measured weights"]
-    findings["Prediction results<br/>Strong represented-group accuracy<br/>Weak transfer; mixed trajectory benefit"]
-    selected["Uncertainty study<br/>Select scalar PLS or LightGBM<br/>using development data only"]
-    cal["Reserved calibration cycles<br/>Measured prediction errors set 90% interval margin"]
-    reliability["Evaluate intervals on reserved evaluation cycles<br/>86.2% ID coverage; 5.2% under experiment shift"]
-    gate["Development-only distance screen<br/>One setup misses required error reduction<br/>No automatic measurement policy"]
-    explain["Explain saved predictions<br/>Feature importance and input-range departures<br/>Describe associations, not physical causes"]
-    raw --> prepare --> split
-    split --> train --> models --> eval --> findings
-    models --> selected --> cal --> reliability
-    split -->|reserve separately| cal
-    split -->|keep out of fitting and tuning| eval
-    selected --> gate
-    selected --> explain
-```
-
 The 16 scalars establish the baseline. Engineered and compressed trajectories test whether
 dynamic signal shape improves it. Weight is never used as an input. Experimental context
 defines the held-out groups rather than silently entering the model. Separate calibration
 rows estimate prediction intervals after model fitting.
 The uncertainty branch uses scalar models; it does not select a trajectory model from
 the evaluation results. All dashboard charts read saved outputs from these experiments.
+The [dashboard milestone](docs/milestones/m10-dashboard.md#technical-study-flow) retains
+the detailed study flow and evaluation boundaries.
 
 ## What this project found
 
@@ -89,13 +107,13 @@ examined all three experiments, so these are not untouched prospective tests.
 
 | Evidence | All experiment groups represented | Entire experiment held out |
 | --- | ---: | ---: |
-| Scalar PLS MAE | 0.114 g pooled | 0.503 g equal-fold mean |
+| Scalar PLS MAE | 0.114 g pooled | 0.523 g pooled |
 | Nominal 90% interval coverage | 86.2% pooled | 5.2% pooled |
 | Pressure/flow trajectory benefit | Useful in some comparisons | Inconsistent across conditions |
 
-MAE is the average absolute prediction error in grams; smaller is better. The primary
-score gives each held-out experiment equal weight; pooled scores give each cycle equal
-weight. PLS predicts through a small set of components learned from correlated inputs
+MAE is the average absolute prediction error in grams; smaller is better. The like-weighted
+pooled comparison above gives each cycle equal weight. The predefined primary headline was
+0.503 g and gives each held-out experiment equal weight. PLS predicts through a small set of components learned from correlated inputs
 and measured weights. For the separate uncertainty study, development data select PLS
 or LightGBM for each fold before reserved cycles calibrate the intervals. Thus the
 coverage row does not describe a PLS-only study. Coverage is the fraction of measured
@@ -105,9 +123,9 @@ outcomes under its assumptions.
 The held-out experiments frequently extended beyond process-variable ranges seen during
 fitting, so the models faced extrapolation pressure. That shift co-occurs with the errors;
 this experiment does not prove that range departure alone caused them.
-About **70.45% of observed weight variation lay between the three experiment groups**,
-which explains why a pooled score can look excellent while within-condition explanation
-and transfer remain much weaker.
+About **70.45% of observed weight variation was between the three experiment groups**.
+That large group separation can make pooled validation—especially pooled R²—look much
+stronger when all conditions are represented, motivating the whole-experiment holdout.
 
 The [original study](https://pmc.ncbi.nlm.nih.gov/articles/PMC9959070/) used repeated
 random cross-validation and asked whether high-resolution pressure and flow improve
@@ -132,13 +150,15 @@ support different claims and do not contradict the paper.
   without a simple distance score reliably identifying whether its weight prediction
   will be wrong.
 
-The current model is a **completed-cycle virtual measurement of part weight**. It is not
-an early-cycle controller, root-cause model, product-conformance decision, setting
-recommender or validated replacement for physical measurement.
+This project evaluates **completed-cycle virtual measurement**: software estimates a
+physical part-weight measurement from machine data after molding. It does not select one
+global production model and is not an early-cycle controller, root-cause model,
+product-conformance decision, setting recommender or validated replacement for physical
+measurement.
 
 ### Why the selective-measurement gate stopped
 
-M7 tested one deliberately simple score: mean distance to the five nearest training
+The uncertainty study tested one deliberately simple score: mean distance to the five nearest training
 cycles in standardized scalar-process space. Before final evaluation, retaining the
 closest 75% of development predictions had to reduce MAE by at least 10% in every fold.
 
@@ -280,7 +300,30 @@ may leave an incomplete directory; inspect/remove it or choose another output.
 Only the current schema is supported; there are no artifact manifests or compatibility readers.
 Both raw and prepared data remain outside Git.
 
-## Reproduce the M2 audit
+## Reproduce the full study
+
+After preparing Dataset 2 at the default path, the complete saved-evidence sequence is:
+
+```powershell
+New-Item -ItemType Directory -Force artifacts/m02 | Out-Null
+uv run jupyter nbconvert --to notebook --execute notebooks/m02_injection_molding_audit.ipynb `
+  --output m02_injection_molding_audit.executed.ipynb --output-dir artifacts/m02 `
+  --ExecutePreprocessor.timeout=300
+uv run python scripts/create_injection_molding_memberships.py
+uv run python scripts/run_scalar_baselines.py
+uv run python scripts/run_trajectory_representations.py
+uv run python scripts/run_lightgbm_comparison.py
+uv run python scripts/run_uncertainty_shift.py
+uv run python scripts/run_predictive_explanation.py
+uv run streamlit run src/mpi/dashboard.py --browser.gatherUsageStats false
+```
+
+<details>
+<summary>Per-step methodology, outputs and special commands</summary>
+
+The following notes link each step to its detailed methodology and limitations.
+
+### Exploratory audit
 
 After preparing Dataset 2 at the default path, execute the bounded audit headlessly:
 
@@ -298,7 +341,7 @@ feature allowlist, split, model, or trajectory representation. See the
 and the [M3 contract](docs/milestones/m03-feature-and-evaluation-contract.md) for the
 subsequently fixed modeling decisions.
 
-## Reproduce the M3 memberships
+### Fixed evaluation memberships
 
 After preparing Dataset 2 at the default path, generate the ignored membership
 artifact shared by the scalar and trajectory experiments:
@@ -313,7 +356,7 @@ identity. Re-running it is deterministic for the locked environment and does not
 modify the prepared bundle. The [M3 contract](docs/milestones/m03-feature-and-evaluation-contract.md)
 owns the cutoff, predictor allowlist, allocation rules and limitations.
 
-## Reproduce the M4 scalar baselines
+### Scalar baselines
 
 After preparing Dataset 2 and generating the M3 memberships, run:
 
@@ -338,7 +381,7 @@ only these diagnostics from saved predictions, without retraining:
 uv run python scripts/run_scalar_baselines.py --report-only
 ```
 
-## Reproduce the M5 trajectory comparison
+### Trajectory comparison
 
 After preparing Dataset 2 and generating the M3 memberships, run:
 
@@ -355,7 +398,7 @@ is worse than A on at least one held-out experiment, and no representation is
 selected from its outer score. See the
 [M5 results and limitations](docs/milestones/m05-trajectory-representations.md).
 
-## Reproduce the M6 LightGBM comparison
+### LightGBM comparison
 
 After preparing Dataset 2 and generating the M3 memberships, run:
 
@@ -372,7 +415,7 @@ consistent across held-out experiments, compression does not improve the aggrega
 LightGBM result, and no global winner is selected from outer performance. See the
 [M6 results and limitations](docs/milestones/m06-lightgbm-comparison.md).
 
-## Reproduce the M7 uncertainty evaluation
+### Uncertainty evaluation
 
 After preparing Dataset 2 and generating the M3 memberships, run:
 
@@ -388,7 +431,7 @@ primary fold improves development MAE by only 4.31%; M8 is therefore skipped, wi
 no additional score search. See the
 [M7 results and limitations](docs/milestones/m07-uncertainty-and-shift.md).
 
-## Reproduce the M9 predictive explanation
+### Predictive explanation
 
 After reproducing M7, run:
 
@@ -405,7 +448,7 @@ separate. These diagnostics describe fitted-model associations and observed marg
 support, not physical causes or product limits. See the
 [M9 results and limitations](docs/milestones/m09-predictive-explanation.md).
 
-## Run the Dataset 2 dashboard
+### Run the Dataset 2 dashboard
 
 After preparing Dataset 2 and reproducing M4-M7 and M9 at their default artifact
 paths, launch the offline portfolio dashboard from the repository root:
@@ -424,6 +467,8 @@ Inputs are cached between interactions. After regenerating artifacts, click
 **Reload saved evidence** (or restart Streamlit). Loading checks that the milestone
 run records share the prepared source and M3 membership identity; it does not
 re-hash every Parquet or detect files changed while a cached snapshot is displayed.
+
+</details>
 
 ## Data policy
 
