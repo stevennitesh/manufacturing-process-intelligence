@@ -456,6 +456,11 @@ def _render_data_tab(data: DashboardData) -> None:
         "BASF Ultramid B3EG6, a glass-fiber-reinforced nylon 6 material (PA6-GF30). Each labeled "
         "machine cycle maps to one molded part."
     )
+    st.write(
+        "Measured weights provide the reference outcomes. The question is whether machine data "
+        "alone could support a future measurement-assistance workflow. A scalar is one number "
+        "summarizing a cycle; a trajectory is the sequence of measurements recorded during it."
+    )
     with st.expander("What one cycle contains—and how it is used"):
         st.markdown(
             "\n".join(
@@ -580,6 +585,10 @@ def _render_data_tab(data: DashboardData) -> None:
     )
 
     st.subheader("Median pressure/flow profile and cycle-to-cycle variation")
+    st.caption(
+        "Native units means signal values are preserved as released, without a confirmed "
+        "conversion to engineering units. Elapsed time is in seconds."
+    )
     experiments = sorted(data.context["experiment_id"].unique().to_list())
     experiment = cast(int, st.selectbox("Experiment", experiments, key="cycle_experiment"))
     candidates = data.context.filter(pl.col("experiment_id") == experiment)["unit_id"].to_list()
@@ -697,7 +706,7 @@ def _render_prediction_tab(data: DashboardData) -> None:
         comparison_sentence = "Error was lower when a complete experiment was withheld."
     else:
         comparison_sentence = "Pooled error was equal across the two evaluation settings."
-    st.success(
+    st.info(
         f"Scalar PLS pooled MAE was {id_mae:.3f} g with represented conditions and "
         f"{heldout_mae:.3f} g when a complete experiment was withheld. The predefined "
         f"equal-experiment result was {equal_fold_mae:.3f} g. {comparison_sentence}"
@@ -732,7 +741,7 @@ def _render_prediction_tab(data: DashboardData) -> None:
     )
     st.plotly_chart(
         _bar_chart(
-            scalar_display,
+            scalar_display.filter(pl.col("population").str.ends_with("pooled cycles")),
             "Model",
             "mae_g",
             "population",
@@ -749,44 +758,46 @@ def _render_prediction_tab(data: DashboardData) -> None:
         "than a paired causal effect."
     )
 
-    ridge = headline_mae(data.ridge_metrics, data.ridge_predictions, "representation").with_columns(
-        pl.lit("Ridge").alias("model_family")
-    )
-    lightgbm = headline_mae(
-        data.lightgbm_metrics, data.lightgbm_predictions, "representation"
-    ).with_columns(pl.lit("LightGBM").alias("model_family"))
-    comparisons = pl.concat((ridge, lightgbm))
-    population = str(
-        st.selectbox(
-            "Evaluation setting",
-            comparisons["population"].unique(maintain_order=True).to_list(),
+    with st.expander("Detailed model and signal-representation comparisons"):
+        st.dataframe(scalar_display, hide_index=True, width="stretch")
+        ridge = headline_mae(
+            data.ridge_metrics, data.ridge_predictions, "representation"
+        ).with_columns(pl.lit("Ridge").alias("model_family"))
+        lightgbm = headline_mae(
+            data.lightgbm_metrics, data.lightgbm_predictions, "representation"
+        ).with_columns(pl.lit("LightGBM").alias("model_family"))
+        comparisons = pl.concat((ridge, lightgbm))
+        population = str(
+            st.selectbox(
+                "Evaluation setting",
+                comparisons["population"].unique(maintain_order=True).to_list(),
+            )
         )
-    )
-    selected_comparison = comparisons.filter(pl.col("population") == population).with_columns(
-        pl.col("representation")
-        .replace_strict(REPRESENTATION_LABELS, default=pl.col("representation"))
-        .alias("Representation")
-    )
-    st.plotly_chart(
-        _bar_chart(
-            selected_comparison,
-            "Representation",
-            "mae_g",
-            "model_family",
-            title=f"Matched representation comparison · {population}",
-            y_title="MAE (g)",
-        ),
-        width="stretch",
-    )
-    st.caption(
-        "Scalars establish the baseline; trajectory summaries add engineered pressure/flow "
-        "features; principal component analysis (PCA) and supervised PLS add compressed signal "
-        "components. PCA summarizes "
-        "signal variation; PLS compression "
-        "learns components associated with training weights, before Ridge/LightGBM predicts. "
-        "The chart reports the loaded results for each predefined representation and model "
-        "family. It is a descriptive comparison, not an outer-selected deployment winner."
-    )
+        selected_comparison = comparisons.filter(pl.col("population") == population).with_columns(
+            pl.col("representation")
+            .replace_strict(REPRESENTATION_LABELS, default=pl.col("representation"))
+            .alias("Representation")
+        )
+        st.plotly_chart(
+            _bar_chart(
+                selected_comparison,
+                "Representation",
+                "mae_g",
+                "model_family",
+                title=f"Matched representation comparison · {population}",
+                y_title="MAE (g)",
+            ),
+            width="stretch",
+        )
+        st.caption(
+            "Scalars establish the baseline; trajectory summaries add engineered pressure/flow "
+            "features; principal component analysis (PCA) and supervised PLS add compressed signal "
+            "components. PCA summarizes "
+            "signal variation; PLS compression "
+            "learns components associated with training weights, before Ridge/LightGBM predicts. "
+            "The chart reports the loaded results for each predefined representation and model "
+            "family. It is a descriptive comparison, not an outer-selected deployment winner."
+        )
 
     st.subheader("Did adding trajectories reduce prediction error?")
     st.caption(
@@ -882,45 +893,6 @@ def _render_prediction_tab(data: DashboardData) -> None:
         "Each comparison uses the same held-out experiment and model family."
     )
 
-    _, between_fraction = experiment_summary(data)
-    st.subheader("What was learned")
-    learned, next_step = st.columns(2)
-    with learned:
-        st.markdown(
-            f"""
-            **Learned from this experiment**
-
-            - {between_fraction:.2%} of observed weight variation was between experiment groups, so
-              pooled performance can hide weak within-condition explanation.
-            - The loaded scalar and trajectory comparisons show whether added complexity
-              improved each held-out experiment; no global production model was selected.
-            - Marginal range departures are reported separately by population; they do not prove
-              that range departure caused any prediction error.
-            - Predictive importance is reported separately by population; no universal or causal
-              sensor ranking is established.
-            - This is a completed-cycle weight estimate, not control, conformance or physical
-              root-cause analysis.
-            """
-        )
-    with next_step:
-        reliability = uncertainty_headline(data)
-        coverage_direction = (
-            "lower"
-            if reliability["primary_empirical_coverage"]
-            < reliability["secondary_id_empirical_coverage"]
-            else "not lower"
-        )
-        gate_result = "passed" if data.uncertainty_run.get("m8_eligible") else "failed"
-        st.markdown(
-            f"""
-            **The next analysis asked whether the model could recognize when it was unreliable.**
-
-            Empirical interval coverage was {coverage_direction} for unseen experiments, and the
-            saved development distance gate {gate_result}. The Reliability tab shows the loaded
-            evidence and the resulting study decision.
-            """
-        )
-
     st.subheader("Per-experiment predictions")
     family = str(
         st.selectbox(
@@ -1011,85 +983,87 @@ def _render_prediction_tab(data: DashboardData) -> None:
         "reference is not necessarily the fitted model's training-mean prediction."
     )
 
-    st.subheader("Which inputs did the uncertainty-study models rely on?")
-    st.info(
-        "This section explains the scalar models selected independently for the uncertainty "
-        "study. It does not explain the model or representation selected in the prediction "
-        "explorer above."
-    )
-    st.write(
-        "Permutation importance shuffles one input across evaluated parts and measures the "
-        "change in prediction error. Positive values mean shuffling hurt predictions; negative "
-        "values mean it improved this model's predictions, not that changing the physical "
-        "process would help. "
-        f"Across the loaded evidence, {(data.importance['importance_mean_g'] < 0).sum()} of "
-        f"{data.importance.height} saved mean importances were negative. The chart explains one "
-        "fitted model and population at a "
-        "time—not a universal sensor hierarchy."
-    )
-    importance_protocol = str(
-        st.selectbox(
-            "Importance evaluation setting",
-            ("primary", "secondary_id"),
-            key="importance_protocol",
-            format_func=PROTOCOL_LABELS.__getitem__,
+    with st.expander("Which inputs did the uncertainty-study models rely on?"):
+        st.info(
+            "This section explains the scalar models selected independently for the uncertainty "
+            "study. It does not explain the model or representation selected in the prediction "
+            "explorer above."
         )
-    )
-    importance_experiments = sorted(
-        data.importance.filter(pl.col("protocol") == importance_protocol)[
-            "evaluation_experiment_id"
-        ]
-        .unique()
-        .to_list()
-    )
-    default_importance_experiment = (
-        importance_experiments.index(20) if 20 in importance_experiments else 0
-    )
-    importance_experiment = cast(
-        int,
-        st.selectbox(
-            "Importance experiment",
-            importance_experiments,
-            index=default_importance_experiment,
-            key="importance_experiment",
-        ),
-    )
-    importance = data.importance.filter(
-        (pl.col("protocol") == importance_protocol)
-        & (pl.col("evaluation_experiment_id") == importance_experiment)
-    ).sort("importance_mean_g")
-    model_family = str(importance.item(0, "model_family"))
-    model_settings = str(importance.item(0, "model_settings"))
-    repeat_count = len(cast(list[float], importance.item(0, "repeat_importance_g")))
-    importance_figure = go.Figure(
-        go.Bar(
-            x=importance["importance_mean_g"].to_list(),
-            y=[_feature_label(feature) for feature in importance["feature"].to_list()],
-            error_x={"type": "data", "array": importance["importance_std_g"].to_list()},
-            orientation="h",
+        st.write(
+            "Permutation importance shuffles one input across evaluated parts and measures the "
+            "change in prediction error. Positive values mean shuffling hurt predictions; negative "
+            "values mean it improved this model's predictions, not that changing the physical "
+            "process would help. "
+            f"Across the loaded evidence, {(data.importance['importance_mean_g'] < 0).sum()} of "
+            f"{data.importance.height} saved mean importances were negative. "
+            "The chart explains one "
+            "fitted model and population at a "
+            "time—not a universal sensor hierarchy."
         )
-    )
-    importance_figure.update_layout(
-        title=(
-            f"Permutation importance · {_display_label(model_family)} · "
-            f"{PROTOCOL_LABELS[importance_protocol]} · "
-            f"experiment {importance_experiment}"
-        ),
-        xaxis_title="Change in MAE after permutation (g; negative values retained)",
-        yaxis_title="",
-    )
-    st.plotly_chart(importance_figure, width="stretch")
-    st.caption(
-        f"Selected model: {_display_label(model_family)}. Error bars are the "
-        f"standard deviation over {repeat_count} saved permutations, not confidence intervals."
-    )
-    with st.expander("Saved model settings"):
-        st.code(model_settings, language="json")
-    st.warning(
-        "Permutation importance describes this fitted model and population. Correlated inputs and "
-        "the observed transfer performance complicate interpretation; it is not a physical or "
-        "causal ranking."
-    )
+        importance_protocol = str(
+            st.selectbox(
+                "Importance evaluation setting",
+                ("primary", "secondary_id"),
+                key="importance_protocol",
+                format_func=PROTOCOL_LABELS.__getitem__,
+            )
+        )
+        importance_experiments = sorted(
+            data.importance.filter(pl.col("protocol") == importance_protocol)[
+                "evaluation_experiment_id"
+            ]
+            .unique()
+            .to_list()
+        )
+        default_importance_experiment = (
+            importance_experiments.index(20) if 20 in importance_experiments else 0
+        )
+        importance_experiment = cast(
+            int,
+            st.selectbox(
+                "Importance experiment",
+                importance_experiments,
+                index=default_importance_experiment,
+                key="importance_experiment",
+            ),
+        )
+        importance = data.importance.filter(
+            (pl.col("protocol") == importance_protocol)
+            & (pl.col("evaluation_experiment_id") == importance_experiment)
+        ).sort("importance_mean_g")
+        model_family = str(importance.item(0, "model_family"))
+        model_settings = str(importance.item(0, "model_settings"))
+        repeat_count = len(cast(list[float], importance.item(0, "repeat_importance_g")))
+        importance_figure = go.Figure(
+            go.Bar(
+                x=importance["importance_mean_g"].to_list(),
+                y=[_feature_label(feature) for feature in importance["feature"].to_list()],
+                error_x={"type": "data", "array": importance["importance_std_g"].to_list()},
+                orientation="h",
+            )
+        )
+        importance_figure.update_layout(
+            title=(
+                f"Permutation importance · {_display_label(model_family)} · "
+                f"{PROTOCOL_LABELS[importance_protocol]} · "
+                f"experiment {importance_experiment}"
+            ),
+            xaxis_title="Change in MAE after permutation (g; negative values retained)",
+            yaxis_title="",
+        )
+        st.plotly_chart(importance_figure, width="stretch")
+        st.caption(
+            f"Selected model: {_display_label(model_family)}. Error bars are the "
+            f"standard deviation over {repeat_count} saved permutations, not confidence intervals."
+        )
+        with st.expander("Saved model settings"):
+            st.code(model_settings, language="json")
+        st.warning(
+            "Permutation importance describes this fitted model and population. "
+            "Correlated inputs and "
+            "the observed transfer performance complicate interpretation; it is not a physical or "
+            "causal ranking."
+        )
 
 
 def _render_reliability_tab(data: DashboardData) -> None:
@@ -1125,8 +1099,8 @@ def _render_reliability_tab(data: DashboardData) -> None:
         "For each evaluation setup, this study selected PLS or LightGBM using only development "
         "cycles, then used separate reserved cycles to set interval widths. Observed coverage "
         f"is how often the nominal {nominal:.0%} intervals actually contained measured weights. "
-        "Calibration sets one fixed error margin per fitted model, so intervals do not "
-        "automatically widen for an unfamiliar cycle."
+        "Calibration learns an error margin from familiar conditions; it does not automatically "
+        "enlarge that margin when a new process condition produces larger errors."
     )
     st.dataframe(
         pl.DataFrame(
@@ -1205,9 +1179,9 @@ def _render_reliability_tab(data: DashboardData) -> None:
             "The loaded results do not show lower coverage on the excluded experiments."
         )
     st.caption(
-        "A coverage guarantee requires calibration and future examples to satisfy the method's "
-        "exchangeability assumption. A controlled whole-experiment shift does not establish "
-        "that assumption, regardless of the coverage observed in a particular loaded result."
+        "The interval guarantee assumes calibration and future examples are statistically "
+        "interchangeable (the exchangeability assumption). Changing the process conditions "
+        "does not establish that assumption, whatever coverage this particular study observes."
     )
     st.dataframe(
         coverage.select(
@@ -1229,7 +1203,7 @@ def _render_reliability_tab(data: DashboardData) -> None:
             "wide. No separate interval-widening experiment was run."
         )
 
-    st.subheader("Selective-measurement development gate")
+    st.subheader("Could screening identify predictions worth testing for measurement skipping?")
     screen = cast(dict[str, object], data.uncertainty_run.get("development_screen", {}))
     retained = cast(float, screen.get("retained_fraction", 0.75))
     threshold = cast(float, screen.get("primary_fold_minimum_mean_relative_reduction", 0.1))
@@ -1310,7 +1284,7 @@ def _render_reliability_tab(data: DashboardData) -> None:
         y=interval_rows["lower_g"].to_list(),
         mode="lines",
         fill="tonexty",
-        name="90% interval",
+        name=f"{nominal:.0%} interval",
     )
     interval_figure.add_scatter(
         x=interval_rows["cycle_counter"].to_list(),

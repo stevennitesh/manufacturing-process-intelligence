@@ -532,6 +532,17 @@ def test_synthetic_app_renders_three_tabs_and_selectors(tmp_path: Path) -> None:
 
     assert not app.exception
     assert app.title[0].value == "Injection Molding · Part-Weight Prediction Under Process Shift"
+    charts = [json.loads(chart.proto.spec) for chart in app.get("plotly_chart")]
+    comparison = next(
+        chart
+        for chart in charts
+        if chart.get("layout", {}).get("title", {}).get("text")
+        == "Scalar baseline error across evaluation settings"
+    )
+    assert {trace["name"] for trace in comparison["data"]} == {
+        "Unseen experiment — pooled cycles",
+        "Represented conditions — pooled cycles",
+    }
     assert [tab.label for tab in app.tabs] == [
         "Data & process",
         "Prediction & generalization",
@@ -547,10 +558,6 @@ def test_synthetic_app_renders_three_tabs_and_selectors(tmp_path: Path) -> None:
     assert "harder transfer question" in rendered_markdown
     assert "not prospective untouched holdouts" in rendered_markdown
     assert "100.00% of observed weight variation" in " ".join(info.value for info in app.info)
-    assert "completed-cycle weight estimate" in rendered_markdown
-    assert "What was learned" in subheaders
-    assert "Selective-measurement development gate" in subheaders
-    assert "Which inputs did the uncertainty-study models rely on?" in subheaders
     assert any("loaded all-fold gate failed" in warning.value for warning in app.warning)
     assert "Expand the labeled operating envelope" in rendered_markdown
     assert "Future monitoring and intended-use details" in " ".join(
@@ -640,6 +647,7 @@ def test_synthetic_app_does_not_claim_failures_when_loaded_outcomes_reverse(
     run_path = paths.m07 / "run.json"
     run = json.loads(run_path.read_text(encoding="utf-8"))
     run["m8_eligible"] = True
+    run["nominal_coverage"] = 0.8
     for screen in run["screens"]:
         screen["mean_relative_reduction"] = 0.3
         screen["passed"] = True
@@ -674,8 +682,15 @@ def test_synthetic_app_does_not_claim_failures_when_loaded_outcomes_reverse(
     )
     assert "Error was lower when a complete experiment was withheld" in visible
     assert "Coverage was not lower for unseen experiments" in visible
-    assert "saved development gate passed" in visible
+    assert "saved development gate passed" in visible.lower()
     assert "loaded results do not show lower coverage" in visible
+    trace_names = {
+        trace.get("name")
+        for chart in app.get("plotly_chart")
+        for trace in json.loads(chart.proto.spec)["data"]
+    }
+    assert "80% interval" in trace_names
+    assert "90% interval" not in trace_names
     for false_claim in (
         "MAE increased",
         "did not establish new-condition transfer",

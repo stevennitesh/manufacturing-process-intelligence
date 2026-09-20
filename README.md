@@ -72,13 +72,17 @@ characteristic, not a complete verdict on whether a part is acceptable.
 The project uses **scatimdata Dataset 2**: controlled injection-molding runs for a
 stacking-box part made from BASF Ultramid B3EG6, a glass-fiber-reinforced nylon 6 material
 (PA6-GF30). Each labeled machine cycle maps to one molded part.
+Measured weights provide the reference outcomes; the question is whether machine data
+alone could support a future measurement-assistance workflow.
+A **scalar** is one number summarizing a cycle; a **trajectory** is the sequence of
+measurements recorded during it.
 
 | Data available for each labeled cycle | How this project uses it |
 | --- | --- |
 | Scalar machine measurements | Sixteen completed-cycle variables, such as injection time, maximum pressure and barrel temperatures, form the scalar baseline. |
 | Injection-pressure and injection-flow trajectories | Each channel has 2,048 native-time samples; engineered and compressed representations test whether signal shape adds transferable information. |
-| Experimental context | Experiment boundary plus nullable moisture, mold-temperature and charge context describe controlled conditions; they organize analysis and validation but are not default predictors. |
-| Physical quality measurements | Part weight in grams is the required target. Three geometry fields remain deferred because their released scale/mapping is not authoritative. |
+| Experimental context | Moisture and mold-temperature changes describe the three controlled experiments used to organize analysis and validation. |
+| Physical quality measurements | Measured part weight in grams supplies the reference outcome for training and evaluation. |
 
 There are 829 labeled cycles. Another 92 released signal-only cycles are excluded because
 they have no matching released scalar/quality row and therefore no supported weight target.
@@ -87,17 +91,32 @@ they have no matching released scalar/quality row and therefore no supported wei
 
 | Source experiment | Labeled cycles | Observed controlled context | Mean weight | Distinguishing evidence |
 | ---: | ---: | --- | ---: | --- |
-| 15 | 303 | Moisture runs at raw 0.050 → 0.100 → 0.150 | 115.956 g | Highest mean weight; the first two released moisture values differ from the paper and remain unresolved. |
-| 20 | 223 | Moisture runs at raw 0.086 → 0.180 → 0.046 | 115.237 g | Broader cycle-to-cycle pressure/flow-summary variation than experiment 23. |
-| 23 | 303 | Mold-temperature runs at raw 80 → 90 → 70 | 114.308 g | Lowest and narrowest weight distribution; higher mean pressure and lower mean flow than experiments 15/20. |
+| 15 | 303 | Moisture changes | 115.956 g | Highest mean weight. |
+| 20 | 223 | Moisture changes | 115.237 g | Broader cycle-to-cycle pressure/flow-summary variation than experiment 23. |
+| 23 | 303 | Mold-temperature changes | 114.308 g | Lowest and narrowest weight distribution; higher mean pressure and lower mean flow than experiments 15/20. |
 
 Each experiment contains several intervention settings. Validation withholds the whole
-experiment, including all its settings and cycles. The temperature values are consistent
-with the paper's °C settings, but that unit mapping remains inferred.
+experiment, including all its settings and cycles.
 These are source experiment groups, not verified production-day labels. The context runs
 describe deliberate interventions, but other process measurements move with them; the
 observed differences do not establish that moisture or mold temperature alone caused the
 weight changes.
+
+<details>
+<summary>Dataset details and source limitations</summary>
+
+Released moisture settings are 0.050 → 0.100 → 0.150 for experiment 15 and
+0.086 → 0.180 → 0.046 for experiment 20. The first two experiment-15 values differ
+from the paper and remain unresolved. Experiment 23 has mold-temperature settings
+80 → 90 → 70; their interpretation as °C is consistent with the paper but inferred.
+Some context fields are missing; the source also includes a charge/batch field.
+Three geometry fields are not modeled because their released scale and mapping are
+not authoritative. Pressure/flow amplitudes remain in **native units**: values
+preserved as released, without a confirmed conversion to engineering units.
+Elapsed time is confirmed in seconds. See the [dataset contract](docs/datasets/)
+for source evidence and limitations.
+
+</details>
 
 ### How the data becomes an experiment
 
@@ -129,8 +148,10 @@ represented development experiments to set interval widths. For a whole-experime
 neither model fitting nor calibration uses the excluded experiment. The loaded calibration
 errors produced narrow intervals that did not describe the much larger errors on excluded
 experiments. Its 90% coverage target means nine in ten measured weights should lie inside
-their intervals when calibration and future examples satisfy the method's exchangeability
-assumption; this controlled experiment-shift setting does not establish that assumption.
+their intervals when calibration and future examples are statistically interchangeable
+(the **exchangeability assumption**). Changing the process conditions does not establish
+that assumption. Calibration learns an error margin from familiar conditions; it does not
+automatically enlarge it when a new condition produces larger errors.
 
 The held-out experiments frequently extended beyond process-variable ranges seen during
 fitting, so the models faced extrapolation pressure. That shift co-occurs with the errors;
@@ -153,7 +174,7 @@ support different claims and do not contradict the paper.
 - **Complexity did not replace condition coverage.** Scalar PLS had the lowest grouped
   aggregate error among the predefined comparisons; LightGBM and additional trajectory
   representations did not improve every held-out condition.
-- **The worst failure was systematic.** Scalar PLS underpredicted every experiment-23
+- **A key failure was systematic.** Scalar PLS underpredicted every experiment-23
   part by 0.798 g on average, while intervals averaging 0.550 g wide covered only 0.3%.
 - **Predictive explanations were population-specific.** Correlated temperature channels
   often acted as condition proxies, and the most important feature changed across evaluated
@@ -168,7 +189,7 @@ global production model and is not an early-cycle controller, root-cause model,
 product-conformance decision, setting recommender or validated replacement for physical
 measurement.
 
-### Why the selective-measurement gate stopped
+### Could screening justify testing whether some measurements could be skipped?
 
 The uncertainty study tested one simple measure of unfamiliarity. Each process feature
 was rescaled using training data so large numerical units would not dominate. The score
@@ -194,6 +215,9 @@ Observed input-range departures are evidence of unfamiliar inputs, but do not es
 reliable error ranking or a working temporal drift detector.
 
 ### What to do next
+
+The study does not justify replacing physical measurement. A follow-up should test whether
+broader labeled process conditions improve transfer and recalibration.
 
 1. **Expand the labeled operating envelope—the combinations and ranges of process
    conditions for which the model has labeled examples and validation evidence.** Sample
@@ -231,7 +255,7 @@ The intended loop is: **build the envelope → predict inside it → warn near o
 <details>
 <summary>Prediction: within-regime accuracy versus unseen-experiment generalization</summary>
 
-![Scalar baseline MAE with equal-fold primary, sample-weighted primary and separate pooled ID results](docs/images/dashboard-prediction.png)
+![Scalar baseline MAE for represented conditions and unseen experiments, both pooled by cycle](docs/images/dashboard-prediction.png)
 
 </details>
 
