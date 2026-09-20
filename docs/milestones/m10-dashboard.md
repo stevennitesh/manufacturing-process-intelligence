@@ -117,6 +117,34 @@ there is no costly intermediate interface requiring a separate checkpoint.
 
 ## Implementation
 
+### Reviewer clarification delivery — 2026-09-20
+
+Delivered: missing-input guidance and the README full-study sequence now start with
+acquisition, then offline preparation, and identify the repository root as the working
+directory. The development-gate table derives its screening populations from each saved
+screen's recorded inner blocks, so partial evidence does not create phantom experiment
+groups. It distinguishes the excluded experiment from the development experiments and
+states that the displayed reduction is the equal-weight mean across recorded validation
+directions, not performance on the excluded experiment.
+
+The prediction tab now labels permutation importance as an explanation of independently
+selected uncertainty-study scalar models, not the preceding explorer selection. The
+reliability tab identifies the represented development cycles used for calibration and
+separates the observed coverage shortfall from the exchangeability condition required for
+a general coverage guarantee. The README visibly records the retrospective exploratory
+scope while confirming that fitting and calibration boundaries were respected. Existing
+models, artifacts, memberships, conclusions, dependencies and versions are unchanged.
+
+Verification: the focused dashboard suite passed 14 cases, including acquisition-before-
+preparation ordering, partial screening populations and the reversed-outcome fixture. The
+full 92-test suite, Ruff lint and format checks, Pyright and the CLI smoke passed; the only
+test warning was the existing unwritable ignored pytest cache. A real-artifact AppTest
+rendered all three tabs and exercised prediction, importance and support selectors. Browser
+inspection confirmed the new importance scope, calibration/exchangeability explanation and
+screening table at desktop size. The affected reliability preview was refreshed, and README
+local links resolved. No model fitting or artifact regeneration ran. Optional layout changes
+remain deferred.
+
 ### Reviewer-surface delivery — 2026-09-19
 
 Purpose: make the completed study understandable in a short first read, with dashboard

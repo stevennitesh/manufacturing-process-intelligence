@@ -199,12 +199,14 @@ def _write_dashboard_fixture(root: Path) -> DashboardPaths:
             {
                 "protocol": "primary",
                 "fold": "holdout_experiment_15",
+                "inner_blocks": [{"inner_fold": 20}],
                 "mean_relative_reduction": 0.25,
                 "passed": True,
             },
             {
                 "protocol": "primary",
                 "fold": "holdout_experiment_20",
+                "inner_blocks": [{"inner_fold": 15}],
                 "mean_relative_reduction": 0.05,
                 "passed": False,
             },
@@ -427,9 +429,10 @@ def test_loaded_summaries_follow_fixture_values_and_membership(tmp_path: Path) -
     uncertainty = uncertainty_headline(data)
     assert uncertainty["primary_empirical_coverage"] == 0.0
     assert uncertainty["secondary_id_mean_width_g"] == pytest.approx(0.2)
-    assert distance_gate_summary(data.uncertainty_run)[
-        "Development MAE reduction"
-    ].to_list() == pytest.approx([0.25, 0.05])
+    gate = distance_gate_summary(data.uncertainty_run)
+    assert gate["Mean development MAE reduction"].to_list() == pytest.approx([0.25, 0.05])
+    assert gate["Experiment excluded from development"].to_list() == [15, 20]
+    assert gate["Experiments used for screening"].to_list() == ["20", "15"]
 
 
 def test_per_experiment_metrics_match_reference_and_null_constant_r2() -> None:
@@ -454,8 +457,13 @@ def test_per_experiment_metrics_match_reference_and_null_constant_r2() -> None:
 
 
 def test_missing_inputs_report_reproduction_commands(tmp_path: Path) -> None:
-    with pytest.raises(FileNotFoundError, match=r"run_uncertainty_shift\.py"):
+    with pytest.raises(FileNotFoundError, match=r"run_uncertainty_shift\.py") as error:
         load_dashboard_data(DashboardPaths(bundle=tmp_path / "missing"))
+    message = str(error.value)
+    assert "From the repository root" in message
+    assert message.index("data acquire injection_molding") < message.index(
+        "data prepare injection_molding"
+    )
 
 
 @pytest.mark.parametrize("field", ["source_archive_sha256", "membership_sha256"])
@@ -542,6 +550,7 @@ def test_synthetic_app_renders_three_tabs_and_selectors(tmp_path: Path) -> None:
     assert "completed-cycle weight estimate" in rendered_markdown
     assert "What was learned" in subheaders
     assert "Selective-measurement development gate" in subheaders
+    assert "Which inputs did the uncertainty-study models rely on?" in subheaders
     assert any("loaded all-fold gate failed" in warning.value for warning in app.warning)
     assert "Expand the labeled operating envelope" in rendered_markdown
     assert "Future monitoring and intended-use details" in " ".join(
@@ -554,6 +563,8 @@ def test_synthetic_app_renders_three_tabs_and_selectors(tmp_path: Path) -> None:
     assert app.selectbox(key="importance_experiment").value == 20
     captions = " ".join(caption.value for caption in app.caption)
     assert "Mean signed error (predicted - measured)" in captions
+    assert "they are not measurements of screening performance" in captions
+    assert "exchangeability assumption" in captions
     all_visible_text = " ".join(
         [rendered_markdown, captions]
         + [element.value for element in (*app.success, *app.error, *app.info, *app.warning)]
@@ -664,6 +675,7 @@ def test_synthetic_app_does_not_claim_failures_when_loaded_outcomes_reverse(
     assert "Error was lower when a complete experiment was withheld" in visible
     assert "Coverage was not lower for unseen experiments" in visible
     assert "saved development gate passed" in visible
+    assert "loaded results do not show lower coverage" in visible
     for false_claim in (
         "MAE increased",
         "did not establish new-condition transfer",

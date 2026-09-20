@@ -48,9 +48,11 @@ class DashboardData:
     support: pl.DataFrame
 
 
-REPRODUCTION_COMMANDS: Final = """Prepare and reproduce the saved evidence, then retry:
+REPRODUCTION_COMMANDS: Final = """From the repository root, acquire and prepare Dataset 2,
+reproduce the saved evidence, then retry:
 
 ```powershell
+uv run mpi data acquire injection_molding
 uv run mpi data prepare injection_molding --raw-root data/raw/injection_molding
 uv run python scripts/create_injection_molding_memberships.py
 uv run python scripts/run_scalar_baselines.py
@@ -290,14 +292,31 @@ def distance_gate_summary(run: dict[str, object]) -> pl.DataFrame:
         if screen.get("protocol") != "primary":
             continue
         fold = str(screen["fold"])
+        inner_blocks = cast(list[dict[str, object]], screen.get("inner_blocks", []))
+        recorded_experiments: set[int] = set()
+        for block in inner_blocks:
+            inner_fold = block.get("inner_fold")
+            if isinstance(inner_fold, int):
+                recorded_experiments.add(inner_fold)
+        screening_experiments = sorted(recorded_experiments)
+        if len(screening_experiments) > 1:
+            screening_population = (
+                ", ".join(str(value) for value in screening_experiments[:-1])
+                + f" and {screening_experiments[-1]}"
+            )
+        elif screening_experiments:
+            screening_population = str(screening_experiments[0])
+        else:
+            screening_population = "Not recorded"
         rows.append(
             {
-                "Held-out experiment": int(fold.rsplit("_", maxsplit=1)[-1]),
-                "Development MAE reduction": cast(float, screen["mean_relative_reduction"]),
-                "Decision": "Pass" if screen.get("passed") else "Fail",
+                "Experiment excluded from development": int(fold.rsplit("_", maxsplit=1)[-1]),
+                "Experiments used for screening": screening_population,
+                "Mean development MAE reduction": cast(float, screen["mean_relative_reduction"]),
+                "Criterion met?": "Yes" if screen.get("passed") else "No",
             }
         )
-    return pl.DataFrame(rows).sort("Held-out experiment")
+    return pl.DataFrame(rows).sort("Experiment excluded from development")
 
 
 def _display_label(value: object) -> str:
@@ -992,7 +1011,12 @@ def _render_prediction_tab(data: DashboardData) -> None:
         "reference is not necessarily the fitted model's training-mean prediction."
     )
 
-    st.subheader("Population-specific predictive importance")
+    st.subheader("Which inputs did the uncertainty-study models rely on?")
+    st.info(
+        "This section explains the scalar models selected independently for the uncertainty "
+        "study. It does not explain the model or representation selected in the prediction "
+        "explorer above."
+    )
     st.write(
         "Permutation importance shuffles one input across evaluated parts and measures the "
         "change in prediction error. Positive values mean shuffling hurt predictions; negative "
@@ -1167,6 +1191,24 @@ def _render_reliability_tab(data: DashboardData) -> None:
         "absent from training; represented experiments contributed other cycles to training. "
         "Combined coverage pools the evaluated cycles from all represented experiments."
     )
+    if unseen_coverage < represented_coverage:
+        st.info(
+            "For each whole-experiment test, the interval width was calibrated with reserved "
+            "cycles from the represented development experiments—not the excluded experiment. "
+            "In the loaded results, intervals calibrated on represented development cycles "
+            "covered a smaller share of outcomes in the excluded experiments."
+        )
+    else:
+        st.info(
+            "For each whole-experiment test, the interval width was calibrated with reserved "
+            "cycles from the represented development experiments—not the excluded experiment. "
+            "The loaded results do not show lower coverage on the excluded experiments."
+        )
+    st.caption(
+        "A coverage guarantee requires calibration and future examples to satisfy the method's "
+        "exchangeability assumption. A controlled whole-experiment shift does not establish "
+        "that assumption, regardless of the coverage observed in a particular loaded result."
+    )
     st.dataframe(
         coverage.select(
             pl.col("population").alias("Evaluation population"),
@@ -1205,8 +1247,13 @@ def _render_reliability_tab(data: DashboardData) -> None:
         hide_index=True,
         width="stretch",
         column_config={
-            "Development MAE reduction": st.column_config.NumberColumn(format="percent")
+            "Mean development MAE reduction": st.column_config.NumberColumn(format="percent")
         },
+    )
+    st.caption(
+        "These screening results use only the listed development experiments; they are not "
+        "measurements of screening performance on the excluded experiment. Relative reductions "
+        "are averaged equally across the recorded development-validation directions."
     )
     if m8_eligible:
         st.warning(

@@ -119,13 +119,18 @@ the random-cycle benchmark primarily measures interpolation within represented c
 and may overstate performance for genuinely new production conditions. The gap between
 these two evaluations is the central result.
 The whole-experiment benchmark is retrospective grouped cross-validation: the initial audit
-examined all three experiments, so these are not untouched prospective tests.
+examined all three experiments before the later study scope and grouped evaluation design were
+fixed, so these are not untouched prospective tests. The fitting and interval-calibration
+boundaries described below were still respected.
 
 The uncertainty study is not PLS-only: it selects either PLS or LightGBM (a model built
-from decision trees) using development data, then uses separate reserved cycles to set
-the interval widths. Evaluation cycles are excluded from both steps. Its 90% coverage
-target means nine in ten measured weights should lie inside their intervals under the
-method's assumptions—not that this reliability is guaranteed for new process conditions.
+from decision trees) using development data, then uses separate reserved cycles from the
+represented development experiments to set interval widths. For a whole-experiment test,
+neither model fitting nor calibration uses the excluded experiment. The loaded calibration
+errors produced narrow intervals that did not describe the much larger errors on excluded
+experiments. Its 90% coverage target means nine in ten measured weights should lie inside
+their intervals when calibration and future examples satisfy the method's exchangeability
+assumption; this controlled experiment-shift setting does not establish that assumption.
 
 The held-out experiments frequently extended beyond process-variable ranges seen during
 fitting, so the models faced extrapolation pressure. That shift co-occurs with the errors;
@@ -171,11 +176,15 @@ was the average distance to the five most similar training cycles. Before final 
 keeping only the closest 75% of development predictions had to reduce MAE by at least 10%
 in every held-out-experiment setup.
 
-| Future held-out experiment | Development MAE reduction | Decision |
-| --- | ---: | --- |
-| Experiment 15 | 19.66% | Pass |
-| Experiment 20 | 4.31% | **Fail** |
-| Experiment 23 | 16.31% | Pass |
+| Experiment excluded from development | Experiments used for screening | Mean development MAE reduction | Criterion met? |
+| --- | --- | ---: | --- |
+| 15 | 20 and 23 | 19.66% | Yes |
+| 20 | 15 and 23 | 4.31% | **No** |
+| 23 | 15 and 20 | 16.31% | Yes |
+
+These screening results use only the listed development experiments; they are not
+measurements of screening performance on the excluded experiment. Relative error reductions
+are averaged equally across the two development-validation directions.
 
 Because one setup failed, the project stopped before testing how prediction error changes
 as more questionable predictions are routed to physical measurement. It makes no claim
@@ -310,9 +319,12 @@ Both raw and prepared data remain outside Git.
 
 ## Reproduce the full study
 
-After preparing Dataset 2 at the default path, the complete saved-evidence sequence is:
+From the repository root, acquire and prepare Dataset 2, then run the complete
+saved-evidence sequence:
 
 ```powershell
+uv run mpi data acquire injection_molding
+uv run mpi data prepare injection_molding --raw-root data/raw/injection_molding
 New-Item -ItemType Directory -Force artifacts/m02 | Out-Null
 uv run jupyter nbconvert --to notebook --execute notebooks/m02_injection_molding_audit.ipynb `
   --output m02_injection_molding_audit.executed.ipynb --output-dir artifacts/m02 `
