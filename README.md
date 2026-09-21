@@ -285,6 +285,14 @@ is the canonical scope authority.
 
 ## Development setup
 
+Commands below use PowerShell and run from the repository root. First clone the
+repository and enter it:
+
+```powershell
+git clone https://github.com/stevennitesh/manufacturing-process-intelligence.git
+cd manufacturing-process-intelligence
+```
+
 Prerequisites:
 
 - Python 3.12
@@ -519,6 +527,10 @@ re-hash every Parquet or detect files changed while a cached snapshot is display
 </details>
 
 ## Data policy
+
+Project code and documentation are licensed under the [MIT License](LICENSE).
+Third-party data and dataset-derived screenshots retain their separate source
+license and attribution requirements described in [DATA_LICENSES.md](DATA_LICENSES.md).
 
 Raw, interim, and processed third-party data are local-only and ignored by Git.
 Version-controlled manifests in `data/manifests/` record admitted-source provenance

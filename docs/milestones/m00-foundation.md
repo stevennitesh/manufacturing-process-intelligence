@@ -10,7 +10,7 @@ flowchart LR
     R["✓ Runtime<br/>Python 3.12, uv, lockfile"]
     P["✓ Package<br/>src/mpi and CLI shell"]
     Q["✓ Quality system<br/>pytest, Ruff, Pyright, pre-commit"]
-    D["✓ Repository system<br/>data hygiene, agent guidance, private origin"]
+    D["✓ Repository system<br/>data hygiene, agent guidance, GitHub origin"]
     I["✓ Continuous integration<br/>locked install, checks, CLI smoke test"]
     G{"✓ M0 gate<br/>tests, lint, and types pass"}
 
@@ -25,7 +25,7 @@ flowchart LR
 - `uv run ruff check .` passes.
 - `uv run pyright` passes.
 - GitHub Actions runs the locked installation, checks, and CLI smoke test.
-- `main` is published to the private GitHub repository.
+- `main` is tracked on GitHub; repository visibility is a separate publication decision.
 
 The [implementation roadmap](../implementation-roadmap.md) owns the current
 cross-milestone status.
