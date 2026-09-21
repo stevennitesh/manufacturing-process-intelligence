@@ -222,8 +222,9 @@ broader labeled process conditions improve transfer and recalibration.
 1. **Expand the labeled operating envelope—the combinations and ranges of process
    conditions for which the model has labeled examples and validation evidence.** Sample
    its boundaries, interior and important combinations across material lots, recipes,
-   machines and process settings; more diverse conditions matter more than more cycles
-   from one familiar setup.
+   machines and process settings. Test whether broader condition coverage improves transfer
+   more than collecting additional cycles from familiar conditions; this study did not
+   compare those data-collection strategies.
 2. **Keep condition-held-out validation.** Hold out complete conditions, lots or machines
    so within-condition accuracy cannot conceal transfer failure.
 3. **Validate guardrails prospectively.** Warn when inputs approach or leave the supported

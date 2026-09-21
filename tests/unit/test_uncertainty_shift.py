@@ -78,6 +78,12 @@ def test_conformal_order_statistic_ties_and_insufficient_rows() -> None:
         conformal_radius(errors[:-1])
 
 
+@pytest.mark.parametrize("coverage", [0.0, 1.0, -0.1, 1.1, float("nan")])
+def test_conformal_radius_rejects_invalid_coverage(coverage: float) -> None:
+    with pytest.raises(ValueError, match="coverage must be strictly between 0 and 1"):
+        conformal_radius(np.array([0.1, 0.2, 0.3]), coverage=coverage)
+
+
 def test_distance_matches_direct_standardization_and_five_nearest() -> None:
     train = np.array([[0.0, 5.0], [1.0, 5.0], [2.0, 5.0], [3.0, 5.0], [4.0, 5.0], [8.0, 5.0]])
     query = np.array([[2.5, 99.0], [7.0, -3.0]])

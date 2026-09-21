@@ -790,16 +790,19 @@ def _render_prediction_tab(data: DashboardData) -> None:
             width="stretch",
         )
         st.caption(
-            "Scalars establish the baseline; trajectory summaries add engineered pressure/flow "
-            "features; principal component analysis (PCA) and supervised PLS add compressed signal "
-            "components. PCA summarizes "
-            "signal variation; PLS compression "
-            "learns components associated with training weights, before Ridge/LightGBM predicts. "
             "The chart reports the loaded results for each predefined representation and model "
             "family. It is a descriptive comparison, not an outer-selected deployment winner."
         )
 
     st.subheader("Did adding trajectories reduce prediction error?")
+    st.write(
+        "Signal summaries and compressed components are additional model inputs. Summaries "
+        "describe pressure/flow properties such as peaks and averages; components combine many "
+        "signal measurements into fewer numbers. Principal component analysis (PCA) summarizes "
+        "signal variation without using weight. Partial least squares (PLS) compression uses "
+        "training weights to construct those components. Ridge or LightGBM then predicts "
+        "part weight—this is different from the scalar PLS predictor in the headline."
+    )
     st.caption(
         "Each model has its own horizontal scale so small changes remain visible. "
         "Compare the labeled values in grams, not distances between panels. "
@@ -1304,6 +1307,10 @@ def _render_reliability_tab(data: DashboardData) -> None:
         yaxis_title="Weight (g)",
     )
     st.plotly_chart(interval_figure, width="stretch")
+    st.caption(
+        "The horizontal axis is the source cycle counter, not elapsed production time. "
+        "This view is not a temporal drift test."
+    )
 
     st.subheader("How often were process measurements outside the training range?")
     support_protocol = str(
@@ -1388,8 +1395,9 @@ def _render_reliability_tab(data: DashboardData) -> None:
         """
         1. **Expand the labeled operating envelope**—the combinations and ranges of process
            conditions for which the model has labeled examples and validation evidence—across
-           its boundaries, interior and important combinations, not just more cycles from one
-           familiar condition.
+           its boundaries, interior and important combinations. Test whether broader condition
+           coverage improves transfer more than additional cycles from familiar conditions;
+           this study did not compare those data-collection strategies.
         2. **Keep holding out complete conditions, lots or machines** so familiar-condition
            accuracy cannot hide transfer failure.
         3. **Validate guardrails prospectively:** warn on unsupported inputs, physically measure

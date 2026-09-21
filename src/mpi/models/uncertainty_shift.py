@@ -127,6 +127,8 @@ def predict_scalar_candidate(fitted: Pipeline, rows: pl.DataFrame) -> np.ndarray
 
 def conformal_radius(errors: np.ndarray, coverage: float = 0.90) -> tuple[float, int]:
     """Return the finite split-conformal order statistic without rank clipping."""
+    if not 0.0 < coverage < 1.0:
+        raise ValueError("coverage must be strictly between 0 and 1")
     values = np.asarray(errors, dtype=np.float64)
     if values.ndim != 1 or len(values) == 0 or not np.isfinite(values).all():
         raise ValueError("calibration errors must be a nonempty finite vector")
