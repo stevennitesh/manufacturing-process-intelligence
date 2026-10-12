@@ -28,8 +28,9 @@ Before adding a dataset adapter or download command:
   attribution, license/source link, and modification-notice conditions.
 - **Repository policy:** raw and prepared data remain outside Git. Only the verified
   source contract, acquisition manifest, schemas, instructions, and synthetic fixtures
-  may be version controlled, plus the attributed dashboard screenshots in
-  `docs/images/` and the self-contained HTML report in `docs/report/index.html`.
+  may be version controlled, plus the attributed dashboard screenshots and aggregate
+  result figures in `docs/images/` and the self-contained HTML report in
+  `docs/report/index.html`.
   The report includes aggregate charts and tables, not cycle-level records.
   Source attribution, license/source links and transformation notices appear in
   the report and README. This exception covers rendered portfolio evidence, not

@@ -56,6 +56,7 @@ jobs:
           test -s docs/report/index.html
           mkdir -p "$RUNNER_TEMP/portfolio-site"
           cp docs/report/index.html "$RUNNER_TEMP/portfolio-site/index.html"
+          cp docs/images/featured.jpg "$RUNNER_TEMP/portfolio-site/featured.jpg"
 
       - name: Upload report
         uses: actions/upload-pages-artifact@v5

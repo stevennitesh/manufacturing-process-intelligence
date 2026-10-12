@@ -19,11 +19,13 @@ scope; [M7](m07-uncertainty-and-shift.md) and
 One local Streamlit application with Plotly figures reads the prepared bundle and
 saved M4–M7/M9 artifacts. It does not train models, download data or write artifacts.
 Missing-input guidance lists acquisition, preparation and analysis commands in order,
-to run from the repository root. README owns setup and reproduction instructions.
+to run from the repository root. The [reproduction guide](../reproduction.md) owns
+setup, CLI and reproduction instructions; the README leads to that guide.
 
 The static report uses the dashboard's evidence loader and aggregations. Its small
 renderer reads existing saved predictions, metrics and run records, then embeds
-aggregate charts, semantic tables and styles in one portable HTML file. Rendering
+aggregate charts, semantic tables and styles in one portable HTML file, and exports
+the same scalar comparisons as an attributed SVG for the GitHub front page. Rendering
 does not refit models or refresh sources. Source archive and membership hashes
 remain visible in the report; full numeric run artifacts remain ignored. The
 README leads to this report before local setup. The template's interpretation is
@@ -103,7 +105,7 @@ previews show the [overview](../images/dashboard-overview.jpg),
 
 ## Consolidated interpretation
 
-The dashboard makes the central study conclusion visible: strong accuracy with
+The dashboard makes the central study conclusion visible: low prediction error with
 represented conditions did not establish reliable transfer to an omitted experiment.
 Trajectory additions were inconsistent; calibration from familiar conditions did not
 provide reliable coverage under shift. The development distance screen failed its

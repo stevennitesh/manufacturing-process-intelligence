@@ -3,14 +3,17 @@ from __future__ import annotations
 
 from dataclasses import replace
 from html.parser import HTMLParser
+from pathlib import Path
 from statistics import mean
 from typing import cast
+from xml.etree import ElementTree
 
 import polars as pl
 import pytest
 
 from mpi.dashboard import DashboardData
-from mpi.portfolio import render_report
+from mpi.portfolio import render_report, scalar_comparison_svg
+from scripts import render_portfolio_report
 
 
 class _TableReader(HTMLParser):
@@ -228,12 +231,62 @@ def test_interval_aggregations_and_selections_follow_saved_predictions(data: Das
     assert _render(data, "@@ID_COVERAGE@@|@@HELDOUT_COVERAGE@@|@@NOMINAL_COVERAGE@@") == (
         "33.3|33.3|90.0"
     )
+    assert _render(data, "@@ID_INTERVAL_WIDTH@@|@@HELDOUT_INTERVAL_WIDTH@@") == "0.193|0.198"
     gate = _TableReader(_render(data, "@@GATE_TABLE@@")).rows[1:]
     assert gate == [
         ["15", "20 and 23", "25.0%", "Yes"],
         ["20", "15 and 23", "5.0%", "No"],
         ["23", "15 and 20", "20.0%", "Yes"],
     ]
+
+
+def test_static_scalar_preview_preserves_pooled_population_and_error(data: DashboardData) -> None:
+    svg = scalar_comparison_svg(data)
+    root = ElementTree.fromstring(svg)
+    text = [node.text for node in root.findall(".//{http://www.w3.org/2000/svg}text")]
+    pooled_error = mean([1, 1, 3, 2, 2, 4])
+    represented_error = mean([0.1, 0.3, 0.2])
+    assert [value for value in text if value is not None and value.endswith(" g")][:6] == [
+        f"{factor * error:.3f} g"
+        for factor in (1.5, 1.2, 1.0)
+        for error in (represented_error, pooled_error)
+    ]
+    assert text.count("3 evaluated cycles") == 3
+    assert text.count("6 evaluated cycles") == 3
+    assert "pooled cycle weighting" in svg
+    assert "separate fits" in svg
+    assert "private-cycle-" not in svg
+
+
+def test_renderer_exports_report_and_preview_from_same_saved_evidence(
+    data: DashboardData, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    saved = replace(
+        data,
+        uncertainty_run={
+            **data.uncertainty_run,
+            "source_version": "synthetic-source",
+            "source_archive_sha256": "synthetic-archive",
+            "membership_sha256": "synthetic-membership",
+        },
+    )
+    monkeypatch.setattr(render_portfolio_report, "load_dashboard_data", lambda: saved)
+    report = tmp_path / "report.html"
+    preview = tmp_path / "preview.svg"
+    monkeypatch.setattr(
+        "sys.argv",
+        ["render", "--output", str(report), "--figure-output", str(preview)],
+    )
+    render_portfolio_report.main()
+    expected = render_report(
+        saved,
+        Path("docs/report/template.html").read_text(encoding="utf-8"),
+        source_version="synthetic-source",
+        source_archive_sha256="synthetic-archive",
+        membership_sha256="synthetic-membership",
+    )
+    assert report.read_text(encoding="utf-8") == expected
+    assert preview.read_text(encoding="utf-8") == scalar_comparison_svg(saved)
 
 
 def test_small_nonzero_interval_coverage_remains_visible(data: DashboardData) -> None:
