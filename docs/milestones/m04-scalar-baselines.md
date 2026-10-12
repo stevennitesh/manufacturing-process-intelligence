@@ -73,8 +73,8 @@ fitted interpolation protocol and do not isolate or quantify a causal shift effe
 
 M2 inspected all experiment targets and associations, so these grouped folds are
 not pristine prospective holdouts. Three experiments do not establish factory-wide
-generalization. M4 residuals and outer errors do not authorize M5 feature invention
-or M6 search changes; those choices remain pre-specified development decisions.
+generalization. M5 feature definitions and M6 search choices remain pre-specified
+development decisions, independent of M4 residuals and outer errors.
 
 ### Post-hoc diagnostics from saved predictions
 
@@ -107,8 +107,8 @@ Mean signed error is mean(predicted − observed): positive means overprediction
 
 PLS underpredicts every held-out experiment-23 part; its absolute mean bias equals
 its MAE. This identifies a strong directional error, not a physical cause or proof
-that cycle-level variation is otherwise predicted correctly. No offset correction,
-new feature or parameter search is authorized by this post-hoc observation.
+that cycle-level variation is otherwise predicted correctly. This post-hoc
+observation did not lead to an offset correction, new feature or parameter search.
 The diagnostics are saved in `run.json`; README documents report-only regeneration.
 R² is recorded as null when a group's target variance is zero, rather than dividing
 by zero or assigning a misleading finite score.
@@ -135,9 +135,10 @@ independently recalculated from saved predictions. Report-only regeneration leav
 prediction/metric files and selected parameters unchanged; no model was retrained
 for this reporting update.
 
-## Next step
+## Relation to later milestones
 
-Plan M5's bounded trajectory representations from the specified feature families
-and development evidence, not from these outer-evaluation residuals.
+[M5's bounded trajectory representations](m05-trajectory-representations.md) use
+the specified feature families and development evidence, without redesign based
+on these outer-evaluation residuals.
 The final cross-milestone interpretation and data-collection implications are
 consolidated in [M10](m10-dashboard.md#consolidated-interpretation).

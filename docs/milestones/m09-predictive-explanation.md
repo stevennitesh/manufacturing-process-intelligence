@@ -10,25 +10,24 @@ the portfolio, not new modeling or evidence of physical causes. Follow the
 [explanation scope](../spec.md#explanation-dashboard-and-release) and
 [M7 results](m07-uncertainty-and-shift.md). M8 remains skipped.
 
-Deliver two small tables: permutation importance and feature-support summaries.
-No SHAP, PLS loading study, latent-space visualization, new uncertainty score,
-feature selection, model search or dashboard implementation in this milestone.
+The result consists of permutation-importance and feature-support tables.
+It does not introduce another uncertainty score, feature selection or model search.
 
 ## Models and evaluation populations
 
-Read the four selected candidate settings from M7's `run.json`; refit each once
-using its original M3 fit/tune rows and existing scalar pipeline. Do not rerun
-candidate selection. Calibration rows remain unused. Use the saved M7 evaluation
-predictions as a unit-keyed reference: refitted predictions must reproduce them
-within 1e-10 before reporting explanations. Check the M7 source and membership
-identity against the actual inputs; a mismatched run needs regeneration, not a
-compatibility path or artifact registry.
+The runner reads the four selected candidate settings from M7's `run.json` and
+refits each once using its original M3 fit/tune rows and existing scalar pipeline.
+It does not rerun candidate selection. Calibration rows remain unused. Saved M7
+evaluation predictions provide a unit-keyed reference: refitted predictions must
+reproduce them within 1e-10 before explanations are reported. Source and membership
+identity are checked against the actual inputs.
 
-Use six evaluation populations: the three primary held-out experiments and the
+The six evaluation populations are the three primary held-out experiments and the
 three experiment subsets of the secondary ID evaluation. ID subsets use the same
-ID-fitted model. Sort by unit_id before deterministic permutation. Do not shuffle
-across ID experiment boundaries or present a pooled importance that rewards regime
-recognition. Record model/settings, counts and unpermuted MAE with each population.
+ID-fitted model. Rows are sorted by unit_id before deterministic permutation, and
+shuffling stays within each ID experiment. Each population retains its model,
+settings, count and unpermuted MAE. A pooled importance could reward regime
+recognition and is not used.
 
 ## Permutation importance
 
@@ -66,30 +65,17 @@ invalid-data thresholds or a new OOD decision rule. Co-occurring shift and error
 do not identify the cause of M7's coverage failures. No model changes follow from
 the diagnostic in v0.1.
 
-## Delivery and verification
+## Implementation
 
-1. Reuse current scalar assembly/model builders with minimal helper exposure if
-   needed; keep one short explanation module and reproducible script. No new
-   dependency, generic attribution framework or model serialization.
-2. Write ignored `artifacts/m09/` permutation/support Parquets and a compact run
-   record with M7 reference, source/membership identity, selected settings, seed,
-   repeats and population baseline metrics. The tables have 96 rows each; repeat
-   values may live in the importance table rather than a separate artifact.
-3. Record a few concrete findings and limitations here; update README/roadmap.
-   M10 owns presentation charts and the dashboard. M4–M7 results remain unchanged.
+The explanation module and reproducible script reuse current scalar assembly and
+model builders. Ignored `artifacts/m09/` Parquets contain permutation importance,
+repeat values and feature-support summaries. A compact run record retains the M7
+reference, source/membership identity, selected settings, seed, repeats and
+population baseline metrics. Each table contains 96 rows.
 
-Focused synthetic tests: a known predictor with a relevant and irrelevant feature
-to check importance sign/value against an independent permutation calculation;
-analytic support calculations including boundary equality and zero variance; and
-the ordinary runner's unit alignment, population separation and same-model refit.
-Evaluation labels may change importance but not fitted predictions or support;
-calibration labels must affect neither output. Reuse existing model tests.
-
-Run repository CI checks and the real workflow. Independently recalculate support
-statistics and at least one importance result, verify all baseline predictions
-against M7, and repeat the local run within 1e-10 numerical tolerance. Preserve
-negative/near-zero findings without extra attribution methods. Full real training
-stays out of CI. Completion leads to M10, not another model or feature experiment.
+Synthetic tests run in CI; the complete real-data workflow runs locally.
+[M10](m10-dashboard.md) presents these explanations alongside the prediction and
+uncertainty results. M4–M7 results remain unchanged.
 
 ## Results
 

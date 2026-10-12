@@ -1438,8 +1438,7 @@ def render_dashboard(paths: DashboardPaths = DEFAULT_PATHS) -> None:
     st.title("Injection Molding · Part-Weight Prediction Under Process Shift")
     st.caption("scatimdata Dataset 2 · machine-cycle telemetry → molded-part weight")
     st.caption(
-        "Existing portfolio evidence only · no model fitting, downloads, artifact writes, or "
-        "remote services"
+        "Saved study results · prediction accuracy, experiment transfer and interval reliability"
     )
     if st.button("Reload saved evidence", help="Use after regenerating local artifacts."):
         load_dashboard_data.clear()

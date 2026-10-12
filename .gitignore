@@ -72,5 +72,7 @@ Thumbs.db
 
 # Local scratch space
 .scratch/
+.tmp/
+.codex/
 tmp/
 temp/

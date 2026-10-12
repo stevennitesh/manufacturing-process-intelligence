@@ -9,31 +9,32 @@
 
 **Verified:** 2026-09-12
 
-This contract admits a source for M1 implementation. It does not claim that an
-adapter, prepared bundle, split, or model exists. Exact acquired-file identities
-are owned by the
+This contract records source admission, interpretation and limitations. The
+[roadmap](../implementation-roadmap.md) records the completed implementation and
+evaluation. Exact acquired-file identities are owned by the
 [source manifest](../../data/manifests/injection-molding-source.json).
 
 ## Accepted MVP use and claim boundary
 
-The revised canonical plan requires **Dataset 2 part weight in grams only** for
+The study uses **Dataset 2 part weight in grams only** for
 v0.1. Geometry remains preserved in the source/canonical quality table, with
 unresolved units and experimental/deferred modeling status; resolving it is not
 a weight-MVP prerequisite. The project tests whether pressure/flow information
 improves scalar-only predictions under experiment shift, without assuming success.
 
 Primary validation is leave-one-experiment-out over IDs 15, 20 and 23; no day
-relabeling. The canonical plan's M3 owns exact development, calibration and test
-partitions and the prediction-time process allowlist. All source-derived quality
+relabeling. The [M3 contract](../milestones/m03-feature-and-evaluation-contract.md)
+owns exact development, calibration and test partitions and the prediction-time
+process allowlist. All source-derived quality
 fields are outcomes. Source integral columns are process summaries with unresolved
 state/availability semantics, not established quality-derived quantities; exclude
 them from baseline predictors until cleared. Retained data is not an approved
 training matrix. Context-augmented models, cavity pressure and state/integral
 features are optional, separately identified experiments.
 
-When a simple uncertainty score supports selection, the MVP policy is
-AUTO-PREDICT / MEASURE, evaluated by measurement rate versus
-accepted prediction error and by empirical interval coverage under shift. No
+Selective measurement was conditional on a simple uncertainty score supporting
+error ranking. The [M7 development screen](../milestones/m07-uncertainty-and-shift.md#development-screen-and-next-step)
+failed, so no AUTO-PREDICT / MEASURE policy was evaluated. No
 specification-based PASS/FAIL, quality-escape rate, longitudinal factory SPC or
 physical RCA claim is supported by this contract. SPC/anomaly monitoring belongs
 to a later admitted process/assembly source. No source repair or additional
@@ -563,7 +564,7 @@ explicit experiment boundaries still provide the stronger primary validation
 contract. Before either additional candidate enters implementation, establish a
 defensible grouping/split contract (or explicitly accept a narrower claim), rerun
 its admission gates, and plan its dataset-specific mapping. No pooled dataset or
-additional adapter is authorized by this evidence refresh.
+additional adapter is included in this source admission.
 
 ## Canonical bundle handoff
 
@@ -658,7 +659,7 @@ them.
 
 ## Acquire the admitted archive
 
-Production acquisition is intentionally narrower than the three-candidate
+Dataset 2 acquisition is narrower than the three-candidate
 inspection workflow above. From the repository root, acquire only the admitted
 Dataset 2 archive through its immutable HTTPS URL:
 
@@ -678,8 +679,7 @@ the HDF5 content.
 A matching existing archive is rehashed and reused without network access.
 A mismatched file is preserved with an error; inspect/remove it before retrying.
 Network/checksum failures do not create an archive. A filesystem write failure may
-leave a partial file, which the next invocation rejects by hash. There is no
-receipt, download chronology, fsync or hard-link publication protocol.
+leave a partial file, which the next invocation rejects by hash.
 
 Connection and blocking reads use a finite transport timeout. Size and SHA-256 are
 checked before publication; truncated, oversized or mismatched downloads are never
@@ -687,7 +687,7 @@ published.
 
 The typed acquisition result and acquisition CLI output mean byte-verified only.
 They do not establish archive structure, the 829-cycle schema/join contract, or
-preparation readiness. Production raw validation checks archive identity once before
+preparation readiness. Raw validation checks archive identity once before
 reading the pinned member.
 
 ## Prepare the admitted bundle
@@ -701,8 +701,7 @@ uv run mpi data prepare injection_molding --raw-root data/raw/injection_molding
 
 Preparation performs no download or source repair. It writes the six tables and
 metadata containing source identity, license, typed lineage, transformations,
-actual exclusions and limitations. This contract owns the research evidence;
-there is no parallel structured research dossier.
+actual exclusions and limitations. This contract owns the source evidence.
 
 Loading checks table schema and metadata structure; it does not repeat the source
 audit or hash generated files. Preparation can reuse an existing output with the
@@ -711,10 +710,11 @@ its preparation section explains explicit regeneration and incomplete outputs.
 The default is `data/processed/injection_molding/dataset2`; only the current schema
 is supported. Historical versions are not needed for the current generated data.
 
-## Next action
+## Related implementation and evaluation
 
 Use the [roadmap](../implementation-roadmap.md) for current work and the
 [M1 summary](../milestones/m01-injection-molding-ingestion.md#preparation-completion-evidence)
-for the completed preparation handoff. The portfolio-scale simplification changes
-engineering obligations, not the source evidence recorded here. A later M2
-audit must not repair discrepancies or begin M3 feature/split decisions.
+for preparation evidence. The [M2 audit](../milestones/m02-dataset-audit.md) records
+descriptive findings; the [M3 contract](../milestones/m03-feature-and-evaluation-contract.md)
+owns modeling features and evaluation memberships. These later stages retain the
+source discrepancies and limitations recorded here.

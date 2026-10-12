@@ -2,8 +2,7 @@
 
 Canonical scope and acceptance criteria. The [roadmap](implementation-roadmap.md)
 owns progress, [README](../README.md) owns commands, and [AGENTS.md](../AGENTS.md)
-owns engineering guidance. This replaces the long greenfield plan; its full text
-remains in Git history at commit `60e3c25`.
+owns engineering guidance.
 
 ## Purpose and boundaries
 
@@ -22,8 +21,8 @@ selective measurement follows only if a simple score supports error ranking.
 Later work adds source-supported monitoring/diagnostics and transfer.
 No MVP SPC, physical RCA, PASS/FAIL, quality escapes or fabricated factory chronology.
 No distributed systems, feature store, agentic AI, autonomous control, predictive
-maintenance or computer-vision scope. Deep learning requires a later justified
-experiment, not a résumé keyword. MLflow, APIs and containers are optional later.
+maintenance or computer-vision scope. Deep learning requires a later experiment
+with a clear scientific purpose. MLflow, APIs and containers are optional later.
 
 ## Sources and admission
 
@@ -32,9 +31,9 @@ experiment, not a résumé keyword. MLflow, APIs and containers are optional lat
 | v0.1 | scatimdata Dataset 2 only: weight prediction under experiment shift |
 | v0.2 | Choose PyScrew or CiP-DMD after audit: process/assembly intelligence |
 | v0.3 | Bosch Plasma after audit: semiconductor virtual metrology |
-| v0.4 optional | One role-relevant engineering demonstration |
+| v0.4 optional | One justified engineering demonstration |
 | v0.5 optional | Pharmaceutical batch-quality transfer |
-| v0.6 optional | NIST additive/advanced manufacturing if useful for target roles |
+| v0.6 optional | NIST additive/advanced manufacturing transfer study |
 
 Before adding a source, establish publisher/version, license and redistribution,
 physical row/unit meaning, IDs/joins, chronology, units, targets, interventions,
@@ -91,7 +90,7 @@ simple local records suffice.
 | M7 | Conformal baseline, one simple uncertainty-score experiment and ID-versus-shift evaluation |
 | M8 | Conditional selective measurement experiment, or documented negative ranking result |
 | M9 | Bounded predictive explanation, not physical root-cause claims |
-| M10 | Three-tab offline dashboard and reproducible résumé-ready release |
+| M10 | Three-tab offline dashboard, HTML case study and reproducible release |
 
 M2 produces a focused reproducible audit, not an EDA framework. Keep geometry and
 unresolved source details in brief audit notes, not new modeling targets.
@@ -214,7 +213,8 @@ Keep figures focused: process-to-quality architecture, prediction versus measure
 weight, representation/experiment comparisons and uncertainty; include risk-coverage
 when the ranking experiment supports it.
 Completion does not require positive trajectory benefit, nominal shifted coverage
-or measurement savings. Tag v0.1.0 when ready and use actual results on the résumé.
+or measurement savings. Tag v0.1.0 when ready; release claims must use the
+demonstrated results.
 
 ## Later releases
 
@@ -222,8 +222,8 @@ or measurement savings. Tag v0.1.0 when ready and use actual results on the rés
 ([descriptor](https://arxiv.org/abs/2505.11925),
 [collection](https://doi.org/10.5281/zenodo.14729547)) versus
 [CiP-DMD](https://zenodo.org/records/8420132). Choose one, not both by default.
-Prefer verified assembly/degradation evidence for automation roles or multi-stage
-machining/QC evidence for precision manufacturing. Distinguish station OK/NOK,
+Compare verified assembly/degradation evidence with multi-stage machining/QC
+evidence. Distinguish station OK/NOK,
 induced anomalies and final physical QC. Audit the
 [cross-process-chain candidate](https://zenodo.org/records/17240390) for upstream/
 downstream lineage, IDs, quality, license, usable counts and PyScrew overlap.
@@ -249,7 +249,7 @@ metrology target, reproducible commands/checks, limits and a record of reused
 versus changed core components. Do not require every etch target, neural models,
 API/container infrastructure or direct transfer of a fitted molding model.
 
-**v0.4 optional:** Choose a role-relevant batch-inference, tracking, API, container
+**v0.4 optional:** Choose a justified batch-inference, tracking, API, container
 or drift-report demonstration. Require a clear purpose, ordinary-path test, local
 invocation, model/data lineage and documented limits—not production readiness.
 Input-distribution drift and labeled performance degradation are different.
@@ -262,19 +262,14 @@ quality, PLS/PCA/MSPC, batch trajectories and product-family/material effects.
 Use batch-level grouping and justified chronological/product-family splits;
 never random-split rows from one batch trajectory. Capability metrics need
 documented specs and a stable process. Produce a concise domain-transfer report.
-**v0.6 optional:** NIST additive manufacturing only when target roles justify it.
-Neither is required in the initial job-search cycle.
+**v0.6 optional:** NIST additive manufacturing is a possible further transfer study.
+Neither optional domain-transfer study is required for the completed Dataset 2 MVP.
 
 ## Delivery priorities
 
-The relative 12-week target is not calendar progress or permission to skip evidence:
-weeks 1–2 ingestion/audit; week 3 cutoff/splits/scalar baselines; week 4 trajectories/
-LightGBM; week 5 held-out comparisons; week 6 uncertainty/measurement/explanation/
-dashboard and credible v0.1; weeks 7–8 process/assembly source selection and study;
-weeks 9–10 semiconductor; weeks 11–12 demo/résumé polish and only useful optional
-work. Do not restart completed foundation work.
-
-Apply at credible v0.1 or earlier with presentable evidence; continue improving.
-An imminent semiconductor interview may bring Bosch forward once prerequisites
-pass, without waiting for engineering extras or pharma. Use past tense only for
-verified results and never invent performance figures.
+The Dataset 2 MVP is complete. The next decision is source admission for a
+process/assembly study or semiconductor transfer. Each study requires a supported
+quality target, source interpretation and valid evaluation design before modeling.
+Engineering demonstrations and further domain transfers remain optional; they do
+not gate the completed result. The [roadmap](implementation-roadmap.md) records
+current progress and the next source decision.

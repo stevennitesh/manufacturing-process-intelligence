@@ -89,32 +89,16 @@ document that this score is unsupported for the intended study, skip M8 and move
 toward M9/M10; do not try additional scores to obtain a pass. A pass only makes M8
 eligible for subsequent planning, not automatically implemented or validated.
 
-## Delivery and evidence
+## Implementation
 
-1. Implement a small scalar selection/conformal/distance workflow using current
-   model builders and row joins. No generic uncertainty framework or new dependency.
-2. Add one reproducible script and ignored `artifacts/m07/` outputs: evaluation
-   predictions/intervals/distances, selected-candidate development predictions and
-   distances, metrics and a compact run record. Include selected settings, all
-   inner scores, calibration counts/radii, screen decisions and source/membership
-   identity. No fitted-model serialization or new artifact registry.
-3. Run the fixed experiment, record findings/limits here and update README/roadmap
-   with the conditional next step. Preserve M4–M6 data, outputs and scientific rules.
-
-Focused synthetic checks must distinguish real failures: independent order-statistic
-interval/coverage calculations (including ties and insufficient calibration), direct
-distance/scaling comparison, identity alignment under shuffling, and the actual
-selection/refit path with nonconstant predictors. Verify that calibration-label
-changes can change q but not the selected model, point predictions, distance or
-development gate; evaluation-label changes can affect only evaluation metrics.
-Changing held-out features cannot change selection or training transformations.
-Test both passing/failing ranking screens and deterministic retained counts/ties.
-Use existing estimator tests for unchanged fitting behavior, not duplicated suites.
-
-Run CI commands and one repeatable real workflow. Independently recalculate saved
-coverage/width, order-statistic radii and screen decisions; compare repeated numeric
-results within 1e-10. Real training stays outside CI. Poor empirical coverage or a
-failed ranking screen is a valid completed result, not permission for more tuning.
+One reproducible script uses the existing scalar model builders and identity joins
+for candidate selection, conformal intervals and distance scoring. Its ignored
+`artifacts/m07/` outputs contain evaluation predictions, intervals and distances;
+selected-candidate development predictions and distances; calibration errors;
+metrics; and a compact run record. The record retains selected settings, all inner
+scores, calibration counts/radii, screen decisions and source/membership identity.
+M4–M6 data and results remain unchanged. Synthetic checks run in CI; real training
+runs locally. Poor coverage and a failed ranking screen remain valid study results.
 
 ## Implemented result
 
@@ -153,8 +137,9 @@ not independent proof.
 
 The fixed five-neighbor standardized Euclidean distance is unsupported for the
 intended selective-measurement study. M8 is skipped, with no search for another
-uncertainty score. Continue to bounded predictive explanation and the dashboard in
-M9/M10 while presenting interval failures and the negative gate result directly.
+uncertainty score. [M9](m09-predictive-explanation.md) and
+[M10](m10-dashboard.md) provide bounded predictive explanation and presentation
+of the interval failures and negative gate result.
 This is failure of the pre-specified conservative criterion, not proof that the
 distance score has no utility in every population or use case.
 The final cross-milestone interpretation and proposed path to broader operating-

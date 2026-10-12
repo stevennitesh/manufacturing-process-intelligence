@@ -1,287 +1,78 @@
 # Manufacturing Process & Quality Intelligence
 
-A manufacturing data-science portfolio investigating a focused question:
-does high-resolution machine telemetry improve part-weight prediction beyond
-cycle-level measurements, such as peak pressure and temperature, and does it generalize
-under controlled process changes?
+Can injection-molding telemetry estimate completed-part weight—and remain reliable
+when process conditions change?
 
-This is a personal résumé/portfolio project: rigorous analysis, reproducible local
-commands and an understandable demo, not a production-grade factory service.
+**[Read the case study →](https://stevennitesh.github.io/manufacturing-process-intelligence/)**
 
-## Result at a glance
+The report presents the problem, my contribution, aggregate charts, results,
+limitations and evidence links.
+The hosted report opens directly in a browser without Python or a data download.
+A [self-contained HTML copy](docs/report/index.html) also opens offline. GitHub
+displays that file as source: download it and open it in a browser, or open it
+after cloning:
 
-**Problem:** Can ordinary injection-molding telemetry estimate completed-part weight,
-and does that accuracy hold when process conditions change?
-
-**Result:** Partial least squares (PLS), a model that combines related machine measurements,
-achieved a **mean absolute error (MAE) of 0.114 g** when training included cycles from every
-experiment group and different cycles were held out for evaluation (*represented conditions*).
-With one entire experiment group excluded from training (*unseen experiment*), MAE was
-**0.523 g**. Both errors are pooled: every evaluated cycle counts equally.
-In the separate uncertainty study, intervals intended to contain 90% of measured weights
-contained **86.2%** in the represented-condition benchmark versus **5.2%** under
-whole-experiment holdout.
-Richer pressure/flow representations sometimes helped, but not consistently across the
-three held-out conditions.
-
-**Practical implication:** Accurate prediction within represented conditions did not establish
-reliable prediction for an unseen experiment. Adding detailed signals or more complex models
-did not consistently solve that transfer problem. The check for identifying more reliable
-predictions also failed its acceptance criterion, so physical measurement cannot be safely
-skipped on the strength of this study.
-
-```mermaid
-flowchart LR
-    data["829 molded parts<br/>machine scalars + pressure/flow"]
-    split["Train on represented groups<br/>test on the held-out experiment"]
-    compare["Compare scalar and<br/>trajectory models"]
-    reliable["Calibrate intervals and<br/>test reliability under shift"]
-    data --> split --> compare --> reliable
+```powershell
+Invoke-Item docs/report/index.html
 ```
 
-![Dashboard summary of the loaded Dataset 2 evidence](docs/images/dashboard-overview.png)
+## Main finding
 
-### How to read the numbers
+Prediction was accurate within represented conditions but did not transfer reliably
+to an omitted experiment. More detailed signals and nonlinear models did not consistently
+solve the transfer problem.
 
-| Term | Meaning |
-| --- | --- |
-| MAE | Average absolute weight-prediction error in grams; lower is better. |
-| Pooled | Every evaluated cycle contributes equally. |
-| Equal-experiment | Each held-out experiment contributes equally, regardless of its cycle count. |
-| Interval coverage | Fraction of measured weights inside their prediction intervals. |
+| Evidence | Represented conditions | Whole experiment held out |
+| --- | ---: | ---: |
+| Scalar PLS mean absolute error, pooled by cycle | 0.114 g | 0.523 g |
+| Separate uncertainty study: coverage of nominal 90% intervals | 86.2% | 5.2% |
+| Evaluated cycles per comparison | 167 | 829 across three holdouts |
 
-The predefined whole-experiment summary was **0.503 g equal-experiment MAE**;
-the **0.523 g pooled MAE** above instead weights experiments by their number of cycles.
-The represented-condition and held-out-condition values come from separately fitted
-pipelines, not a paired causal estimate of shift.
+Mean absolute error (MAE) is the average absolute difference from measured weight;
+lower is better. PLS combines related measurements. The uncertainty branch separately
+selects scalar PLS or LightGBM using development data and reserves calibration rows.
+The predefined equal-experiment PLS MAE is **0.503 g**; pooled MAE instead gives
+every evaluated cycle equal weight.
 
-Dataset 2 provides no authoritative weight specification or tolerance for this study, so
-neither 0.1 g nor 0.5 g MAE can be interpreted as product acceptance or production
-adequacy. These are three specific controlled transfer scenarios—two moisture experiments
-and one mold-temperature experiment—not independent estimates of arbitrary future factory
-changes.
+These are separately fitted retrospective benchmarks, not a paired causal estimate
+or an untouched prospective test. Three controlled experiments do not establish
+factory-wide generalization. No authoritative weight tolerance establishes product
+conformance. The development distance screen failed its predefined criterion, so
+selective measurement was skipped; no safe measurement savings are claimed.
 
-## Dataset and experiment at a glance
+## What I built
 
-Injection molding injects molten plastic into a mold, holds it under pressure, then
-cools and removes the part. Machine pressure, flow, temperature and timing describe
-how it was made. This experiment asks whether those records can estimate its weight
-after the cycle, before using the physical weight measurement. Weight is one quality
-characteristic, not a complete verdict on whether a part is acceptable.
+I implemented source-pinned acquisition and validation, cycle-safe canonicalization,
+a bounded source audit, fixed evaluation memberships, scalar and pressure/flow model
+comparisons, split-conformal intervals, predictive explanations, and the local dashboard
+and static report. The source measurements were collected by **Bogedale et al.** and
+released as **scatimdata Dataset 2**; scikit-learn and LightGBM supply the estimators.
 
-The project uses **scatimdata Dataset 2**: controlled injection-molding runs for a
-stacking-box part made from BASF Ultramid B3EG6, a glass-fiber-reinforced nylon 6 material
-(PA6-GF30). Each labeled machine cycle maps to one molded part.
-Measured weights provide the reference outcomes; the question is whether machine data
-alone could support a future measurement-assistance workflow.
-A **scalar** is one number summarizing a cycle; a **trajectory** is the sequence of
-measurements recorded during it.
+The study uses 829 labeled molded parts, 16 completed-cycle scalar measurements and
+2,048 native-time samples per pressure/flow channel. Ninety-two signal-only cycles
+have no supported weight target and are excluded. Scaling, compression and model
+selection remain within development partitions. Weight and experiment context stay
+out of the predictors. This is completed-cycle virtual measurement, with physical
+weight as the reference outcome.
 
-| Data available for each labeled cycle | How this project uses it |
-| --- | --- |
-| Scalar machine measurements | Sixteen completed-cycle variables, such as injection time, maximum pressure and barrel temperatures, form the scalar baseline. |
-| Injection-pressure and injection-flow trajectories | Each channel has 2,048 native-time samples; engineered and compressed representations test whether signal shape adds transferable information. |
-| Experimental context | Moisture and mold-temperature changes describe the three controlled experiments used to organize analysis and validation. |
-| Physical quality measurements | Measured part weight in grams supplies the reference outcome for training and evaluation. |
+## Inspect the work
 
-There are 829 labeled cycles. Another 92 released signal-only cycles are excluded because
-they have no matching released scalar/quality row and therefore no supported weight target.
+- [Hosted case study](https://stevennitesh.github.io/manufacturing-process-intelligence/): the complete reader-facing story, charts and aggregate tables.
+- [Scalar evidence](docs/milestones/m04-scalar-baselines.md), [trajectory comparison](docs/milestones/m05-trajectory-representations.md) and [LightGBM comparison](docs/milestones/m06-lightgbm-comparison.md): methods and per-experiment results.
+- [Uncertainty and failed screen](docs/milestones/m07-uncertainty-and-shift.md), [predictive explanation](docs/milestones/m09-predictive-explanation.md): what the reliability checks support.
+- [Dataset contract](docs/datasets/injection-molding-source-contract.md): source identity, joins, unresolved units and limitations.
+- [Implementation](src/mpi/) and [synthetic tests](tests/unit/): the engineering work behind the study.
 
-### How the three experiments differ
+The Dataset 2 study is complete. Later manufacturing transfer studies remain planned
+in the [roadmap](docs/implementation-roadmap.md); the [specification](docs/spec.md)
+owns scientific scope. The [dashboard milestone](docs/milestones/m10-dashboard.md)
+records the study flow, presentation surfaces and proposed follow-up.
 
-| Source experiment | Labeled cycles | Observed controlled context | Mean weight | Distinguishing evidence |
-| ---: | ---: | --- | ---: | --- |
-| 15 | 303 | Moisture changes | 115.956 g | Highest mean weight. |
-| 20 | 223 | Moisture changes | 115.237 g | Broader cycle-to-cycle pressure/flow-summary variation than experiment 23. |
-| 23 | 303 | Mold-temperature changes | 114.308 g | Lowest and narrowest weight distribution; higher mean pressure and lower mean flow than experiments 15/20. |
-
-Each experiment contains several intervention settings. Validation withholds the whole
-experiment, including all its settings and cycles.
-These are source experiment groups, not verified production-day labels. The context runs
-describe deliberate interventions, but other process measurements move with them; the
-observed differences do not establish that moisture or mold temperature alone caused the
-weight changes.
-
-<details>
-<summary>Dataset details and source limitations</summary>
-
-Released moisture settings are 0.050 → 0.100 → 0.150 for experiment 15 and
-0.086 → 0.180 → 0.046 for experiment 20. The first two experiment-15 values differ
-from the paper and remain unresolved. Experiment 23 has mold-temperature settings
-80 → 90 → 70; their interpretation as °C is consistent with the paper but inferred.
-Some context fields are missing; the source also includes a charge/batch field.
-Three geometry fields are not modeled because their released scale and mapping are
-not authoritative. Pressure/flow amplitudes remain in **native units**: values
-preserved as released, without a confirmed conversion to engineering units.
-Elapsed time is confirmed in seconds. See the [dataset contract](docs/datasets/)
-for source evidence and limitations.
-
-</details>
-
-### How the data becomes an experiment
-
-The 16 scalars establish the baseline. Engineered and compressed trajectories test whether
-dynamic signal shape improves it. Weight is never used as an input. Experimental context
-defines the held-out groups rather than silently entering the model. Separate calibration
-rows estimate prediction intervals after model fitting.
-The uncertainty branch uses scalar models; it does not select a trajectory model from
-the evaluation results. All dashboard charts read saved outputs from these experiments.
-The [dashboard milestone](docs/milestones/m10-dashboard.md#technical-study-flow) retains
-the detailed study flow and evaluation boundaries.
-
-## What this project found
-
-The models predict completed-part weight well on randomly held-out cycles from experiment
-groups represented during training. Accuracy degrades when a whole experiment is withheld.
-Because training and evaluation contain cycles from the same controlled experiment groups,
-the random-cycle benchmark primarily measures interpolation within represented conditions
-and may overstate performance for genuinely new production conditions. The gap between
-these two evaluations is the central result.
-The whole-experiment benchmark is retrospective grouped cross-validation: the initial audit
-examined all three experiments before the later study scope and grouped evaluation design were
-fixed, so these are not untouched prospective tests. The fitting and interval-calibration
-boundaries described below were still respected.
-
-The uncertainty study is not PLS-only: it selects either PLS or LightGBM (a model built
-from decision trees) using development data, then uses separate reserved cycles from the
-represented development experiments to set interval widths. For a whole-experiment test,
-neither model fitting nor calibration uses the excluded experiment. The loaded calibration
-errors produced narrow intervals that did not describe the much larger errors on excluded
-experiments. Its 90% coverage target means nine in ten measured weights should lie inside
-their intervals when calibration and future examples are statistically interchangeable
-(the **exchangeability assumption**). Changing the process conditions does not establish
-that assumption. Calibration learns an error margin from familiar conditions; it does not
-automatically enlarge it when a new condition produces larger errors.
-
-The held-out experiments frequently extended beyond process-variable ranges seen during
-fitting, so the models faced extrapolation pressure. That shift co-occurs with the errors;
-this experiment does not prove that range departure alone caused them.
-About **70.45% of observed weight variation was between the three experiment groups**.
-That large group separation can make pooled validation—especially pooled R²—look much
-stronger when all conditions are represented, motivating the whole-experiment holdout.
-
-The [original study](https://pmc.ncbi.nlm.nih.gov/articles/PMC9959070/) used repeated
-random cross-validation and asked whether high-resolution pressure and flow improve
-prediction within the available mixture of conditions. This project asks a harder
-transfer question by withholding a complete experiment. Its feature and model setup
-also differs, so this is an extension rather than an exact replication. The results
-support different claims and do not contradict the paper.
-
-### What was learned
-
-- **Validation design changes the conclusion.** Excellent pooled performance partly
-  reflected separation between conditions and did not imply reliable transfer.
-- **Complexity did not replace condition coverage.** Scalar PLS had the lowest grouped
-  aggregate error among the predefined comparisons; LightGBM and additional trajectory
-  representations did not improve every held-out condition.
-- **A key failure was systematic.** Scalar PLS underpredicted every experiment-23
-  part by 0.798 g on average, while intervals averaging 0.550 g wide covered only 0.3%.
-- **Predictive explanations were population-specific.** Correlated temperature channels
-  often acted as condition proxies, and the most important feature changed across evaluated
-  populations; no universal or causal sensor ranking was established.
-- **Input novelty is not the same as prediction risk.** A cycle can look unfamiliar
-  without a simple distance score reliably identifying whether its weight prediction
-  will be wrong.
-
-This project evaluates **completed-cycle virtual measurement**: software estimates a
-physical part-weight measurement from machine data after molding. It does not select one
-global production model and is not an early-cycle controller, root-cause model,
-product-conformance decision, setting recommender or validated replacement for physical
-measurement.
-
-### Could screening justify testing whether some measurements could be skipped?
-
-The uncertainty study tested one simple measure of unfamiliarity. Each process feature
-was rescaled using training data so large numerical units would not dominate. The score
-was the average distance to the five most similar training cycles. Before final evaluation,
-keeping only the closest 75% of development predictions had to reduce MAE by at least 10%
-in every held-out-experiment setup.
-
-| Experiment excluded from development | Experiments used for screening | Mean development MAE reduction | Criterion met? |
-| --- | --- | ---: | --- |
-| 15 | 20 and 23 | 19.66% | Yes |
-| 20 | 15 and 23 | 4.31% | **No** |
-| 23 | 15 and 20 | 16.31% | Yes |
-
-These screening results use only the listed development experiments; they are not
-measurements of screening performance on the excluded experiment. Relative error reductions
-are averaged equally across the two development-validation directions.
-
-Because one setup failed, the project stopped before testing how prediction error changes
-as more questionable predictions are routed to physical measurement. It makes no claim
-that physical measurement could safely be skipped. The pre-specified study stopped after this
-failed screen; a separately designed follow-up could evaluate other warning methods.
-Observed input-range departures are evidence of unfamiliar inputs, but do not establish
-reliable error ranking or a working temporal drift detector.
-
-### What to do next
-
-The study does not justify replacing physical measurement. A follow-up should test whether
-broader labeled process conditions improve transfer and recalibration.
-
-1. **Expand the labeled operating envelope—the combinations and ranges of process
-   conditions for which the model has labeled examples and validation evidence.** Sample
-   its boundaries, interior and important combinations across material lots, recipes,
-   machines and process settings. Test whether broader condition coverage improves transfer
-   more than collecting additional cycles from familiar conditions; this study did not
-   compare those data-collection strategies.
-2. **Keep condition-held-out validation.** Hold out complete conditions, lots or machines
-   so within-condition accuracy cannot conceal transfer failure.
-3. **Validate guardrails prospectively.** Warn when inputs approach or leave the supported
-   envelope, physically measure unsupported cases, and use those outcomes to test errors,
-   interval coverage and recalibration before automating any measurement decision.
-
-<details>
-<summary>Future monitoring and intended-use controls</summary>
-
-An input-drift warning means the model may be outside its validated use; it does not mean
-the part is defective. Data-quality, operating-context and process-distribution changes
-could be checked when inputs arrive. Actual performance and interval-calibration drift require
-later measured weights. This dataset lacks authoritative wall-clock chronology, so it
-cannot validate temporal drift detection or warning delay.
-
-A future system could distinguish **represented**, **boundary/drift warning** and
-**unsupported** operation, but thresholds must be selected on development data and
-validated prospectively. It would also need an enforceable intended-use contract covering
-the supported machine, mold, material and target; required inputs and units; operating
-envelope; validated performance; calibration date; measurement policy; and refusal rules.
-
-The intended loop is: **build the envelope → predict inside it → warn near or outside it
-→ physically measure unsupported cases → expand and recalibrate**.
-
-</details>
-
-### Dashboard preview
-
-<details>
-<summary>Prediction: within-regime accuracy versus unseen-experiment generalization</summary>
-
-![Scalar baseline MAE for represented conditions and unseen experiments, both pooled by cycle](docs/images/dashboard-prediction.png)
-
-</details>
-
-<details>
-<summary>Reliability: nominal versus observed interval coverage</summary>
-
-![Nominal 90 percent coverage compared with held-out and ID experiment coverage](docs/images/dashboard-reliability.png)
-
-</details>
-
-Screenshots show this project's analysis and visualization of **scatimdata Dataset 2**,
-by Bogedale et al., from the [pinned source](https://github.com/sc4t1m/scatimdata/tree/7bd35941d75c97a3f276439377dc430ab47402be),
-licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-The source data were transformed into English-named canonical tables and analyzed
-by this project; these are not publisher figures. See [data licensing](DATA_LICENSES.md)
-and [local dashboard instructions](#run-the-dataset-2-dashboard).
-
-The completed study includes reproducible ingestion, audit, scalar and trajectory
-comparisons, uncertainty, predictive explanation and this dashboard. Selective
-measurement was skipped after its prerequisite failed.
-
-See the [implementation roadmap](docs/implementation-roadmap.md) for the current
-milestone, subsystem status, and acceptance gates. The
-[project specification](docs/spec.md)
-is the canonical scope authority.
+The report and dashboard screenshots are this project's derived summaries of
+[scatimdata Dataset 2](https://github.com/sc4t1m/scatimdata/tree/7bd35941d75c97a3f276439377dc430ab47402be),
+by Bogedale et al., licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+Source data were transformed into English-named canonical tables and analyzed here;
+these are not publisher figures. See [DATA_LICENSES.md](DATA_LICENSES.md).
 
 ## Development setup
 
@@ -313,6 +104,25 @@ Install the Git hooks after syncing:
 ```powershell
 uv run pre-commit install
 ```
+
+### Regenerate the HTML presentation
+
+After producing the saved study evidence below, run:
+
+```powershell
+uv run python scripts/render_portfolio_report.py
+Invoke-Item docs/report/index.html
+```
+
+The renderer reads the prepared bundle and saved M4–M7/M9 outputs through the
+dashboard's source/membership checks. It writes a single HTML file with inline
+styles, aggregate charts and tables. It does not train models or download data.
+Use `--output <path>` to render a comparison copy. The template is
+`docs/report/template.html`; review its interpretation when the scientific study changes.
+
+A fresh clone can read the committed report and milestone summaries immediately.
+Regenerating the report requires local saved artifacts; the full sequence below
+reproduces those inputs. The tracked audit notebook has no saved outputs.
 
 ## Command line interface
 
@@ -368,6 +178,7 @@ uv run python scripts/run_trajectory_representations.py
 uv run python scripts/run_lightgbm_comparison.py
 uv run python scripts/run_uncertainty_shift.py
 uv run python scripts/run_predictive_explanation.py
+uv run python scripts/render_portfolio_report.py
 uv run streamlit run src/mpi/dashboard.py --browser.gatherUsageStats false
 ```
 

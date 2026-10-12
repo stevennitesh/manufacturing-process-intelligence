@@ -101,7 +101,7 @@ to `artifacts/**`, and documentation links were checked against their local
 targets. No models, derived trajectory features or performance claims were
 produced.
 
-## Interpretation and next step
+## Interpretation and downstream use
 
 This is leave-one-experiment-out grouped cross-validation, not a pristine prospective
 holdout: M2 inspected targets and associations in all three experiments. Fold-local
@@ -115,7 +115,7 @@ Define M5 features and M6 search choices from physical reasoning, existing M2
 exploration and fold-local development evidence, not M4 outer residuals or errors.
 Record precise candidate definitions before their outer evaluation. Any later
 outer-result-driven redesign must be reported as exploratory, not confirmation.
-No new dataset, model, feature search or unit-resolution work is required here.
-Next: M4 Mean, Ridge and PLS scalar baselines. Model matrices contain only the
+The [M4 Mean, Ridge and PLS scalar baselines](m04-scalar-baselines.md) use this
+contract. Model matrices contain only the
 16 allowlisted scalars: `select_scalar_predictors()` excludes join identifiers;
 callers align rows/targets by identity before selecting predictors.

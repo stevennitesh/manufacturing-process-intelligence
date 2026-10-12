@@ -64,26 +64,17 @@ M2 explored all groups, so this is grouped cross-validation, not an untouched
 prospective test. No features/offsets/grid expansions derived from M4 experiment-23
 errors or M5 outer results. No causal or factory-wide generalization claim.
 
-## Delivery approach and evidence
+## Implementation
 
-1. Implement bounded feature extraction and fold-local representations, reusing
-   M4's actual shared evaluation behavior where useful. Keep routine internal
-   organization flexible; no generic model registry/configuration framework.
-2. Add one reproducible runner and ignored M5 predictions, metrics and run record
-   with definitions, selections, source/membership identity and comparisons.
-3. Verify, run the fixed experiment, and record its results and limitations here;
-   update README and roadmap. No new dependency is expected.
+The reproducible runner performs feature extraction, fold-local compression,
+candidate selection and matched evaluation using shared M4 evaluation behavior.
+Its ignored predictions, metrics and run record retain feature definitions,
+selected settings, source/membership identity and representation comparisons.
+Synthetic checks run in CI; full Dataset 2 training runs locally.
 
-Focused evidence must include shuffled signal/scalar row invariance; independently
-calculated irregular-grid AUC, segment boundaries and slope/quantile summaries;
-training-only scaling and PCA/PLS (including supervised label isolation); unchanged
-selection/predictions when calibration or outer labels are perturbed; and matched
-scalar Ridge predictions against M4. Use synthetic checks for CI, with independent
-small reference calculations for numerical transformations. Run CI commands and
-the real Dataset 2 workflow locally; retain full training outside CI.
-
-LightGBM is M6. Conformal/selective prediction, plots/dashboard expansion, new
-source-unit research, model serialization and further M4 tuning are outside M5.
+[M6](m06-lightgbm-comparison.md) evaluates LightGBM on these fixed representations.
+Conformal uncertainty and error ranking are evaluated separately in
+[M7](m07-uncertainty-and-shift.md).
 
 ## Implemented results
 
@@ -146,5 +137,5 @@ The comparison is confined to the pre-specified summaries, scaling, component
 counts and Ridge grid. Scaling 4,096 sample-position columns can emphasize low-variance
 positions. Three explored experiments and two primary inner groups provide limited
 shift evidence; none of the representations establishes prospective, causal or
-factory-wide generalization. M6 may compare its pre-specified model scope, but these
-outer results do not authorize new feature or grid tuning.
+factory-wide generalization. M6 uses its pre-specified model scope; these outer
+results did not lead to new feature or grid tuning.

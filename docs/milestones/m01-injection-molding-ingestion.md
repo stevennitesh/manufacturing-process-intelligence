@@ -1,6 +1,6 @@
 # M1 — Injection-molding source contract and ingestion
 
-**Status:** complete, including the portfolio-scale simplification follow-up.
+**Status:** complete.
 The [roadmap](../implementation-roadmap.md) owns current cross-milestone position.
 
 ## Outcome and scope
@@ -14,7 +14,6 @@ flowchart LR
     S["✓ Source contract"] --> A["✓ Acquisition"] --> V["✓ Raw validation"]
     V --> C["✓ Canonicalization"] --> P["✓ Persistence + CLI"]
     P --> G["✓ M1 gate"]
-    G --> F["✓ Bounded simplification"]
 ```
 
 ## Current contract
@@ -35,9 +34,7 @@ flowchart LR
   metadata JSON; loading checks schema without repeating the raw audit. Research
   stays in dataset documentation. [README](../../README.md) owns preparation,
   loading and explicit regeneration instructions. Raw/prepared data stay ignored.
-- Source identity, types/nulls, joins and operational semantics remain required.
-  Exact research prose, code-byte fingerprints and historical platform gates are
-  not runtime requirements.
+- Source identity, types/nulls, joins and operational semantics are preserved.
 
 ## English naming and source lineage
 
@@ -51,21 +48,20 @@ contract, not in aliases.
 
 ## Preparation completion evidence
 
-The source manifest is the only acquisition/preparation identity owner; the
-adapter no longer needs a YAML dataset config or a hash of manifest prose.
+The source manifest owns acquisition/preparation identity.
 Prepared reuse compares dataset, candidate, source commit and archive hash.
 Scientific mappings, six-table layout and source checks are unchanged.
 
 All 49 tests, lint, formatting, typing and CLI smoke checks pass. Full-source
 comparison preserves 33,160 scalar cells and 1,697,792 values each for pressure,
-flow and elapsed time, with all 92 exclusions. M1 remains complete and open to
-useful changes. Earlier cleanup reports and pivot records remain in Git history.
+flow and elapsed time, with all 92 exclusions.
 
 The verifier is
 [scripts/verify_injection_molding_canonicalization.py](../../scripts/verify_injection_molding_canonicalization.py).
 
-## Next action
+## Relation to later milestones
 
-Plan M2's bounded audit. M2 must retain source discrepancies and
-interventions without repairing data. M3 owns prediction cutoff, feature allowlist
-and leakage-safe splits; neither is part of this maintenance work.
+[M2's bounded audit](m02-dataset-audit.md) retains source discrepancies and
+interventions without repairing data. [M3](m03-feature-and-evaluation-contract.md)
+defines the prediction cutoff, feature allowlist and leakage-safe splits. Ingestion
+preserves source evidence independently of those modeling decisions.

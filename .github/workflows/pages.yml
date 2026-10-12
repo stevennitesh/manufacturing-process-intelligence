@@ -1,0 +1,77 @@
+name: Publish report
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  package:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    env:
+      RELEASE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - name: Require successful CI for the current main commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          main_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
+          if [[ "$RELEASE_SHA" != "$main_sha" ]]; then
+            echo "::error::The report commit is no longer the head of main."
+            exit 1
+          fi
+          successful_runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&event=push&head_sha=$RELEASE_SHA&status=success&per_page=1" --jq '.workflow_runs | length')"
+          if [[ "$successful_runs" == "0" ]]; then
+            echo "::error::This commit has no successful CI run on main."
+            exit 1
+          fi
+
+      - name: Check out the verified commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+          persist-credentials: false
+
+      - name: Stage the committed report
+        run: |
+          test -s docs/report/index.html
+          mkdir -p "$RUNNER_TEMP/portfolio-site"
+          cp docs/report/index.html "$RUNNER_TEMP/portfolio-site/index.html"
+
+      - name: Upload report
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: ${{ runner.temp }}/portfolio-site
+
+  deploy:
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

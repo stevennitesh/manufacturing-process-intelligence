@@ -68,7 +68,8 @@ descriptively, without rerunning or modifying them.
 There is no global winner selected by outer performance in M6. Preserve development
 scores for subsequent model-selection decisions; the M7 plan must specify its
 development-only selection policy before uncertainty evaluation. Better outer
-scores may describe evidence, not authorize a deployment choice or another search.
+scores provide evaluation evidence; they are not deployment-selection or search
+criteria.
 
 M2 explored all three groups, so this remains grouped cross-validation, not a
 pristine prospective holdout. Nonlinear improvement supports usefulness of the
@@ -77,31 +78,16 @@ concept shift, missing context or representation failure. ID-only improvement is
 not proof that features merely encode regime identity. Three experiments and the
 small predefined searches limit conclusions. No exploratory feature pass is a gate.
 
-## Delivery and verification
+## Implementation
 
-1. Add the LightGBM dependency and locked environment entry. Reuse M5's extraction,
-   fold-local preparation and actual shared reporting where this avoids duplication;
-   routine helper organization is flexible. No registry, generic configuration
-   engine, tuning service, model serialization or new CLI framework.
-2. Implement one reproducible runner and bounded selection/evaluation path. Keep
-   M4/M5 behavior and saved results unchanged when sharing helpers.
-3. Verify and run the fixed real-data experiment; record results/limits here and
-   update README/roadmap. Completed records describe the project, not delivery roles.
+The reproducible LightGBM runner reuses M5 feature extraction, fold-local
+preparation and reporting. LightGBM is pinned in the locked environment. Shared
+helpers preserve M4/M5 behavior and saved results. Synthetic regression checks
+run in CI; full Dataset 2 training runs locally. Improved MAE is not a completion
+criterion: the comparison retains negative and heterogeneous results.
 
-Focused synthetic evidence must exercise the public runner's wiring, preserve unit
-alignment under row shuffling, and show that calibration/evaluation labels cannot
-change selection or predictions. Demonstrate train-local compression and supervised
-PLS label boundaries using existing valid tests plus focused integration checks.
-Independently fit a small direct LightGBM reference from an explicitly constructed
-training matrix to verify selected parameters and predictions; recalculate saved
-metrics/deltas independently. If numerical transformations change, compare against
-M5/reference calculations. Do not duplicate unchanged numerical tests.
-
-Run the repository CI commands plus the real Dataset 2 workflow; compare repeated
-local results at numerical tolerance (1e-10 for predictions/metrics). Full real-data
-training stays out of CI. Scientific success does not require improved MAE; a
-correctly bounded negative result completes M6. Conformal prediction and uncertainty
-ranking belong to M7, not this delivery.
+[M7](m07-uncertainty-and-shift.md) defines development-only model selection,
+conformal prediction and the error-ranking screen separately.
 
 ## Completed results
 
@@ -155,6 +141,6 @@ errors.
 The findings remain limited by three experiments, prior M2 exploration, a small
 fixed grid and large primary fold variation including negative R². Better ID
 performance does not diagnose regime encoding, and the experiment does not isolate
-concept shift, missing operating context or representation failure. M7 must define
-its development-only selection policy before uncertainty evaluation; no M7 model
-choice or conformal implementation is made here.
+concept shift, missing operating context or representation failure. M7's
+development-only selection policy preceded its uncertainty evaluation; M6's
+outer results were not used to select a global model.

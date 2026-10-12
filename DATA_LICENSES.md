@@ -9,7 +9,7 @@ Before adding a dataset adapter or download command:
 3. document whether raw or derived data may be redistributed;
 4. keep raw, interim, and processed data outside Git unless redistribution is explicitly permitted;
 5. commit acquisition instructions, schemas, manifests, small synthetic test fixtures,
-   and the attributed portfolio screenshots permitted below, not dataset tables.
+   and the attributed rendered portfolio evidence permitted below, not dataset tables.
 
 ## High-resolution injection molding — admitted MVP source
 
@@ -28,8 +28,10 @@ Before adding a dataset adapter or download command:
   attribution, license/source link, and modification-notice conditions.
 - **Repository policy:** raw and prepared data remain outside Git. Only the verified
   source contract, acquisition manifest, schemas, instructions, and synthetic fixtures
-  may be version controlled, plus the user-requested dashboard screenshots in
-  `docs/images/` with source attribution, license link and transformation notice
-  in the README. This exception covers rendered portfolio evidence, not raw data,
-  prepared tables or generated result artifacts. The project policy remains
-  intentionally stricter than the source license.
+  may be version controlled, plus the attributed dashboard screenshots in
+  `docs/images/` and the self-contained HTML report in `docs/report/index.html`.
+  The report includes aggregate charts and tables, not cycle-level records.
+  Source attribution, license/source links and transformation notices appear in
+  the report and README. This exception covers rendered portfolio evidence, not
+  raw data, prepared tables or numeric experiment-state artifacts. The project
+  policy remains intentionally stricter than the source license.

@@ -25,7 +25,7 @@ flowchart LR
 - `uv run ruff check .` passes.
 - `uv run pyright` passes.
 - GitHub Actions runs the locked installation, checks, and CLI smoke test.
-- `main` is tracked on GitHub; repository visibility is a separate publication decision.
+- `main` is tracked on GitHub.
 
 The [implementation roadmap](../implementation-roadmap.md) owns the current
 cross-milestone status.

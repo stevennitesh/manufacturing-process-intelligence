@@ -10,48 +10,36 @@ weight varies usefully, how experiments differ, which scalar associations merit
 investigation, what trajectories contain, and what availability evidence remains
 unresolved. Negative findings are valid; this is analysis, not model selection.
 
-Scope comes from the user's M2 audit brief and [specification](../spec.md).
+Scope follows the [specification](../spec.md).
 The [source contract](../datasets/injection-molding-source-contract.md) owns meaning
 and limitations; [M1](m01-injection-molding-ingestion.md) owns ingestion evidence.
 
-### Required audit
+### Audit coverage
 
-1. Load the existing prepared bundle. Show 829 labeled cycles, experiment counts
-   15/20/23 = 303/223/303, 2,048 pressure/flow samples per cycle, 92 exclusions and
-   zero missing weights. This is a reader-facing snapshot, not another raw audit.
-2. Summarize weight in grams overall and per experiment: count, mean, median,
-   standard deviation, IQR, min/max, histogram and boxplot. Quantify outlier flags
-   descriptively with a stated rule; do not remove records or invent tolerances.
-3. Inventory all 31 retained process scalars: missingness, unique counts,
-   mean/std/range, per-experiment distributions, weight associations overall and
-   within experiments, redundancy and experiment dependence. Flag constants and
-   near-constants using an explicit descriptive definition, not a feature filter.
-   Keep the overview readable; full compact tables may accompany selected plots.
-4. Keep experiment ID, moisture, mold-temperature context and charge codes separate
-   from predictors. Compare between-experiment and within-experiment weight
-   variation descriptively; do not present explained variation as a causal effect.
-5. For each pressure/flow channel and experiment, show seeded cycle examples,
-   mean, 10th–90th percentile envelope and standard deviation over native elapsed
-   time. Derive only audit means, maxima and trapezoidal AUC per cycle and compare
-   their distributions by experiment. AUC uses actual irregular timestamps; these
-   summaries are not the M5 feature contract. Signal amplitude units stay unknown.
-6. Examine weight and a small number of process measurements across the observed
-   moisture/temperature intervention segments in source order. Preserve experiment
-   15's paper/release discrepancy and context nulls. No fabricated calendar days,
-   repaired values, inferred physical phase boundaries or causal claims.
-7. Produce an exhaustive field inventory covering all 40 source scalars and the
-   required pressure/flow channels, with source/canonical name, meaning, availability
-   evidence, leakage risk and provisional M3 disposition. Families may share reasons,
-   but individual fields must remain traceable. Distinguish candidate process,
-   context-only, outcome/identity exclusion and unresolved/deferred fields.
-   Record optional cavity/state groups as deferred rather than decoding them.
-   Complete-cycle availability is a hypothesis for M3, not an approved cutoff.
-8. Quantify experiment shift with a small interpretable effect-size summary:
-   pairwise standardized mean differences suffice. Define denominator and handling
-   of zero variance/missing values. No hypothesis-test battery is required.
-9. Summarize evidence-backed answers and unresolved questions for M3 in this file.
-   Correlations across all data are exploratory, not predictive performance or
-   permission to choose outer folds based on their eventual results.
+The notebook summarizes prepared-data counts, weight distributions and descriptive
+outlier flags, all 31 retained process scalars, their pooled and within-experiment
+weight associations, redundancy and experiment dependence. Constant and 95%-modal
+near-constant flags are descriptive, not feature-selection rules. No records are
+removed and no product tolerances are invented.
+
+Pressure and flow views include seeded cycle examples, means, 10th–90th percentile
+envelopes and standard deviations on native elapsed time. Audit means, maxima and
+trapezoidal AUC use actual irregular timestamps; they do not define M5's features.
+Signal amplitude units remain unknown. Source-order intervention views preserve
+experiment 15's paper/release discrepancy and context nulls without inventing days,
+physical phase boundaries or causal effects.
+
+The field inventory traces all 40 source scalars and the required pressure/flow
+channels through source names, canonical names, meaning, availability evidence,
+leakage risk and provisional modeling disposition. Experiment ID, moisture,
+mold-temperature context and charge codes remain separate from predictors.
+Optional cavity/state groups remain deferred. Complete-cycle availability was a
+hypothesis for M3 to assess, not an approved cutoff in this audit.
+
+Pairwise standardized mean differences describe experiment shift. Between- and
+within-experiment weight variation and all-data correlations remain exploratory;
+they do not measure predictive performance, identify causes or justify selecting
+outer folds for favorable outcomes.
 
 ## Implementation
 
@@ -60,7 +48,7 @@ to cycle identity and sorted by source cycle position and sample index before
 reshaping; physical-phase labels and resampling are not introduced. The tracked
 notebook has no outputs; generated figures and tables remain under `artifacts/`.
 
-## Findings and handoff
+## Findings
 
 The audit is implemented in
 [`notebooks/m02_injection_molding_audit.ipynb`](../../notebooks/m02_injection_molding_audit.ipynb)
@@ -128,12 +116,12 @@ an accepted feature set or validation design.
   and optional cavity/state groups remain unresolved/deferred. M3 must decide the
   cutoff and confirm measurement completion before admitting any candidate.
 
-### Questions handed to M3 at audit completion
+### Decisions reserved for M3
 
-M3 must choose the prediction cutoff, verify availability at that cutoff, freeze
-the scalar and trajectory allowlists, and define leakage-safe tuning/calibration
-within leave-one-experiment-out evaluation. It must also decide how to handle
-near-duplicate experiment proxies without consulting eventual holdout results.
+The audit left the prediction cutoff, availability at that cutoff, scalar and
+trajectory allowlists, and leakage-safe tuning/calibration within
+leave-one-experiment-out evaluation to M3. Handling near-duplicate experiment
+proxies also required a decision before consulting eventual holdout results.
 Moisture, mold temperature, charge and experiment ID remain context, not default
 predictors. No split, model, tolerance, geometry role, integral-state decoding or
 complete-cycle policy is accepted by M2.
@@ -164,5 +152,6 @@ were identical to the original ordered-bundle results. The full notebook execute
 again successfully; the tracked copy remains output-free.
 
 The audit's all-experiment exploration is descriptive, not an untouched holdout.
-M3 now owns the cutoff, feature eligibility and evaluation memberships; see the
-[M3 contract](m03-feature-and-evaluation-contract.md). Next: scalar baselines in M4.
+The completed [M3 contract](m03-feature-and-evaluation-contract.md) defines the
+cutoff, feature eligibility and evaluation memberships used by the
+[M4 scalar baselines](m04-scalar-baselines.md).

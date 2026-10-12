@@ -2,7 +2,7 @@
 
 This is the concise status view of the
 [project specification](spec.md).
-The plan owns scope and acceptance criteria; this roadmap owns current position.
+The specification owns scope and acceptance criteria; this roadmap owns current position.
 
 **Current position:** Milestones 0 and 1 are complete. The injection-molding source
 contract, reproducible Dataset 2 acquisition, raw validation, canonicalization and
@@ -20,12 +20,15 @@ complete. Primary interval coverage was poor and the simple distance score faile
 its development gate, so M8 is skipped. The
 [M9 bounded predictive explanation](milestones/m09-predictive-explanation.md) and
 [M10 offline dashboard](milestones/m10-dashboard.md) are complete. The bounded
-Dataset 2 MVP now has a local portfolio presentation; the next decision is the
+Dataset 2 MVP now has a self-contained HTML case study and a local dashboard;
+the [hosted HTML report](https://stevennitesh.github.io/manufacturing-process-intelligence/)
+is the primary outside-reader presentation, with an [offline copy](report/index.html).
+The next decision is the
 post-MVP source audit gate.
 The adapter retains all admitted source evidence
 while enforcing the weight-only MVP policy boundary.
 The [all-candidate source refresh](datasets/injection-molding-source-contract.md#all-candidate-evidence-refresh--2026-09-12)
-has been incorporated into that plan; Dataset 1/3 remain inspected, not admitted.
+has been incorporated into the source contract; Dataset 1/3 remain inspected, not admitted.
 
 **Accepted scope:** v0.1 tests Dataset 2 part-weight prediction under experiment
 shift: scalar versus engineered/compressed trajectories, conformal uncertainty
@@ -51,19 +54,19 @@ flowchart TB
     AUDIT{"○ Source decision gate<br/>PyScrew vs CiP-DMD<br/>Cross-process-chain audit"}
     PI["v0.2 · Process / Assembly Intelligence<br/>○ Selected adapter, SPC/MSPC, anomalies, supported diagnostics"]
     SEMI["v0.3 · Semiconductor Transfer<br/>○ Bosch Plasma source gate, virtual metrology and shift study"]
-    PROD["v0.4 · Optional Engineering Demo<br/>○ Select a role-relevant capability, not a production platform"]
+    PROD["v0.4 · Optional Engineering Demo<br/>○ Capability with a justified local use"]
     PHARMA["v0.5 · Optional Regulated Transfer<br/>○ Pharmaceutical batch quality and genealogy"]
     ADV["v0.6 · Optional Advanced Manufacturing<br/>○ Additional transfer case only if earlier gates justify it"]
 
     F --> MVP --> AUDIT --> PI --> SEMI --> PROD --> PHARMA --> ADV
 ```
 
-Apply at a credible v0.1 (target week 6); later source audits and the semiconductor
-case study strengthen the story. Semiconductor work can be prioritized for an
-interview once prerequisites pass, without requiring productionization first.
-Pharma/advanced manufacturing are optional in the first three months. The
-[specification](spec.md#delivery-priorities) owns the relative 12-week schedule. SoliDAIR is retired
-from the required core. No new source is admitted by this roadmap.
+The completed v0.1 study is available through the HTML report and reproducible
+local workflow. Later process/assembly and semiconductor studies depend on their
+source audits; optional engineering and further domain transfers follow only when
+they answer a useful question. The [specification](spec.md#delivery-priorities)
+describes that progression. SoliDAIR is outside the required core. No new source
+is admitted by this roadmap.
 
 ## Milestone drill-downs
 
